@@ -1,3 +1,5 @@
+import Logo from "@/src/utils/logo";
+import Link from "next/link";
 
 
 
@@ -11,26 +13,10 @@ const navLinks = [
 
 export default function Navbar() {
   return (
-    <nav dir="rtl" className="w-full border-b border-slate-200 bg-white text-slate-900 shadow-sm">
+    <nav dir="rtl" className="w-full border-b border-slate-200 bg-white text-slate-900 shadow-sm">x 
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-6 lg:px-8">
-        <a href="#" className="flex items-center gap-3 text-right">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 shadow-sm">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5 text-white"
-              aria-hidden="true"
-            >
-              <path d="M3 7h11l3 4h4l-2 4H8" />
-              <circle cx="9" cy="18" r="1.7" fill="currentColor" stroke="none" />
-              <circle cx="18" cy="18" r="1.7" fill="currentColor" stroke="none" />
-            </svg>
-          </span>
-          <span className="text-[16px] font-extrabold text-slate-900">LogiFlow</span>
+        <a href="/" className="flex items-center gap-3 text-right">
+          <Logo />
         </a>
 
         <div className="hidden flex-1 items-center justify-center gap-6 md:flex">
@@ -48,12 +34,12 @@ export default function Navbar() {
         </div>
 
         <div className="mr-auto flex items-center gap-2">
-          <button className="flex h-[34px] items-center rounded-lg border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+          <Link href="/NewOrder" className="flex h-[34px] items-center rounded-lg border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
             إنشاء  طلب جديد
-          </button>
-          <button className="flex h-[34px] items-center rounded-lg bg-blue-600 px-3 text-[13px] font-bold text-white shadow-sm transition hover:bg-blue-700">
+          </Link>
+          <Link href="/login" className="flex h-[34px] items-center rounded-lg bg-blue-600 px-3 text-[13px] font-bold text-white shadow-sm transition hover:bg-blue-700">
             تسجيل الدخول ←
-          </button>
+          </Link>
         </div>
       </div>
     </nav>

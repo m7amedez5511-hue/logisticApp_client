@@ -1,8 +1,4 @@
 "use client";
-// ─────────────────────────────────────────────
-// clientAdress.tsx
-// خطوة 2: اختيار أو إضافة عنوان التوصيل
-// ─────────────────────────────────────────────
 import React, { useState, useEffect, type FC } from "react";
 import { type ClientSession } from "@/src/utils/helperFun";
 import Spinner from "../Spinner/spinner";
@@ -123,21 +119,21 @@ const AddressStep: FC<AddressStepProps> = ({ session, onSuccess }) => {
     city: "", district: "", street: "", buildingNo: "", unitNo: "", zipCode: "",
   });
 
-  // جلب العناوين المحفوظة من الـ API
+  // get saved addresses on mount
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch(`${API_BASE}/client/${session.id}/addresses`);
         const data = await res.json();
         if (res.ok) {
-          // الـ API يُرجع: { addresses: [...] } أو مصفوفة مباشرة
+          // api might return either { addresses: [...] } or just [...]
           const list: ClientAddress[] = Array.isArray(data) ? data : (data.addresses ?? []);
           setSavedAddresses(list);
-          // اختر الأول تلقائيًا إن وُجد
+          // auto-select first address if available
           if (list.length > 0) setSelectedId(list[0]._id);
         }
       } catch {
-        // في حالة فشل الجلب نعرض النموذج مباشرة
+        // ignore fetch errors, user can add address manually
         setShowNew(true);
       } finally {
         setLoadingAddrs(false);
@@ -169,7 +165,7 @@ const AddressStep: FC<AddressStepProps> = ({ session, onSuccess }) => {
 
   const handleNext = async () => {
     if (selectedId) {
-      // عنوان محفوظ مختار — انتقل مباشرة
+      // existing address selected → proceed without API call
       setLoading(true);
       await new Promise(r => setTimeout(r, 400));
       setLoading(false);
@@ -229,7 +225,7 @@ const AddressStep: FC<AddressStepProps> = ({ session, onSuccess }) => {
         </div>
       )}
 
-      {/* حالة التحميل */}
+      {/* loading state */}
       {loadingAddrs ? (
         <div className="flex items-center justify-center py-8 gap-2">
           <Spinner />
@@ -237,7 +233,7 @@ const AddressStep: FC<AddressStepProps> = ({ session, onSuccess }) => {
         </div>
       ) : (
         <>
-          {/* العناوين المحفوظة */}
+          {/* saved addresses */}
           {savedAddresses.length > 0 && (
             <div className="mb-5">
               <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wide mb-2">العناوين المحفوظة</p>
@@ -296,7 +292,7 @@ const AddressStep: FC<AddressStepProps> = ({ session, onSuccess }) => {
             </div>
           )}
 
-          {/* زر إضافة عنوان جديد */}
+          {/* new address button */}
           <button
             type="button"
             onClick={() => { setShowNew(v => !v); setSelectedId(null); }}
@@ -314,7 +310,7 @@ const AddressStep: FC<AddressStepProps> = ({ session, onSuccess }) => {
             إضافة عنوان جديد
           </button>
 
-          {/* نموذج العنوان الجديد */}
+          {/* new address form */}
           {showNew && (
             <div className="mt-4 border border-[#E5E7EB] rounded-xl p-4 bg-[#FAFAFA] flex flex-col gap-3">
               <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wide">تفاصيل العنوان الجديد</p>

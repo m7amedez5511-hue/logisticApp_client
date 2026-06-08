@@ -10,7 +10,7 @@ const Logo: FC = () => (
         <circle cx="20" cy="21" r="1" />
       </svg>
     </div>
-    <span className="font-bold text-[15px] text-[#111827]">Slash.so</span>
+    <span className="font-bold text-[15px] text-[#111827]">Slash.sa</span>
   </div>
 );
 

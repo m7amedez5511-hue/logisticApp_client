@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { getDashboardSummary, type DashboardSummaryResponse } from "../../src/lib/api";
-import { getStoredToken } from "../../src/lib/auth";
+import { clearAuth, getStoredToken, getStoredUser } from "../../src/lib/auth";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -17,7 +17,15 @@ export default function DashboardPage() {
       router.replace("/login");
       return;
     }
-
+    
+    // FIX: Implement role-based access control by checking the authenticated user's role from localStorage. Only users with "user" or "admin" roles can access the dashboard. If the role is missing or not allowed, clear the auth state and redirect to login.
+    const storedUser = getStoredUser(); // add this import at top of file
+    const role = typeof storedUser?.role === "string" ? storedUser.role : "";
+    if (!role || ["driver", "سائق"].includes(role)) {
+      clearAuth(); // add this import at top of file
+      router.replace("/login");
+      return;
+    }
     let mounted = true;
 
     async function load() {
@@ -87,7 +95,7 @@ export default function DashboardPage() {
                     <p className="text-sm uppercase tracking-[0.25em] text-cyan-200">الرحلات النشطة</p>
                     <h2 className="mt-2 text-xl font-semibold text-white">تقدم الرحلات</h2>
                   </div>
-                  <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">مباشر من /v1/dashboard/summary</span>
+                  <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">مباشر من /dashboard/summary</span>
                 </div>
                 <div className="mt-6 space-y-4">
                   {activeTrips.length ? activeTrips.map((trip) => (

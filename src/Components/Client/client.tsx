@@ -1,19 +1,13 @@
 "use client";
-// ─────────────────────────────────────────────
-// client.tsx
-// خطوة 1: تسجيل العميل الجديد
-// ─────────────────────────────────────────────
+
 import React, { useState, type FC, type FormEvent } from "react";
 import { saveSession, type ClientSession } from "@/src/utils/helperFun";
 import Spinner from "../Spinner/spinner";
 
-// ────────────────────────────────────────────────────────────
-// API_BASE يُقرأ من متغيرات البيئة
-// في ملف .env.local:  NEXT_PUBLIC_API_BASE_URL=https://logiapi.slash.sa/api/v1
-// ────────────────────────────────────────────────────────────
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
 console.log("API_BASE:", API_BASE);
- // تأكد من أن المتغير محمّل بشكل صحيح
+ //make sure API_BASE ends without slash
 // ─── Types ───────────────────────────────────
 interface RegForm {
   name: string;
@@ -131,7 +125,7 @@ const RegisterStep: FC<RegisterStepProps> = ({ onSuccess }) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? "فشل التسجيل");
 
-      // الـ API يُرجع: { id, name, email, phone, ... }
+      // save session and proceed
       const session: ClientSession = {
         id:    data.id ?? data._id,
         name:  data.name,

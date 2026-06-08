@@ -49,11 +49,11 @@ export default function ClientOrderPage() {
     const saved = loadSession();
 
     if (saved?.id && saved.name) {
-      // مستخدم مسجّل بالكامل ← لوحة الطلبات
+      // user has valid session → dashboard
       setSession(saved);
       setStep("dashboard");
     } else {
-      // مستخدم جديد أو جلسة منقوصة ← صفحة التسجيل
+      // new or invalid session → register
       setStep("register");
     }
   }, []);

@@ -1,9 +1,4 @@
-// ─────────────────────────────────────────────
-// helperFun.ts
-// دوال مساعدة مشتركة: session، cookies، تنسيق
-// ─────────────────────────────────────────────
-
-// ─── ثوابت ───────────────────────────────────
+// ─── fexed ───────────────────────────────────
 export const SESSION_KEY    = "lf_client";
 export const SESSION_COOKIE = "lf_client_id";
 
@@ -52,7 +47,7 @@ export function clearSession() {
   deleteCookie(SESSION_COOKIE);
 }
 
-// ─── تنسيق التاريخ والمبالغ ──────────────────
+// ─── Formatting ──────────────────────────────
 export function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("ar-SA", {
     year: "numeric",
@@ -65,7 +60,7 @@ export function fmtAmount(n: number) {
   return `${n.toFixed(2)} ر.س`;
 }
 
-// ─── حالة الطلب ──────────────────────────────
+// ─── Order Status ──────────────────────────────
 export type OrderStatus = "CREATED" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
 
 export function statusColor(status: OrderStatus) {

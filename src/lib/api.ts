@@ -1,12 +1,3 @@
-// ─────────────────────────────────────────────
-// src/lib/api.ts
-// HTTP client مركزي — كل الطلبات تمر من هنا
-// ─────────────────────────────────────────────
-
-// في .env.local:
-//   NEXT_PUBLIC_API_BASE_URL=/api/proxy
-// في next.config.ts:
-//   rewrites: [{ source: "/api/proxy/:path*", destination: "https://logiapi.slash.sa/api/v1/:path*" }]
 const DEFAULT_BASE_URL = "/api/proxy";
 
 export const API_BASE_URL =
@@ -16,9 +7,7 @@ function normalizePath(path: string) {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
-// ─── الـ HTTP client المركزي ─────────────────
-// كل الطلبات (بما فيها login) تمر من هنا
-// حتى لا يحصل CORS لأن الطلب يخرج من السيرفر مش المتصفح
+// ─── API REQUESTS ─────────────────────────────
 export async function requestJson<T>(
   path: string,
   init: RequestInit = {},
@@ -51,7 +40,7 @@ export async function requestJson<T>(
       });
 
       if (!response.ok) {
-        // حاول تقرأ الرسالة من الـ JSON أولاً
+        // try to parse error message from response, fallback to status text
         const json = await response.json().catch(() => null);
         const message =
           json?.message ||
@@ -106,7 +95,7 @@ export type DashboardSummaryResponse = {
 
 // ─── API calls ───────────────────────────────
 export async function getDashboardSummary() {
-  return requestJson<DashboardSummaryResponse>("/v1/dashboard/summary");
+  return requestJson<DashboardSummaryResponse>("/dashboard/summary");
 }
 
 export async function getHealth() {
