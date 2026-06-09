@@ -1,44 +1,41 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import "../styles/tokens.css";
 @import "tailwindcss";
 
-:root {
-  --blue: #1A73E8;
-  --blue-dark: #1557B0;
-  --blue-light: #EBF3FF;
-  --green: #34A853;
-  --green-light: #D1FAE5;
-  --amber: #F59E0B;
-  --amber-light: #FEF3C7;
-  --red: #E53935;
-  --red-light: #FEE2E2;
-  --text: #111827;
-  --text-muted: #6B7280;
-  --text-hint: #9CA3AF;
-  --border: #E5E7EB;
-  --surface: #F9FAFB;
-  --white: #fff;
-  --sidebar: 230px;
-  --radius: 10px;
-  --radius-sm: 7px;
-  --font: 'Plus Jakarta Sans', sans-serif;
-  --mono: 'IBM Plex Mono', monospace;
-  --background: #ECEEF2;
-  --foreground: #111827;
+/* ── Base resets ────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html {
+  scroll-behavior: smooth;
+  font-size: 14px;
+  /* RTL is set per route-group layout, not globally */
 }
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; font-size: 14px; }
 body {
   margin: 0;
   min-height: 100vh;
-  background: #ECEEF2;
-  color: var(--foreground);
-  font-family: var(--font);
+  background-color: var(--color-surface-sunken);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Tailwind theme bridge ──────────────────────────── */
+/* Expose CSS variables as Tailwind color utilities.     */
+@theme inline {
+  --color-background: var(--color-surface-sunken);
+  --color-foreground:  var(--color-text-primary);
+  --color-brand:       var(--color-brand-600);
+  --font-sans:         var(--font-sans);
+  --font-mono:         var(--font-mono);
+}
+
+/* ── Focus ring utility ─────────────────────────────── */
+.focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-brand-600);
 }

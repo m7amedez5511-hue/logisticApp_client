@@ -1,77 +1,59 @@
 "use client";
-// ─────────────────────────────────────────────
-// order.tsx
-// خطوة 3: لوحة الطلبات — بيانات حقيقية من الـ API
-// ─────────────────────────────────────────────
-import React, { useState, useEffect, type FC } from "react";
-import {
-  fmtDate,
-  fmtAmount,
-  statusColor,
-  statusLabel,
-  clearSession,
-  type ClientSession,
-  type OrderStatus,
-} from "@/src/utils/helperFun";
-import Spinner from "../Spinner/spinner";
+import React, { type FC } from "react";
+import { useClientOrders }             from "@/hooks/useClientOrders";
+import { fmtDate, fmtAmount }          from "@/lib/formatters";
+import { statusColor, statusLabel }    from "@/lib/order-status";
+import { clearSession, type ClientSession } from "@/lib/session";
+import type { OrderStatus }            from "@/types/client";
+import { Spinner }                     from "../../Components/UI";
 
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
-
-// ─── Types ───────────────────────────────────
-export interface Order {
-  id: string;
-  createdAt: string;
-  status: OrderStatus;
-  totalAmount: number;
-  description: string;
-}
-
-// ─── Order Tracker ───────────────────────────
+// ─── Order status tracker ─────────────────────
 const STATUS_STEPS: OrderStatus[] = ["CREATED", "IN_TRANSIT", "DELIVERED"];
-const STEP_LABELS  = ["تم الإنشاء", "قيد التوصيل", "تم التسليم"];
-const STEP_ICONS   = [
-  <svg key="c" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="9" y="3" width="6" height="4" rx="1"/>
-    <path d="M4 7h16v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/>
-  </svg>,
-  <svg key="t" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="2" y="7" width="20" height="14" rx="2"/>
-    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-    <line x1="12" y1="12" x2="12" y2="16"/>
-    <line x1="10" y1="14" x2="14" y2="14"/>
-  </svg>,
-  <svg key="d" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>,
-];
+const STEP_LABELS                  = ["تم الإنشاء", "قيد التوصيل", "تم التسليم"];
+
+const StepIcon: FC<{ step: number }> = ({ step }) => {
+  if (step === 0) return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="9" y="3" width="6" height="4" rx="1"/>
+      <path d="M4 7h16v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/>
+    </svg>
+  );
+  if (step === 1) return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="7" width="20" height="14" rx="2"/>
+      <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+      <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+    </svg>
+  );
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  );
+};
 
 const OrderTracker: FC<{ status: OrderStatus }> = ({ status }) => {
   const idx = STATUS_STEPS.indexOf(status === "CANCELLED" ? "CREATED" : status);
   return (
-    <div className="flex items-center gap-0 py-2" dir="rtl">
+    <div className="flex items-center gap-0 py-2" dir="rtl" role="list" aria-label="تقدم الطلب">
       {STATUS_STEPS.map((s, i) => (
         <React.Fragment key={s}>
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-center gap-1" role="listitem">
             <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
               status === "CANCELLED"
                 ? "bg-[#FEE2E2] text-red-500 border-2 border-red-200"
-                : i <= idx
-                  ? "bg-[#1A73E8] text-white"
-                  : "bg-white border-2 border-[#E5E7EB] text-[#D1D5DB]"
-            }`}>
-              {STEP_ICONS[i]}
+                : i <= idx ? "bg-[#1A73E8] text-white" : "bg-white border-2 border-[#E5E7EB] text-[#D1D5DB]"
+            }`} aria-current={i === idx ? "step" : undefined}>
+              <StepIcon step={i} />
             </div>
             <span className={`text-[10px] font-semibold whitespace-nowrap ${
-              status === "CANCELLED"
-                ? "text-red-400"
-                : i <= idx ? "text-[#1A73E8]" : "text-[#9CA3AF]"
+              status === "CANCELLED" ? "text-red-400" : i <= idx ? "text-[#1A73E8]" : "text-[#9CA3AF]"
             }`}>
               {STEP_LABELS[i]}
             </span>
           </div>
           {i < STATUS_STEPS.length - 1 && (
-            <div className={`flex-1 h-0.5 mb-4 mx-1 ${
+            <div aria-hidden="true" className={`flex-1 h-0.5 mb-4 mx-1 ${
               status === "CANCELLED" ? "bg-red-200" : i < idx ? "bg-[#1A73E8]" : "bg-[#E5E7EB]"
             }`} />
           )}
@@ -81,43 +63,16 @@ const OrderTracker: FC<{ status: OrderStatus }> = ({ status }) => {
   );
 };
 
-
-
-
 // ─── DashboardStep ───────────────────────────
 interface DashboardStepProps {
   session: ClientSession;
 }
 
 const DashboardStep: FC<DashboardStepProps> = ({ session }) => {
-  const [orders,  setOrders]  = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState("");
+  const { orders, loading, error } = useClientOrders(session.id);
 
-  // جلب الطلبات من الـ API
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/client/${session.id}/orders`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message ?? "فشل جلب الطلبات");
-
-        // الـ API يُرجع: { orders: [...] } أو مصفوفة مباشرة
-        const list: Order[] = Array.isArray(data) ? data : (data.orders ?? []);
-        setOrders(list);
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "تعذّر تحميل الطلبات");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [session.id]);
-
-  // أحدث طلب نشط (CREATED أو IN_TRANSIT)
-  const activeOrder = orders.find(
-    o => o.status === "CREATED" || o.status === "IN_TRANSIT"
-  );
-  const pastOrders = orders.filter(o => o !== activeOrder);
+  const activeOrder = orders.find(o => o.status === "CREATED" || o.status === "IN_TRANSIT");
+  const pastOrders  = orders.filter(o => o !== activeOrder);
 
   const summary = {
     total:     orders.length,
@@ -127,41 +82,38 @@ const DashboardStep: FC<DashboardStepProps> = ({ session }) => {
 
   return (
     <div dir="rtl">
-      {/* الرأس */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-1">
-          <div>
-            <h2 className="text-[22px] font-bold text-[#111827] tracking-tight">لوحة الطلبات</h2>
-            <p className="text-[13px] text-[#6B7280] mt-0.5">
-              مرحبًا بعودتك، <strong className="text-[#111827]">{session.name}</strong>
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 bg-[#D1FAE5] border border-[#A7F3D0] rounded-full px-3 py-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-            <span className="text-[11px] font-bold text-[#065F46]">نشط</span>
-          </div>
+      {/* Header */}
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-[22px] font-bold text-[#111827] tracking-tight">لوحة الطلبات</h2>
+          <p className="text-[13px] text-[#6B7280] mt-0.5">
+            مرحبًا بعودتك، <strong className="text-[#111827]">{session.name}</strong>
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 bg-[#D1FAE5] border border-[#A7F3D0] rounded-full px-3 py-1.5" role="status" aria-label="الحساب نشط">
+          <span aria-hidden="true" className="w-2 h-2 rounded-full bg-[#10B981] motion-safe:animate-pulse" />
+          <span className="text-[11px] font-bold text-[#065F46]">نشط</span>
         </div>
       </div>
 
-      {/* حالة التحميل أو الخطأ */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-14 gap-3 text-[#6B7280]">
+      {/* Loading */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-14 gap-3" role="status">
           <Spinner />
-          <p className="text-[13px]">جارٍ تحميل الطلبات…</p>
+          <p className="text-[13px] text-[#6B7280]">جارٍ تحميل الطلبات…</p>
         </div>
-      ) : error ? (
-        <div className="flex flex-col items-center justify-center py-10 gap-3">
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="flex flex-col items-center gap-3 py-10" role="alert">
           <p className="text-[13px] text-red-500">{error}</p>
-          <button
-            onClick={() => { setLoading(true); setError(""); }}
-            className="text-[12px] text-[#1A73E8] underline"
-          >
-            إعادة المحاولة
-          </button>
         </div>
-      ) : (
+      )}
+
+      {!loading && !error && (
         <>
-          {/* إحصائيات */}
+          {/* Stats */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             {[
               { label: "إجمالي الطلبات", value: summary.total,     color: "text-[#111827]" },
@@ -175,7 +127,7 @@ const DashboardStep: FC<DashboardStepProps> = ({ session }) => {
             ))}
           </div>
 
-          {/* متتبع الطلب النشط */}
+          {/* Active order tracker */}
           {activeOrder ? (
             <div className="bg-gradient-to-bl from-[#0D47A1] to-[#1A73E8] rounded-xl p-4 mb-6">
               <div className="flex items-center justify-between mb-3">
@@ -199,7 +151,7 @@ const DashboardStep: FC<DashboardStepProps> = ({ session }) => {
             </div>
           )}
 
-          {/* جدول الطلبات السابقة */}
+          {/* Past orders table */}
           {pastOrders.length > 0 && (
             <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
               <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
@@ -211,16 +163,15 @@ const DashboardStep: FC<DashboardStepProps> = ({ session }) => {
                   <thead>
                     <tr className="bg-[#F9FAFB]">
                       {["رقم الطلب", "التاريخ", "الوصف", "الحالة", "المبلغ"].map(h => (
-                        <th key={h} className="px-4 py-2.5 text-right text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wide">{h}</th>
+                        <th key={h} scope="col" className="px-4 py-2.5 text-right text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wide">
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {pastOrders.map((order, i) => (
-                      <tr
-                        key={order.id}
-                        className={`border-t border-[#F3F4F6] hover:bg-[#FAFAFA] transition-colors ${i % 2 === 0 ? "" : "bg-[#FAFAFA]/30"}`}
-                      >
+                      <tr key={order.id} className={`border-t border-[#F3F4F6] hover:bg-[#FAFAFA] transition-colors ${i % 2 === 0 ? "" : "bg-[#FAFAFA]/30"}`}>
                         <td className="px-4 py-3">
                           <span className="font-mono text-[12px] font-semibold text-[#1A73E8]">{order.id}</span>
                         </td>
@@ -228,7 +179,7 @@ const DashboardStep: FC<DashboardStepProps> = ({ session }) => {
                         <td className="px-4 py-3 text-[12px] text-[#374151]">{order.description}</td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border px-2.5 py-0.5 rounded-full whitespace-nowrap ${statusColor(order.status)}`}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-current" />
                             {statusLabel(order.status)}
                           </span>
                         </td>
@@ -245,7 +196,6 @@ const DashboardStep: FC<DashboardStepProps> = ({ session }) => {
         </>
       )}
 
-      {/* مسح الجلسة */}
       <button
         type="button"
         onClick={() => { clearSession(); window.location.reload(); }}

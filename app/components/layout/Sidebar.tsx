@@ -1,10 +1,7 @@
-// File: app/components/layout/Sidebar.tsx
 "use client";
 
 import Link from "next/link";
-// FIX: Import getStoredUser so the sidebar reads the authenticated user's
-// name and role from localStorage instead of showing hardcoded placeholders.
-import { getStoredUser } from "../../../src/lib/auth";
+import { getStoredUser } from "../../../lib/auth";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", permission: "read-dashboard" },
@@ -20,9 +17,7 @@ const navItems = [
 ];
 
 export function Sidebar() {
-  // FIX: Read the stored user on render. suppressHydrationWarning handles
-  // the SSR/CSR mismatch since localStorage is browser-only.
-  const user = getStoredUser();
+  const user        = getStoredUser();
   const permissions = user?.permissions ?? navItems.map((i) => i.permission);
 
   return (
@@ -38,10 +33,8 @@ export function Sidebar() {
         </p>
       </div>
 
-      <nav className="mt-8 space-y-2">
+      <nav className="mt-8 space-y-2" aria-label="Main navigation">
         {navItems.map((item) => {
-          // FIX: Check the real user permissions array fetched from stored auth.
-          // Dashboard is always visible regardless of permissions.
           const hasPermission =
             item.permission === "read-dashboard" ||
             permissions.includes(item.permission);
@@ -54,16 +47,15 @@ export function Sidebar() {
               className="flex items-center justify-between rounded-2xl border border-white/8 bg-slate-900/70 px-4 py-3 text-sm text-slate-200 transition hover:border-cyan-400/30 hover:bg-slate-800"
             >
               <span>{item.label}</span>
-              <span className="text-xs text-slate-400">→</span>
+              <span aria-hidden="true" className="text-xs text-slate-400">→</span>
             </Link>
           );
         })}
       </nav>
 
+      {/* User badge */}
       <div className="mt-auto rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm text-emerald-50">
         <p className="text-xs uppercase tracking-[0.25em] text-emerald-100">Authenticated</p>
-        {/* FIX: Show the real user name and role from the stored auth session,
-            replacing the previous hardcoded "Operations user" / "Signed in" text. */}
         <p suppressHydrationWarning className="mt-2 font-semibold">
           {user?.name ?? user?.userName ?? "—"}
         </p>
