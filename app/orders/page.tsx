@@ -20,24 +20,26 @@ interface Order {
 }
 
 interface ApiResponse {
-  data: Order[];
+ data:{
+   data: Order[];
   pagination: { total: number; page: number; pages: number };
+ }
 }
 
-const STATUS_MAP: Record<Order["currentStatus"], { label: string; cls: string }> = {
-  Created:   { label: "تم الإنشاء",   cls: "bg-blue-400/10  border-blue-400/20  text-blue-300"    },
-  Assigned:  { label: "مُعيَّن",       cls: "bg-violet-400/10 border-violet-400/20 text-violet-300" },
-  InTransit: { label: "قيد التوصيل", cls: "bg-amber-400/10  border-amber-400/20  text-amber-200"  },
-  Delivered: { label: "تم التسليم",  cls: "bg-emerald-400/10 border-emerald-400/20 text-emerald-200" },
-  Returned:  { label: "مُرتجع",       cls: "bg-rose-500/10   border-rose-400/20   text-rose-300"   },
-  Cancelled: { label: "ملغي",         cls: "bg-slate-700/50  border-white/10      text-slate-400"  },
+const STATUS_MAP: Record<Order["currentStatus"], { label: string; color: string; bg: string; border: string }> = {
+  Created:   { label: "تم الإنشاء",  color: "#93C5FD", bg: "rgba(59,130,246,0.10)",  border: "rgba(147,197,253,0.20)" },
+  Assigned:  { label: "مُعيَّن",      color: "#C4B5FD", bg: "rgba(139,92,246,0.10)", border: "rgba(196,181,253,0.20)" },
+  InTransit: { label: "قيد التوصيل", color: "#FDE68A", bg: "rgba(251,191,36,0.10)",  border: "rgba(253,230,138,0.20)" },
+  Delivered: { label: "تم التسليم",  color: "#A7F3D0", bg: "rgba(52,211,153,0.10)",  border: "rgba(167,243,208,0.20)" },
+  Returned:  { label: "مُرتجع",      color: "#FCA5A5", bg: "rgba(244,63,94,0.08)",   border: "rgba(252,165,165,0.20)" },
+  Cancelled: { label: "ملغي",        color: "#94A3B8", bg: "rgba(255,255,255,0.04)", border: "var(--color-border-dark)" },
 };
 
-const PAY_MAP: Record<string, { label: string; cls: string }> = {
-  Pending:  { label: "معلَّق",   cls: "text-amber-400" },
-  Paid:     { label: "مدفوع",   cls: "text-emerald-400" },
-  Failed:   { label: "فشل",     cls: "text-rose-400"   },
-  Refunded: { label: "مُسترجع", cls: "text-slate-400"  },
+const PAY_MAP: Record<string, { label: string; color: string }> = {
+  Pending:  { label: "معلَّق",   color: "#FBBF24" },
+  Paid:     { label: "مدفوع",   color: "#34D399" },
+  Failed:   { label: "فشل",     color: "#F87171" },
+  Refunded: { label: "مُسترجع", color: "#94A3B8" },
 };
 
 export default function OrdersPage() {
@@ -57,36 +59,64 @@ export default function OrdersPage() {
     const params = new URLSearchParams({ page: String(page), limit: "10" });
     if (search)       params.set("search", search);
     if (statusFilter) params.set("currentStatus", statusFilter);
-    get<ApiResponse>(`v1/orders?${params}`, token)
-      .then((res) => { setOrders(res.data); setTotal(res.pagination.total); setPages(res.pagination.pages); })
+    get<ApiResponse>(`orders?${params}`, token)
+      .then((res) => {
+        setOrders(res.data.data);
+        setTotal(res.data.pagination.total);
+        setPages(res.data.pagination.pages);
+      })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   }, [page, search, statusFilter]);
 
-  function fmtDate(iso: string) {
-    return new Date(iso).toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" });
-  }
+  const cardStyle: React.CSSProperties = {
+    borderRadius: "var(--radius-2xl)",
+    border: "1px solid var(--color-border-dark)",
+    background: "var(--color-surface-dark-card)",
+    overflow: "hidden",
+    boxShadow: "var(--shadow-card)",
+  };
+
+  const thStyle: React.CSSProperties = {
+    padding: "0.75rem 1.5rem",
+    fontSize: 11,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.25em",
+    color: "var(--color-text-dark-muted)",
+    background: "rgba(255,255,255,0.04)",
+    borderBottom: "1px solid var(--color-border-dark)",
+  };
 
   return (
-    <section className="flex flex-col gap-6">
+    <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
-      {/* Header */}
-      <header className="rounded-3xl border border-white/10 bg-white/6 px-8 py-6 shadow-2xl shadow-slate-950/30 backdrop-blur-xl">
-        <p className="text-sm uppercase tracking-[0.35em] text-cyan-200">إدارة الشحنات</p>
+      {/* ── Header ── */}
+      <header style={{
+        borderRadius: "var(--radius-2xl)",
+        border: "1px solid var(--color-border-dark)",
+        background: "rgba(255,255,255,0.04)",
+        padding: "1.5rem 2rem",
+        boxShadow: "var(--shadow-overlay)",
+        backdropFilter: "blur(16px)",
+      }}>
+        <p style={{ fontSize: 11, letterSpacing: "0.35em", textTransform: "uppercase", color: "#67E8F9" }}>
+          إدارة الشحنات
+        </p>
         <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-white">الطلبات</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              إجمالي <span className="font-semibold text-white">{total}</span> طلب
+            <h1 style={{ fontSize: "1.5rem", fontWeight: 600, color: "var(--color-text-dark-primary)", margin: 0 }}>الطلبات</h1>
+            <p style={{ marginTop: "0.25rem", fontSize: 13, color: "var(--color-text-dark-muted)" }}>
+              إجمالي <strong style={{ color: "var(--color-text-dark-primary)" }}>{total}</strong> طلب
             </p>
           </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             {/* Status filter */}
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
               dir="rtl"
-              className="h-10 rounded-xl border border-white/10 bg-slate-900/80 px-3 text-sm text-slate-300 outline-none transition focus:border-cyan-400/40"
+              style={{ height: 40, borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border-dark)", background: "var(--color-surface-dark-raised)", fontSize: 13, color: "var(--color-text-dark-muted)", padding: "0 0.75rem", outline: "none", fontFamily: "var(--font-sans)" }}
             >
               <option value="">كل الحالات</option>
               {Object.entries(STATUS_MAP).map(([k, v]) => (
@@ -94,13 +124,14 @@ export default function OrdersPage() {
               ))}
             </select>
             {/* Search */}
-            <div className="relative w-full sm:w-64">
-              <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <div style={{ position: "relative", width: 256 }}>
+              <svg style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: "var(--color-text-dark-muted)", pointerEvents: "none" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
               </svg>
               <input type="text" placeholder="رقم الشحنة أو المستلم..." value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }} dir="rtl"
-                className="h-10 w-full rounded-xl border border-white/10 bg-slate-900/80 pr-9 pl-4 text-sm text-slate-100 placeholder-slate-500 outline-none transition focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20" />
+                style={{ width: "100%", height: 40, paddingRight: 36, paddingLeft: 12, borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border-dark)", background: "var(--color-surface-dark-raised)", fontSize: 13, color: "var(--color-text-dark-primary)", outline: "none", fontFamily: "var(--font-sans)" }}
+              />
             </div>
           </div>
         </div>
@@ -108,55 +139,49 @@ export default function OrdersPage() {
 
       {error && <Alert type="error" message={error} onClose={() => setError(null)} className="border-rose-400/30 bg-rose-500/10 text-rose-200" />}
 
-      {/* Table */}
-      <div className="rounded-3xl border border-white/10 bg-slate-900/80 shadow-xl shadow-slate-950/20 overflow-hidden">
-        <div className="grid grid-cols-[1.8fr_1.5fr_1.2fr_1fr_1fr_1fr] border-b border-white/8 bg-slate-800/60 px-6 py-3 text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400" dir="rtl">
-          <span>رقم الشحنة</span>
-          <span>المستلم</span>
-          <span>العميل</span>
-          <span>المبلغ</span>
-          <span>الحالة</span>
-          <span className="text-center">التاريخ</span>
+      {/* ── Table ── */}
+      <div style={cardStyle}>
+        <div dir="rtl" style={{ display: "grid", gridTemplateColumns: "1.8fr 1.5fr 1.2fr 1fr 1fr 1fr", ...thStyle }}>
+          <span>رقم الشحنة</span><span>المستلم</span><span>العميل</span>
+          <span>المبلغ</span><span>الحالة</span>
+          <span style={{ textAlign: "center" }}>التاريخ</span>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-3 py-16 text-slate-400">
-            <Spinner size="sm" className="text-cyan-400" /><span className="text-sm">جارٍ التحميل…</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: "4rem 0", color: "var(--color-text-dark-muted)" }}>
+            <Spinner size="sm" className="text-cyan-400" />
+            <span style={{ fontSize: 13 }}>جارٍ التحميل…</span>
           </div>
         ) : orders.length === 0 ? (
-          <div className="py-16 text-center text-sm text-slate-500">لا توجد نتائج</div>
+          <p style={{ textAlign: "center", padding: "4rem 0", fontSize: 13, color: "var(--color-text-dark-muted)" }}>لا توجد نتائج</p>
         ) : (
-          <ul dir="rtl">
+          <ul dir="rtl" style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {orders.map((o, i) => {
               const status = STATUS_MAP[o.currentStatus];
               const pay    = o.paymentStatus ? PAY_MAP[o.paymentStatus] : null;
               return (
-                <li key={o.id} className={`grid grid-cols-[1.8fr_1.5fr_1.2fr_1fr_1fr_1fr] items-center gap-2 border-b border-white/5 px-6 py-4 text-sm transition-colors hover:bg-slate-800/50 ${i % 2 === 0 ? "" : "bg-slate-900/30"}`}>
-                  {/* Shipment number */}
+                <li key={o.id} style={{ display: "grid", gridTemplateColumns: "1.8fr 1.5fr 1.2fr 1fr 1fr 1fr", alignItems: "center", gap: "0.5rem", padding: "1rem 1.5rem", borderBottom: "1px solid var(--color-border-dark)", background: i % 2 !== 0 ? "rgba(255,255,255,0.02)" : "transparent", transition: "var(--transition-base)", fontSize: 13 }}>
                   <div>
-                    <p className="font-mono text-xs font-bold text-cyan-300">{o.shipmentNumber}</p>
-                    {o.trip && <p className="mt-0.5 text-[11px] text-slate-500">رحلة: {o.trip.tripNumber}</p>}
+                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "#67E8F9", margin: 0 }}>{o.shipmentNumber}</p>
+                    {o.trip && <p style={{ marginTop: 2, fontSize: 11, color: "var(--color-text-dark-muted)" }}>رحلة: {o.trip.tripNumber}</p>}
                   </div>
-                  {/* Recipient */}
                   <div>
-                    <p className="text-white">{o.recipientName}</p>
-                    <p className="mt-0.5 font-mono text-xs text-slate-400">{o.recipientPhone}</p>
+                    <p style={{ color: "var(--color-text-dark-primary)", margin: 0 }}>{o.recipientName}</p>
+                    <p style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-text-dark-muted)" }}>{o.recipientPhone}</p>
                   </div>
-                  {/* Client */}
-                  <span className="text-slate-300">{o.client?.name ?? "—"}</span>
-                  {/* Amount */}
+                  <span style={{ color: "var(--color-text-dark-muted)" }}>{o.client?.name ?? "—"}</span>
                   <div>
-                    <p className="font-semibold text-white">
+                    <p style={{ fontWeight: 600, color: "var(--color-text-dark-primary)", margin: 0 }}>
                       {o.totalPrice != null ? `${o.totalPrice.toFixed(2)} ر.س` : "—"}
                     </p>
-                    {pay && <p className={`mt-0.5 text-[11px] font-semibold ${pay.cls}`}>{pay.label}</p>}
+                    {pay && <p style={{ marginTop: 2, fontSize: 11, fontWeight: 600, color: pay.color }}>{pay.label}</p>}
                   </div>
-                  {/* Status */}
-                  <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${status.cls}`}>
+                  <span style={{ display: "inline-flex", alignItems: "center", borderRadius: "var(--radius-full)", border: `1px solid ${status.border}`, background: status.bg, padding: "0.2rem 0.625rem", fontSize: 11, fontWeight: 600, color: status.color, width: "fit-content" }}>
                     {status.label}
                   </span>
-                  {/* Date */}
-                  <span className="text-center text-xs text-slate-400">{fmtDate(o.createdAt)}</span>
+                  <span style={{ textAlign: "center", fontSize: 11, color: "var(--color-text-dark-muted)" }}>
+                    {new Date(o.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" })}
+                  </span>
                 </li>
               );
             })}
@@ -164,13 +189,18 @@ export default function OrdersPage() {
         )}
 
         {pages > 1 && (
-          <div className="flex items-center justify-between border-t border-white/8 px-6 py-4" dir="rtl">
-            <span className="text-xs text-slate-400">صفحة <span className="text-white">{page}</span> من <span className="text-white">{pages}</span></span>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                className="rounded-xl border border-white/10 bg-slate-800/80 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40">السابق</button>
-              <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={page === pages}
-                className="rounded-xl border border-white/10 bg-slate-800/80 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40">التالي</button>
+          <div dir="rtl" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid var(--color-border-dark)", padding: "1rem 1.5rem" }}>
+            <span style={{ fontSize: 12, color: "var(--color-text-dark-muted)" }}>
+              صفحة <strong style={{ color: "var(--color-text-dark-primary)" }}>{page}</strong> من <strong style={{ color: "var(--color-text-dark-primary)" }}>{pages}</strong>
+            </span>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              {[{ label: "السابق", action: () => setPage(p => Math.max(1, p - 1)), disabled: page === 1 },
+                { label: "التالي",  action: () => setPage(p => Math.min(pages, p + 1)), disabled: page === pages }].map(btn => (
+                <button key={btn.label} onClick={btn.action} disabled={btn.disabled}
+                  style={{ borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border-dark)", background: "var(--color-surface-dark-raised)", padding: "0.375rem 0.75rem", fontSize: 12, color: "var(--color-text-dark-muted)", cursor: btn.disabled ? "not-allowed" : "pointer", opacity: btn.disabled ? 0.4 : 1, transition: "var(--transition-base)", fontFamily: "var(--font-sans)" }}>
+                  {btn.label}
+                </button>
+              ))}
             </div>
           </div>
         )}
