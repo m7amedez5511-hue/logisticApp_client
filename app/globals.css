@@ -1,6 +1,7 @@
 @import "../styles/tokens.css";
 @import "tailwindcss";
 
+
 /* ── Base resets ────────────────────────────────────── */
 *,
 *::before,
@@ -27,11 +28,60 @@ body {
 /* ── Tailwind theme bridge ──────────────────────────── */
 /* Expose CSS variables as Tailwind color utilities.     */
 @theme inline {
-  --color-background: var(--color-surface-sunken);
-  --color-foreground:  var(--color-text-primary);
-  --color-brand:       var(--color-brand-600);
-  --font-sans:         var(--font-sans);
-  --font-mono:         var(--font-mono);
+  --color-primary-*: initial;
+  --color-sand-*:    initial;
+  --color-gold-*:    initial;
+  --color-slate-*:   initial;
+
+  --color-primary-50:  var(--color-primary-50);
+  --color-primary-100: var(--color-primary-100);
+  --color-primary-200: var(--color-primary-200);
+  --color-primary-300: var(--color-primary-300);
+  --color-primary-400: var(--color-primary-400);
+  --color-primary-500: var(--color-primary-500);
+  --color-primary-600: var(--color-primary-600);
+  --color-primary-700: var(--color-primary-700);
+  --color-primary-800: var(--color-primary-800);
+  --color-primary-900: var(--color-primary-900);
+
+  --color-sand-50:  var(--color-sand-50);
+  --color-sand-100: var(--color-sand-100);
+  --color-sand-200: var(--color-sand-200);
+  --color-sand-300: var(--color-sand-300);
+  --color-sand-400: var(--color-sand-400);
+  --color-sand-500: var(--color-sand-500);
+  --color-sand-600: var(--color-sand-600);
+  --color-sand-700: var(--color-sand-700);
+  --color-sand-800: var(--color-sand-800);
+  --color-sand-900: var(--color-sand-900);
+
+  --color-gold-50:  var(--color-gold-50);
+  --color-gold-100: var(--color-gold-100);
+  --color-gold-200: var(--color-gold-200);
+  --color-gold-300: var(--color-gold-300);
+  --color-gold-400: var(--color-gold-400);
+  --color-gold-500: var(--color-gold-500);
+  --color-gold-600: var(--color-gold-600);
+  --color-gold-700: var(--color-gold-700);
+  --color-gold-800: var(--color-gold-800);
+  --color-gold-900: var(--color-gold-900);
+
+  --color-slate-50:  var(--color-slate-50);
+  --color-slate-100: var(--color-slate-100);
+  --color-slate-200: var(--color-slate-200);
+  --color-slate-300: var(--color-slate-300);
+  --color-slate-400: var(--color-slate-400);
+  --color-slate-500: var(--color-slate-500);
+  --color-slate-600: var(--color-slate-600);
+  --color-slate-700: var(--color-slate-700);
+  --color-slate-800: var(--color-slate-800);
+  --color-slate-900: var(--color-slate-900);
+
+  --color-background: var(--color-sand-50);
+  --color-foreground: var(--color-slate-900);
+  --color-brand:      var(--color-primary-500);
+  --font-sans:        var(--font-sans);
+  --font-mono:        var(--font-mono);
 }
 
 /* ── Focus ring utility ─────────────────────────────── */

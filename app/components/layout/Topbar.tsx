@@ -1,7 +1,5 @@
-// app/components/layout/Topbar.tsx
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { clearAuth, getStoredUser } from "../../../lib/auth";
 
@@ -13,47 +11,62 @@ export function Topbar() {
     router.replace("/login");
   }
 
-  const user      = getStoredUser();
-  const roleLabel = user?.role
-    ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
-    : "—";
+  const user = getStoredUser();
 
   return (
     <header
       suppressHydrationWarning
-      className="border-b border-white/10 bg-slate-950/70 px-4 py-4 lg:px-6"
+      style={{
+        height: "var(--topbar-height)",
+        background: "#FFFFFF",
+        borderBottom: "1px solid var(--color-border)",
+        padding: "0 24px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.35em] text-cyan-200">Operations dashboard</p>
-          <h1 className="text-xl font-semibold text-white lg:text-2xl">
-            Logistics delivery management
-          </h1>
+      <div>
+        <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text-primary)", margin: 0 }}>
+          لوحة التحكم
+        </p>
+        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
+          Operations dashboard
+        </p>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          suppressHydrationWarning
+          style={{
+            fontSize: 12,
+            color: "var(--color-text-secondary)",
+            background: "var(--color-surface-muted)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-full)",
+            padding: "4px 12px",
+          }}
+        >
+          {user?.role ?? "—"}
         </div>
 
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="rounded-full border border-white/10 bg-slate-900/80 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 transition"
-          >
-            Overview
-          </Link>
-
-          <div
-            suppressHydrationWarning
-            className="hidden rounded-full border border-white/10 bg-slate-900/80 px-4 py-2 text-sm text-slate-200 md:block"
-          >
-            {roleLabel}
-          </div>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-full bg-rose-500/10 px-4 py-2 text-sm text-rose-100 hover:bg-rose-500/20 transition"
-          >
-            Logout
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            color: "#DC2626",
+            background: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: "var(--radius-full)",
+            padding: "5px 14px",
+            cursor: "pointer",
+            transition: "var(--transition-base)",
+          }}
+        >
+          تسجيل الخروج
+        </button>
       </div>
     </header>
   );

@@ -52,8 +52,9 @@ type RawRole = { name?: string; permissions?: Array<{ permission?: { slug?: stri
 
 export async function loginUser(identity: string, password: string) {
   const payload = await authService.login({ identity, password });
-
-  const { token, user } = payload;
+console.log("Login response payload:", payload);
+  const { token, user } = payload.data || {};
+  console.log({ token, user } );
   if (!token || !user) {
     throw new Error("اسم المستخدم أو كلمة المرور غير صحيحة.");
   }

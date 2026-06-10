@@ -1,66 +1,130 @@
 "use client";
 
-import Link from "next/link";
+import Link      from "next/link";
+import { usePathname } from "next/navigation";
 import { getStoredUser } from "../../../lib/auth";
+import Logo from "../../../utils/logo";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", permission: "read-dashboard" },
-  { href: "/users",     label: "Users",     permission: "read-user" },
-  { href: "/cars",      label: "Cars",      permission: "read-car" },
-  { href: "/drivers",   label: "Drivers",   permission: "read-driver" },
-  { href: "/clients",   label: "Clients",   permission: "read-client" },
-  { href: "/orders",    label: "Orders",    permission: "read-order" },
-  { href: "/trips",     label: "Trips",     permission: "read-trip" },
-  { href: "/branches",  label: "Branches",  permission: "read-branch" },
-  { href: "/roles",     label: "Roles",     permission: "read-role" },
-  { href: "/audit",     label: "Audit",     permission: "read-audit" },
+const navSections = [
+  {
+    label: "الرئيسية",
+    items: [
+      { href: "/dashboard", label: "Dashboard",   icon: "ti-layout-dashboard", permission: "read-dashboard" },
+      { href: "/users",     label: "Users",        icon: "ti-users",            permission: "read-user"      },
+    ],
+  },
+  {
+    label: "الأسطول",
+    items: [
+      { href: "/cars",    label: "Cars",    icon: "ti-car",           permission: "read-car"    },
+      { href: "/drivers", label: "Drivers", icon: "ti-steering-wheel",permission: "read-driver" },
+      { href: "/trips",   label: "Trips",   icon: "ti-route",         permission: "read-trip"   },
+    ],
+  },
+  {
+    label: "العمليات",
+    items: [
+      { href: "/orders",   label: "Orders",   icon: "ti-package",     permission: "read-order"  },
+      { href: "/clients",  label: "Clients",  icon: "ti-users-group", permission: "read-client" },
+      { href: "/branches", label: "Branches", icon: "ti-building",    permission: "read-branch" },
+      { href: "/roles",    label: "Roles",    icon: "ti-shield",      permission: "read-role"   },
+      { href: "/audit",    label: "Audit",    icon: "ti-clipboard-list", permission: "read-audit" },
+    ],
+  },
 ];
 
 export function Sidebar() {
+  const pathname    = usePathname();
   const user        = getStoredUser();
-  const permissions = user?.permissions ?? navItems.map((i) => i.permission);
+  const permissions = user?.permissions ?? navSections.flatMap(s => s.items.map(i => i.permission));
 
   return (
     <aside
       suppressHydrationWarning
-      className="hidden w-72 shrink-0 border-r border-white/10 bg-slate-950/80 p-6 lg:flex lg:flex-col"
+      className="hidden lg:flex lg:flex-col"
+      style={{
+        width: "var(--sidebar-width)",
+        flexShrink: 0,
+        background: "linear-gradient(175deg, #1E3A8A 0%, #1D4ED8 60%, #1565C0 100%)",
+        minHeight: "100vh",
+        padding: "20px 12px",
+      }}
     >
-      <div>
-        <p className="text-xs uppercase tracking-[0.35em] text-cyan-200">Logistics</p>
-        <h2 className="mt-3 text-xl font-semibold text-white">Ops Console</h2>
-        <p className="mt-2 text-sm text-slate-300">
-          Fleet, clients, orders, and compliance in one place.
-        </p>
+      {/* Logo */}
+      <div style={{ marginBottom: 28 }}>
+        <Logo white />
       </div>
 
-      <nav className="mt-8 space-y-2" aria-label="Main navigation">
-        {navItems.map((item) => {
-          const hasPermission =
-            item.permission === "read-dashboard" ||
-            permissions.includes(item.permission);
-          if (!hasPermission) return null;
+      {/* Nav sections */}
+      <nav
+        style={{ flex: 1, display: "flex", flexDirection: "column", gap: 0 }}
+        aria-label="Main navigation"
+      >
+        {navSections.map((section) => (
+          <div key={section.label} style={{ marginBottom: 8 }}>
+            <p style={{
+              fontSize: 9,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.45)",
+              padding: "8px 8px 4px",
+              fontWeight: 600,
+            }}>
+              {section.label}
+            </p>
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center justify-between rounded-2xl border border-white/8 bg-slate-900/70 px-4 py-3 text-sm text-slate-200 transition hover:border-cyan-400/30 hover:bg-slate-800"
-            >
-              <span>{item.label}</span>
-              <span aria-hidden="true" className="text-xs text-slate-400">→</span>
-            </Link>
-          );
-        })}
+            {section.items.map((item) => {
+              const allowed = item.permission === "read-dashboard"
+                || permissions.includes(item.permission);
+              if (!allowed) return null;
+
+              const active = pathname === item.href
+                || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 9,
+                    padding: "7px 8px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: active ? 500 : 400,
+                    color: active ? "#FFFFFF" : "rgba(255,255,255,0.55)",
+                    background: active ? "rgba(255,255,255,0.15)" : "transparent",
+                    textDecoration: "none",
+                    transition: "var(--transition-base)",
+                    marginBottom: 2,
+                  }}
+                >
+                  <i
+                    className={`ti ${item.icon}`}
+                    aria-hidden="true"
+                    style={{ fontSize: 16 }}
+                  />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* User badge */}
-      <div className="mt-auto rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm text-emerald-50">
-        <p className="text-xs uppercase tracking-[0.25em] text-emerald-100">Authenticated</p>
-        <p suppressHydrationWarning className="mt-2 font-semibold">
+      <div style={{
+        background: "rgba(255,255,255,0.12)",
+        borderRadius: 10,
+        padding: "10px 12px",
+        marginTop: 8,
+      }}>
+        <p suppressHydrationWarning style={{ fontSize: 13, fontWeight: 500, color: "#fff", margin: 0 }}>
           {user?.name ?? user?.userName ?? "—"}
         </p>
-        <p suppressHydrationWarning className="text-xs text-emerald-100/90">
-          {user?.role ? `Role: ${user.role}` : "Signed in"}
+        <p suppressHydrationWarning style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 2 }}>
+          {user?.role ?? "Signed in"}
         </p>
       </div>
     </aside>

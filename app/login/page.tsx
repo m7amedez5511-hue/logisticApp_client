@@ -23,6 +23,7 @@ export default function LoginPage() {
 
     try {
       await loginUser(identity, password);
+    console.log("Login successful", { identity });
       window.location.href = "/dashboard";
     } catch (err) {
       if (err instanceof Error) {
@@ -56,7 +57,7 @@ export default function LoginPage() {
           />
           <div className="relative z-10 flex h-full flex-col justify-between">
             <div>
-              <Logo />
+              <Logo white={true} />
               <h1 className="mt-10 max-w-md text-[36px] font-bold leading-tight tracking-[-0.5px]">
                 اللوجستيات ببساطة، والتسليم بثقة.
               </h1>
