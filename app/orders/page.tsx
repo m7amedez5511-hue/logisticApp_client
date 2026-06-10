@@ -23,6 +23,7 @@ interface ApiResponse {
   data: {
     data: Order[];
     pagination: { total: number; page: number; pages: number };
+    meta?: { total: number; pages: number };
   };
 }
 
@@ -82,8 +83,8 @@ export default function OrdersPage() {
       .then((res) => {
         const payload = res.data ?? res;
         setOrders(payload.data ?? []);
-        setTotal(payload.pagination?.total ?? 0);
-        setPages(payload.pagination?.pages ?? 1);
+        setTotal(payload.meta?.total ?? 0);
+        setPages(payload.meta?.pages ?? 1);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));

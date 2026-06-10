@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getStoredToken } from "../../lib/auth";
-import { get } from "../../services/api";
+import { get, post, put, del } from "../../services/api";
 import { Spinner, Alert } from "../../Components/UI";
 
 interface Driver {
@@ -24,6 +24,7 @@ interface ApiResponse {
   data: {
     data: Driver[];
     pagination: { total: number; page: number; pages: number };
+    meta?: { total: number; pages: number };
   };
 }
 
@@ -83,8 +84,8 @@ export default function DriversPage() {
       .then((res) => {
         const payload = res.data ?? res;
         setDrivers(payload.data ?? []);
-        setTotal(payload.pagination?.total ?? 0);
-        setPages(payload.pagination?.pages ?? 1);
+        setTotal(payload.meta?.total ?? 0);
+        setPages(payload.meta?.pages ?? 1);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));

@@ -52,7 +52,7 @@ type RawRole = { name?: string; permissions?: Array<{ permission?: { slug?: stri
 
 export async function loginUser(identity: string, password: string) {
   const payload = await authService.login({ identity, password });
-console.log("Login response payload:", payload);
+
   const { token, user } = payload.data || {};
   console.log({ token, user } );
   if (!token || !user) {
