@@ -1,6 +1,3 @@
-// services/role.service.ts
-// All network calls for role management — no React imports.
-
 import { get, post, put, del } from "./api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -64,11 +61,13 @@ export const roleService = {
 
   /** Create a new role */
   create: (data: RoleFormData, token: string | null) =>
-    post<RoleResponse>("role", { name: data.name, desdescription: data.description }, token),
+  post<RoleResponse>("role", { name: data.name, description: data.description }, token),
+
 
   /** Update role name/description */
   update: (id: string, data: Partial<RoleFormData>, token: string | null) =>
-    put<RoleResponse>(`role/${id}`, { name: data.name, desdescription: data.description }, token),
+  put<RoleResponse>(`role/${id}`, { name: data.name, description: data.description }, token),
+
 
   /** Soft-delete a role */
   delete: (id: string, token: string | null) =>

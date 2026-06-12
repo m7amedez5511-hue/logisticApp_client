@@ -1,8 +1,3 @@
-// Base HTTP helper — no React, no UI imports.
-// All network calls in the app ultimately call `request()` from here.
-
-/** Resolved at runtime: server-side reads INTERNAL_API_BASE_URL,
- *  browser always hits the Next.js proxy to avoid CORS. */
 function resolveBase() {
   if (typeof window === "undefined") {
     return process.env.INTERNAL_API_BASE_URL ?? "";
@@ -52,18 +47,22 @@ export async function request<T>(
     throw new ApiError(res.status, message);
   }
 
-  return res.json() as Promise<T>;
+  //return res.json() as Promise<T>;
+  const text = await res.text();
+  return (text ? JSON.parse(text) : null) as Promise<T>;
 }
 
 // ── Convenience shorthands ────────────────────────────
-export const get  = <T>(path: string, token?: string | null) =>
+export const get = <T>(path: string, token?: string | null) =>
   request<T>(path, {}, token);
 
 export const post = <T>(path: string, body: unknown, token?: string | null) =>
   request<T>(path, { method: "POST", body: JSON.stringify(body) }, token);
 
-export const put  = <T>(path: string, body: unknown, token?: string | null) =>
-  request<T>(path, { method: "PUT",  body: JSON.stringify(body) }, token);
+export const patch = <T>(path: string, body: unknown, token?: string | null) =>
+  request<T>(path, { method: "PATCH", body: JSON.stringify(body) }, token);
+export const put = <T>(path: string, body: unknown, token?: string | null) =>
+  request<T>(path, { method: "PUT", body: JSON.stringify(body) }, token);
 
-export const del  = <T>(path: string, token?: string | null) =>
+export const del = <T>(path: string, token?: string | null) =>
   request<T>(path, { method: "DELETE" }, token);

@@ -1,23 +1,23 @@
-// صفحة إدارة المستخدمين — تستورد فقط من الطبقات الأخرى
 "use client";
 
 import { useState } from "react";
-import { Alert } from "../../Components/UI";
-import { UserTable }         from "../../Components/User/UserTable";
-import { UserFormModal }     from "../../Components/User/UserFormModal";
+import { Alert }              from "../../Components/UI";
+import { UserTable }          from "../../Components/User/UserTable";
+import { UserFormModal }      from "../../Components/User/UserFormModal";
 import { DeleteConfirmModal } from "../../Components/User/DeleteConfirmModal";
-import { Toast }             from "../../Components/User/Toast";
-import { useUsers }          from "../../hooks/useUser";
+import { Toast }              from "../../Components/User/Toast";
+import { useUsers }           from "../../hooks/useUser";
 import type { User, UserFormData } from "../../types/user";
 
 export default function UsersPage() {
-  // ── الحالة المحلية للمودالات فقط ─────────────────────────────────────────
-  // false = مغلق، null = وضع الإضافة، User = وضع التعديل
-  const [formTarget,    setFormTarget]    = useState<User | null | false>(false);
-  const [deleteTarget,  setDeleteTarget]  = useState<User | null>(null);
-  const [deleting,      setDeleting]      = useState(false);
+  // ── Modal state ─────────────────────────────────────────────────────────────
+  // false = closed | null = create mode | User = edit mode
+  const [formTarget,   setFormTarget]   = useState<User | null | false>(false);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  // Local submitting flag shown in DeleteConfirmModal spinner
+  const [deleting, setDeleting] = useState(false);
 
-  // ── كل منطق البيانات والحالة من الهوك ────────────────────────────────────
+  // ── Data hook ───────────────────────────────────────────────────────────────
   const {
     users, loading, total, pages, error,
     roles, branches,
@@ -27,27 +27,41 @@ export default function UsersPage() {
     notification,
   } = useUsers();
 
-  // ── معالج تقديم النموذج (إضافة أو تعديل) ────────────────────────────────
+  // ── Create / Update handler ─────────────────────────────────────────────────
   const handleFormSubmit = async (data: UserFormData, isNew: boolean): Promise<boolean> => {
     if (isNew) return createUser(data);
+    // formTarget is User when editing
     return updateUser((formTarget as User).id, data);
   };
 
-  // ── معالج تأكيد الحذف ────────────────────────────────────────────────────
+  // ── Delete handler ──────────────────────────────────────────────────────────
+  // FIX: We guard against double-click with local `deleting` flag,
+  // then call deleteUser which:
+  //   1. Calls the API
+  //   2. Dispatches { type: "DELETE", id } → reducer removes user from array
+  //   3. Calls notify() → Toast appears immediately
+  // Result: the row disappears from the table and a success toast shows — all
+  // without a page refresh.
   const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || deleting) return;
     setDeleting(true);
     const ok = await deleteUser(deleteTarget.id);
+    console.log("Delete result:", ok);
     setDeleting(false);
-    if (ok) setDeleteTarget(null);
+    if (ok) {
+      // Close modal only on success; on failure the user sees the error toast
+      // and can retry or cancel manually.
+      setDeleteTarget(null);
+    }
   };
 
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* ── Toast لعرض رسائل النجاح والخطأ ── */}
+      {/* Global success / error toast — fires on create, update, AND delete */}
       <Toast notification={notification} />
 
-      {/* ── مودال الإضافة / التعديل ── */}
+      {/* Create / Edit modal */}
       {formTarget !== false && (
         <UserFormModal
           editUser={formTarget}
@@ -58,22 +72,28 @@ export default function UsersPage() {
         />
       )}
 
-      {/* ── مودال تأكيد الحذف ── */}
+      {/* Delete confirmation dialog */}
       {deleteTarget && (
         <DeleteConfirmModal
           user={deleteTarget}
           deleting={deleting}
-          onCancel={() => setDeleteTarget(null)}
+          onCancel={() => {
+            // Only allow cancel when not mid-flight
+            if (!deleting) setDeleteTarget(null);
+          }}
           onConfirm={handleDeleteConfirm}
         />
       )}
 
       <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
-        {/* ── رأس الصفحة ── */}
+        {/* ── Page header ── */}
         <header style={{
-          borderRadius: "var(--radius-xl)", border: "1px solid var(--color-border)",
-          background: "var(--color-surface)", padding: "1.5rem 2rem", boxShadow: "var(--shadow-card)",
+          borderRadius: "var(--radius-xl)",
+          border: "1px solid var(--color-border)",
+          background: "var(--color-surface)",
+          padding: "1.5rem 2rem",
+          boxShadow: "var(--shadow-card)",
         }}>
           <p style={{ fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", color: "#2563EB", fontWeight: 600 }}>
             إدارة الفريق
@@ -88,25 +108,53 @@ export default function UsersPage() {
               </p>
             </div>
 
-            {/* أدوات البحث وإضافة مستخدم */}
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
-              {/* حقل البحث */}
+              {/* Search input */}
               <div style={{ position: "relative", width: 256 }}>
                 <svg style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: "var(--color-text-hint)", pointerEvents: "none" }}
                   fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                 </svg>
-                <input type="text" placeholder="بحث بالاسم أو الهاتف..." value={search}
-                  onChange={e => handleSearch(e.target.value)} dir="rtl"
-                  style={{ width: "100%", height: 40, paddingRight: 36, paddingLeft: 12, borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border)", background: "var(--color-surface)", fontSize: 13, outline: "none", fontFamily: "var(--font-sans)" }}
+                <input
+                  type="text"
+                  placeholder="بحث بالاسم أو الهاتف..."
+                  value={search}
+                  onChange={e => handleSearch(e.target.value)}
+                  dir="rtl"
+                  style={{
+                    width: "100%", height: 40,
+                    paddingRight: 36, paddingLeft: 12,
+                    borderRadius: "var(--radius-lg)",
+                    border: "1px solid var(--color-border)",
+                    background: "var(--color-surface)",
+                    fontSize: 13, outline: "none",
+                    fontFamily: "var(--font-sans)",
+                    color: "var(--color-text-primary)",
+                  }}
                 />
               </div>
 
-              {/* زر إضافة مستخدم */}
-              <button type="button" onClick={() => setFormTarget(null)}
-                style={{ height: 40, padding: "0 1.125rem", borderRadius: "var(--radius-lg)", border: "none", background: "var(--color-brand-600)", fontSize: 13, fontWeight: 700, color: "#FFF", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "var(--font-sans)", boxShadow: "0 1px 4px rgba(37,99,235,.35)", whiteSpace: "nowrap" }}>
+              {/* Add user button */}
+              <button
+                type="button"
+                onClick={() => setFormTarget(null)}
+                style={{
+                  height: 40, padding: "0 1.125rem",
+                  borderRadius: "var(--radius-lg)",
+                  border: "none",
+                  background: "var(--color-brand-600)",
+                  fontSize: 13, fontWeight: 700,
+                  color: "#FFF",
+                  cursor: "pointer",
+                  display: "inline-flex", alignItems: "center", gap: 7,
+                  fontFamily: "var(--font-sans)",
+                  boxShadow: "0 1px 4px rgba(37,99,235,.35)",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
                 إضافة مستخدم
               </button>
@@ -114,12 +162,10 @@ export default function UsersPage() {
           </div>
         </header>
 
-        {/* ── رسالة الخطأ العامة (فشل التحميل) ── */}
-        {error && (
-          <Alert type="error" message={error} onClose={clearError} />
-        )}
+        {/* General load error */}
+        {error && <Alert type="error" message={error} onClose={clearError} />}
 
-        {/* ── جدول المستخدمين ── */}
+        {/* Users table */}
         <UserTable
           users={users}
           loading={loading}

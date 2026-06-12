@@ -120,7 +120,7 @@ export function useUsers() {
     }
   }, [notify]);
 
-  // deletwe user
+  // delete user
   const deleteUser = useCallback(async (id: string): Promise<boolean> => {
     try {
       const token = getStoredToken();

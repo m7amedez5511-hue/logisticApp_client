@@ -1,7 +1,6 @@
-// services/car.service.ts
-// All network calls for the Car module. No React/UI imports here.
 
-import { get, post, put, del } from "./api";
+
+import { get, post, patch, del } from "./api";
 import type {
   Car,
   CarListResponse,
@@ -59,7 +58,7 @@ export const carService = {
    * Update an existing car's details.
    */
   update: (id: string, payload: UpdateCarPayload, token: string | null) =>
-    put<{ data: Car }>(`cars/${id}`, payload, token),
+    patch<{ data: Car }>(`cars/${id}`, payload, token),
 
   /**
    * DELETE /cars/:id

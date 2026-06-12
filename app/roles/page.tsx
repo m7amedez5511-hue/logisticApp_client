@@ -30,15 +30,13 @@ export default function RolesPage() {
   } = useRoles();
 
   // ── Form submit: create or update ─────────────────────────────────────────
-  const handleFormSubmit = async (data: RoleFormData): Promise<boolean> => {
-    if (formTarget === null) {
-      // Create
-      return createRole(data);
-    }
-    // Edit — pass current permission IDs so the hook can diff
-    const currentPermIds = (formTarget as Role).permissions?.map(rp => rp.permission.id) ?? [];
-    return updateRole((formTarget as Role).id, data, currentPermIds);
-  };
+  const handleFormSubmit = async (data: RoleFormData, currentPermIds: string[]): Promise<boolean> => {
+  if (formTarget === null) {
+    return createRole(data);
+  }
+  return updateRole((formTarget as Role).id, data, currentPermIds);
+};
+  
 
   // ── Delete confirm ─────────────────────────────────────────────────────────
   const handleDeleteConfirm = async () => {
