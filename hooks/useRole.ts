@@ -240,6 +240,26 @@ export function useRoles() {
     },
     [notify],
   );
+const updateRolePermissionsBulk = useCallback(
+  async (roleId: string, permissionIds: string[]): Promise<boolean> => {
+    try {
+      const token = getStoredToken();
+      const res = await roleService.setPermissions(roleId, permissionIds, token);
+      const updated = (res as unknown as { data: Role }).data;
+      dispatch({ type: "UPDATE", role: updated });
+      notify({ type: "success", message: "تم تحديث صلاحيات الدور بنجاح." });
+      return true;
+    } catch (err) {
+      notify({
+        type: "error",
+        message: err instanceof Error ? err.message : "تعذّر تحديث صلاحيات الدور.",
+      });
+      return false;
+    }
+  },
+  [notify],
+);
+
 
   const handleSearch = useCallback((q: string) => {
     setSearch(q);
@@ -257,6 +277,8 @@ export function useRoles() {
     createRole,
     updateRole,
     deleteRole,
+    updateRolePermissionsBulk,
     notification,
+    
   };
 }

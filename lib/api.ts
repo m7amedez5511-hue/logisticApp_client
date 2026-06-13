@@ -9,8 +9,7 @@ function normalizePath(path: string) {
 
 // ─── API REQUESTS ─────────────────────────────
 export async function requestJson<T>(
-  path: string,
-  init: RequestInit = {},
+path: string, init: RequestInit = {}, token: string | null, p0: number,
 ): Promise<T> {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;

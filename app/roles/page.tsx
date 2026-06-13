@@ -9,6 +9,7 @@ import { RoleTable }        from "../../Components/role/RoleTable";
 import { RoleFormModal }    from "../../Components/role/RoleFormModal";
 import { DeleteRoleModal }  from "../../Components/role/DeleteRoleModal";
 import { RoleToast }        from "../../Components/role/RoleToast";
+import { RoleDetailModal }  from "../../Components/role/RoleDetailModal";
 import { useRoles }         from "../../hooks/useRole";
 import type { Role, RoleFormData } from "../../services/role.service";
 
@@ -18,6 +19,8 @@ export default function RolesPage() {
   const [formTarget,   setFormTarget]   = useState<Role | null | false>(false);
   const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
   const [deleting,     setDeleting]     = useState(false);
+  const [viewTarget,   setViewTarget]   = useState<Role | null>(null);
+  const [detailTarget, setDetailTarget] = useState<Role | null>(null);
 
   // ── Data hook ──────────────────────────────────────────────────────────────
   const {
@@ -26,6 +29,7 @@ export default function RolesPage() {
     page, search,
     setPage, handleSearch, clearError,
     createRole, updateRole, deleteRole,
+    updateRolePermissionsBulk,
     notification,
   } = useRoles();
 
@@ -71,7 +75,16 @@ export default function RolesPage() {
           onConfirm={handleDeleteConfirm}
         />
       )}
-
+      
+      {/* Role details view */}
+      {viewTarget && (
+        <RoleDetailModal
+          role={viewTarget}
+          allPermissions={permissions}
+          onClose={() => setViewTarget(null)}
+          onSave={updateRolePermissionsBulk}
+        />
+      )}
       <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
         {/* ── Page header ── */}
@@ -201,6 +214,7 @@ export default function RolesPage() {
           pages={pages}
           onEdit={role => setFormTarget(role)}
           onDelete={role => setDeleteTarget(role)}
+          onView={role => setViewTarget(role)}
           onAddFirst={() => setFormTarget(null)}
           onPageChange={setPage}
         />

@@ -1,3 +1,5 @@
+import { requestJson } from "@/lib/api";
+
 function resolveBase() {
   if (typeof window === "undefined") {
     return process.env.INTERNAL_API_BASE_URL ?? "";

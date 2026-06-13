@@ -85,6 +85,7 @@ interface RoleTableProps {
   pages:        number;
   onEdit:       (role: Role) => void;
   onDelete:     (role: Role) => void;
+  onView:       (role: Role) => void;
   onAddFirst:   () => void;
   onPageChange: (p: number) => void;
 }
@@ -92,7 +93,7 @@ interface RoleTableProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function RoleTable({
-  roles, loading, search, page, pages, onEdit, onDelete, onAddFirst, onPageChange,
+  roles, loading, search, page, pages, onEdit, onDelete, onView, onAddFirst, onPageChange,
 }: RoleTableProps) {
   return (
     <div style={cardStyle}>
@@ -151,6 +152,7 @@ export function RoleTable({
             return (
               <li
                 key={role.id}
+                onClick={() => onView(role)}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "2fr 2.5fr 1fr 1fr 80px",
@@ -159,6 +161,7 @@ export function RoleTable({
                   padding: "0.875rem 1.5rem",
                   borderBottom: "1px solid var(--color-border)",
                   background: i % 2 !== 0 ? "var(--color-surface-muted)" : "transparent",
+                  cursor: "pointer",
                   fontSize: 13,
                 }}
               >

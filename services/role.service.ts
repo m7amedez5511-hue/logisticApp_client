@@ -1,4 +1,5 @@
-import { get, post, put, del } from "./api";
+import { requestJson } from "@/lib/api";
+import { get, post, put, del, patch } from "./api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -84,4 +85,11 @@ export const roleService = {
   /** Remove a permission from a role */
   removePermission: (roleId: string, permissionId: string, token: string | null) =>
     del<unknown>(`role/${roleId}/permissions/${permissionId}`, token),
+  /** Atomically replace all permissions assigned to a role */
+  setPermissions: (roleId: string, permissionIds: string[], token: string | null) =>
+    patch<{ data: Role }>(`role/${roleId}/permissions`, {
+      method: "PATCH",
+      body: JSON.stringify({ permissionIds }),
+    }, token),
+  
 };
