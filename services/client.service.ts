@@ -1,46 +1,48 @@
-// services/client.service.ts
+// خدمة العملاء — كل نداءات الـ API الخاصة بالعملاء تكون هنا فقط
+// Mirrors user.service.ts exactly: token parameter, buildPayload, buildQuery.
+import { get, post, put, del } from "./api";
+import type { ApiResponse, ApiListResponse, Client, ClientFormData } from "../types/client";
 
-import { get, post } from "./api";
-import type { ClientAddress, Order } from "../types/client";
-
-export interface CreateClientPayload {
-  name: string;
-  email: string;
-  phone: string;
-  companyName?: string;
+/** نوع الاستجابة لعملية واحدة على عميل */
+export interface ClientResponse {
+  data: Client;
 }
 
-export interface CreateAddressPayload {
-  label: string;
-  branchName?: string | null;
-  contactPerson: { name: string; phone: string };
-  details: {
-    city: string;
-    district?: string;
-    street: string;
-    buildingNo?: string;
-    unitNo?: string;
-    zipCode?: string;
-  };
+/** بناء query string لجلب العملاء مع البحث والصفحات */
+function buildClientsQuery(page: number, search: string): string {
+  return `?page=${page}&limit=10${search ? `&search=${encodeURIComponent(search)}` : ""}`;
 }
 
 export const clientService = {
-  /** Register a new client account */
-  create: (payload: CreateClientPayload) =>
-    post<{ id: string; name: string; email: string; phone: string }>(
-      "client",
-      payload,
-    ),
+  /** جلب قائمة العملاء مع إمكانية البحث والتصفح بين الصفحات */
+  getAll: (page: number, search: string, token: string | null) =>
+    get<ApiListResponse<Client>>(`client${buildClientsQuery(page, search)}`, token),
 
-  /** Fetch all saved delivery addresses for a client */
-  getAddresses: (clientId: string) =>
-    get<ClientAddress[]>(`client/${clientId}/addresses`),
+  /** جلب عميل واحد بالـ ID (مع العناوين المرفقة) */
+  getById: (id: string, token: string | null) =>
+    get<ApiResponse<Client>>(`client/${id}`, token),
 
-  /** Save a new delivery address */
-  addAddress: (clientId: string, payload: CreateAddressPayload) =>
-    post<ClientAddress>(`client/${clientId}/addresses`, payload),
+  /** إنشاء عميل جديد */
+  create: (data: ClientFormData, token: string | null) =>
+    post<ClientResponse>("client", buildPayload(data), token),
 
-  /** Fetch all orders placed by a client */
-  getOrders: (clientId: string) =>
-    get<Order[]>(`client/${clientId}/orders`),
+  /** تعديل بيانات عميل موجود */
+  update: (id: string, data: ClientFormData, token: string | null) =>
+    put<ClientResponse>(`client/${id}`, buildPayload(data), token),
+
+  /** حذف عميل */
+  delete: (id: string, token: string | null) =>
+    del<void>(`client/${id}`, token),
 };
+
+/** تحويل بيانات النموذج إلى payload مناسب للـ API */
+function buildPayload(data: ClientFormData): Record<string, string> {
+  const payload: Record<string, string> = {
+    name:  data.name.trim(),
+    email: data.email.trim(),
+    phone: data.phone.trim(),
+  };
+  if (data.taxId?.trim()) payload.taxId = data.taxId.trim();
+  if (data.notes?.trim()) payload.notes = data.notes.trim();
+  return payload;
+}
