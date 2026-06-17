@@ -6,8 +6,8 @@ import { clearAuth, getStoredUser } from "../../../lib/auth";
 export function Topbar() {
   const router = useRouter();
 
-  function handleLogout() {
-    clearAuth();
+  async function handleLogout() {
+    await clearAuth();
     router.replace("/login");
   }
 

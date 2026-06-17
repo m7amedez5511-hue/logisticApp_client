@@ -1,65 +1,99 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
-const BACKEND_BASE_URL = "https://logiapi.slash.sa/api";
+const BACKEND_BASE_URL = "https://logiapi.slash.sa/api/v1";
 
-function buildHeaders(request: NextRequest) {
+async function proxy(
+  request: NextRequest,
+  params: { path: string[] },
+): Promise<NextResponse> {
+  const path = params.path?.join("/") ?? "";
+  const targetUrl = `${BACKEND_BASE_URL}/${path}${request.nextUrl.search}`;
+
+  // Read the HttpOnly cookie server-side — this is the ONLY place the raw
+  // token value is accessible after the Issue 3 refactor.
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth_token")?.value;
+
   const headers = new Headers();
 
+  // Forward all safe request headers.
   request.headers.forEach((value, key) => {
-    if (key === "host" || key === "content-length") return;
+    if (key === "host" || key === "content-length" || key === "cookie") return;
     headers.set(key, value);
   });
 
-  headers.set("x-forwarded-host", request.headers.get("host") || "localhost");
-  headers.delete("origin");
+  // Inject the Authorization header using the server-side cookie value.
+  // The client never had access to this token value.
+  if (token) {
+    headers.set("Authorization", `Bearer ${decodeURIComponent(token)}`);
+  }
 
-  return headers;
-}
-
-async function proxy(request: NextRequest, params: { path: string[] }) {
-  const path = params.path?.join("/") ?? "";
-  const targetUrl = `${BACKEND_BASE_URL}/${path}${request.nextUrl.search}`;
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
 
   const isBodyless = request.method === "GET" || request.method === "HEAD";
   const body = isBodyless ? undefined : await request.text();
 
   const upstream = await fetch(targetUrl, {
     method: request.method,
-    headers: buildHeaders(request),
+    headers,
     body,
     cache: "no-store",
   });
 
-  const contentType = upstream.headers.get("content-type") || "application/json";
+  const contentType =
+    upstream.headers.get("content-type") || "application/json";
   const responseBody = contentType.includes("application/json")
     ? await upstream.json().catch(() => null)
     : await upstream.text();
 
-  return new NextResponse(typeof responseBody === "string" ? responseBody : JSON.stringify(responseBody), {
-    status: upstream.status,
-    headers: {
-      "content-type": contentType,
-      "cache-control": "no-store",
+  return new NextResponse(
+    typeof responseBody === "string"
+      ? responseBody
+      : JSON.stringify(responseBody),
+    {
+      status: upstream.status,
+      headers: {
+        "content-type": contentType,
+        "cache-control": "no-store",
+      },
     },
-  });
+  );
 }
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
   return proxy(request, await params);
 }
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
   return proxy(request, await params);
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
   return proxy(request, await params);
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
   return proxy(request, await params);
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
   return proxy(request, await params);
 }

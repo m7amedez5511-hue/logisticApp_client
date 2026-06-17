@@ -1,17 +1,10 @@
-
-
+// next.config.ts
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
-    return [
-      {
-        // كل طلب لـ /api/proxy/... يتحول لـ logiapi.slash.sa/api/v1/...
-        source:      "/api/proxy/:path*",
-        destination: "https://logiapi.slash.sa/api/v1/:path*",
-      },
-    ];
-  },
+  // No rewrites needed. All proxying is handled by
+  // app/api/proxy/[...path]/route.ts, which reads the HttpOnly auth cookie
+  // server-side and forwards it as a Bearer token to the backend.
 };
 
 export default nextConfig;
