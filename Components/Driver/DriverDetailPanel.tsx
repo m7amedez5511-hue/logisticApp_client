@@ -1,7 +1,5 @@
 "use client";
-// Components/Driver/DriverDetailPanel.tsx
-// Slide-in panel displaying comprehensive driver details,
-// profile photo, status history, and daily report generation.
+
 
 import { useCallback, useEffect, useState } from "react";
 import { Spinner } from "../UI";

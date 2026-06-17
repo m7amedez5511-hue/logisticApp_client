@@ -7,7 +7,7 @@ import type {
   ClientAddressFormData,
 } from "../types/client";
 
-const base = (clientId: string) => `clients/${clientId}/addresses`;
+const base = (clientId: string) => `client/${clientId}/addresses`;
 
 export const clientAddressService = {
   /** جلب جميع عناوين عميل معين */

@@ -1,9 +1,4 @@
 "use client";
-// hooks/useClients.ts
-// Data-management hook for the Client module.
-// Mirrors the useUsers pattern exactly:
-//   useReducer for table state, server-side pagination + search,
-//   notify/toast instead of alert banners.
 
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { getStoredToken } from "../lib/auth";

@@ -1,7 +1,5 @@
-// ─────────────────────────────────────────────
-// next.config.ts
-// Proxy للـ API عشان نتفادى CORS في المتصفح
-// ─────────────────────────────────────────────
+
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {

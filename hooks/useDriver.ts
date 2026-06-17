@@ -1,7 +1,4 @@
 "use client";
-// hooks/useDriver.ts
-// Data-management hook for the Driver module.
-// Mirrors the useUsers / useRoles pattern in the project.
 
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { getStoredToken } from "../lib/auth";

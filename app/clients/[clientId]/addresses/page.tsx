@@ -187,10 +187,11 @@ function ActionBtn({
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function ClientAddressesPage() {
+  
   const params   = useParams();
   const router   = useRouter();
   const clientId = params?.clientId as string;
-
+  console.log('clientId:', params.clientId); // شوف إيه اللي بيجي
   // ── Parent client meta ───────────────────────────────────────────────────
   const [client, setClient]             = useState<Client | null>(null);
   const [clientLoading, setClientLoading] = useState(true);

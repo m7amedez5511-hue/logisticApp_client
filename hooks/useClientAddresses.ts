@@ -1,7 +1,5 @@
 "use client";
-// hooks/useClientAddresses.ts
-// Data-management hook for addresses scoped to a single client.
-// Mirrors the useUsers / useDrivers reducer pattern.
+
 
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { getStoredToken } from "../lib/auth";
