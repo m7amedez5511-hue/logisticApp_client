@@ -6,7 +6,54 @@ export type InsuranceStatus = "Valid" | "Expired" | "NotInsured";
 export type ImpoundStatus = "None" | string;
 export type ImageStage = "BEFORE" | "AFTER" | "GENERAL";
 
-// ── Core Car ────────────────────────────────────────────────────────────────
+// ── Status display config ────────────────────────────────────────────────────
+// Used by page.tsx (CarCard) and CarDetailPanel
+export const STATUS_MAP: Record<
+  CarStatus,
+  { label: string; color: string; bg: string; border: string; dot: string }
+> = {
+  Active:        { label: "نشط",      color: "#166534", bg: "#DCFCE7", border: "#BBF7D0", dot: "#16A34A" },
+  InMaintenance: { label: "صيانة",    color: "#854D0E", bg: "#FFFBEB", border: "#FDE68A", dot: "#D97706" },
+  InTrip:        { label: "في رحلة",  color: "#1E40AF", bg: "#EFF6FF", border: "#BFDBFE", dot: "#3B82F6" },
+  Inactive:      { label: "غير نشط", color: "#64748B", bg: "#F1F5F9", border: "#E2E8F0", dot: "#94A3B8" },
+};
+
+export const INS_MAP: Record<InsuranceStatus, { label: string; color: string }> = {
+  Valid:      { label: "سارٍ",        color: "#16A34A" },
+  Expired:    { label: "منتهي",       color: "#DC2626" },
+  NotInsured: { label: "غير مؤمَّن", color: "#D97706" },
+};
+
+// ── Stage display config ─────────────────────────────────────────────────────
+// Used by CarImageGallery
+export const STAGE_MAP: Record<ImageStage, { label: string; color: string; bg: string }> = {
+  BEFORE:  { label: "قبل", color: "#854D0E", bg: "#FFFBEB" },
+  AFTER:   { label: "بعد", color: "#166534", bg: "#DCFCE7" },
+  GENERAL: { label: "عام", color: "#1E40AF", bg: "#EFF6FF" },
+};
+
+// ── Shared date helpers ───────────────────────────────────────────────────────
+export function fmtDate(iso?: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("ar-SA", {
+    year: "numeric", month: "long", day: "numeric",
+  });
+}
+
+export function fmtDateShort(iso?: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("ar-SA", {
+    year: "numeric", month: "short", day: "numeric",
+  });
+}
+
+/** Returns true if the date is within 90 days in the future (or already past) */
+export function isExpiringSoon(iso?: string | null): boolean {
+  if (!iso) return false;
+  return (new Date(iso).getTime() - Date.now()) / 86_400_000 <= 90;
+}
+
+// ── Core Car ─────────────────────────────────────────────────────────────────
 
 export interface Car {
   id: string;
@@ -66,7 +113,7 @@ export interface CarStatusHistoryEntry {
   createdAt: string;
 }
 
-// ── Car Image ────────────────────────────────────────────────────────────────
+// ── Car Image ─────────────────────────────────────────────────────────────────
 
 export interface CarImage {
   id: string;
@@ -82,7 +129,7 @@ export interface CarImage {
   isDeleted: boolean;
 }
 
-// ── Payloads ────────────────────────────────────────────────────────────────
+// ── Payloads ──────────────────────────────────────────────────────────────────
 
 export interface CreateCarPayload {
   manufacturer: string;
@@ -118,7 +165,7 @@ export interface CreateCarPayload {
 
 export type UpdateCarPayload = Partial<CreateCarPayload> & { isActive?: boolean };
 
-// ── API Responses ────────────────────────────────────────────────────────────
+// ── API Responses ─────────────────────────────────────────────────────────────
 
 export interface CarListResponse {
   data: {
@@ -136,7 +183,7 @@ export interface CarImageListResponse {
   data: CarImage[];
 }
 
-// ── Form state ───────────────────────────────────────────────────────────────
+// ── Form state ────────────────────────────────────────────────────────────────
 
 export interface CarFormErrors {
   manufacturer?: string;
@@ -146,4 +193,11 @@ export interface CarFormErrors {
   plateLetters?: string;
   registrationNumber?: string;
   vinNumber?: string;
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+export interface ToastMsg {
+  type: "success" | "error";
+  message: string;
 }

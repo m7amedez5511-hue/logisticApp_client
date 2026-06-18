@@ -52,3 +52,15 @@ export type TableAction =
   | { type: "UPDATE"; user: User }
   | { type: "DELETE"; id: string }
   | { type: "CLEAR_ERR" };
+
+
+  export interface UserDetail extends User {
+  photo: string | null;
+  refreshToken: string | null;
+  isDeleted: boolean;
+  deletedAt: string | null;
+  updatedAt: string;
+  passwordChangedAt: string | null;
+  role: { id?: string; name: string; description?: string };
+  branch: { id?: string; name: string };
+}

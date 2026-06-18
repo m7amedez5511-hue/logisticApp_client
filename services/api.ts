@@ -50,8 +50,8 @@ export async function request<T>(
   }
 
   //return res.json() as Promise<T>;
-  const text = await res.text();
-  return (text ? JSON.parse(text) : null) as Promise<T>;
+const text = await res.text();
+return (text && text.trim().length > 0 ? JSON.parse(text) : null) as T;
 }
 
 // ── Convenience shorthands ────────────────────────────
@@ -68,3 +68,5 @@ export const put = <T>(path: string, body: unknown, token?: string | null) =>
 
 export const del = <T>(path: string, token?: string | null) =>
   request<T>(path, { method: "DELETE" }, token);
+
+

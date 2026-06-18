@@ -1,5 +1,3 @@
-
-
 import { get, post, patch, del } from "./api";
 import type {
   Car,

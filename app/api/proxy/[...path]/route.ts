@@ -45,6 +45,23 @@ async function proxy(
 
   const contentType =
     upstream.headers.get("content-type") || "application/json";
+
+  // Responses with these statuses MUST NOT carry a body (per the Fetch/HTTP
+  // spec). Constructing a NextResponse with a body alongside one of these
+  // statuses throws at runtime, which Next.js then surfaces as a 500 to the
+  // client — even though the upstream call itself succeeded. This is exactly
+  // what happens on DELETE endpoints that correctly return 204 No Content.
+  const isNoBodyStatus = [204, 205, 304].includes(upstream.status);
+
+  if (isNoBodyStatus) {
+    // Drain the upstream body (should be empty anyway) without parsing it.
+    await upstream.text().catch(() => null);
+    return new NextResponse(null, {
+      status: upstream.status,
+      headers: { "cache-control": "no-store" },
+    });
+  }
+
   const responseBody = contentType.includes("application/json")
     ? await upstream.json().catch(() => null)
     : await upstream.text();

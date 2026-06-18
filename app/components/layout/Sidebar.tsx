@@ -10,25 +10,25 @@ const navSections = [
     label: "الرئيسية",
     items: [
       { href: "/dashboard", label: "Dashboard",   icon: "ti-layout-dashboard", permission: "read-dashboard" },
-      { href: "/users",     label: "Users",        icon: "ti-users",            permission: "read-user"      },
+      { href: "/dashboard/users",     label: "Users",        icon: "ti-users",            permission: "read-user"      },
     ],
   },
   {
     label: "الأسطول",
     items: [
-      { href: "/cars",    label: "Cars",    icon: "ti-car",           permission: "read-car"    },
-      { href: "/drivers", label: "Drivers", icon: "ti-steering-wheel",permission: "read-driver" },
-      { href: "/trips",   label: "Trips",   icon: "ti-route",         permission: "read-trip"   },
+      { href: "/dashboard/cars",    label: "Cars",    icon: "ti-car",           permission: "read-car"    },
+      { href: "/dashboard/drivers", label: "Drivers", icon: "ti-steering-wheel",permission: "read-driver" },
+      { href: "/dashboard/trips",   label: "Trips",   icon: "ti-route",         permission: "read-trip"   },
     ],
   },
   {
     label: "العمليات",
     items: [
-      { href: "/orders",   label: "Orders",   icon: "ti-package",     permission: "read-order"  },
-      { href: "/clients",  label: "Clients",  icon: "ti-users-group", permission: "read-client" },
-      { href: "/branches", label: "Branches", icon: "ti-building",    permission: "read-branch" },
-      { href: "/roles",    label: "Roles",    icon: "ti-shield",      permission: "read-role"   },
-      { href: "/audit",    label: "Audit",    icon: "ti-clipboard-list", permission: "read-audit" },
+      { href: "/dashboard/orders",   label: "Orders",   icon: "ti-package",     permission: "read-order"  },
+      { href: "/dashboard/clients",  label: "Clients",  icon: "ti-users-group", permission: "read-client" },
+      { href: "/dashboard/branches", label: "Branches", icon: "ti-building",    permission: "read-branch" },
+      { href: "/dashboard/roles",    label: "Roles",    icon: "ti-shield",      permission: "read-role"   },
+      { href: "/dashboard/audit",    label: "Audit",    icon: "ti-clipboard-list", permission: "read-audit" },
     ],
   },
 ];

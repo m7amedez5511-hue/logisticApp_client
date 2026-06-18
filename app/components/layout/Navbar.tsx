@@ -34,9 +34,7 @@ export default function Navbar() {
         </div>
 
         <div className="mr-auto flex items-center gap-2">
-          <Link href="/NewOrder" className="flex h-[34px] items-center rounded-lg border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
-            إنشاء  طلب جديد
-          </Link>
+          
           <Link href="/login" className="flex h-[34px] items-center rounded-lg bg-blue-600 px-3 text-[13px] font-bold text-white shadow-sm transition hover:bg-blue-700">
             تسجيل الدخول ←
           </Link>

@@ -5,40 +5,12 @@
 import { useEffect, useState } from "react";
 import { Spinner } from "../UI";
 import { CarImageGallery } from "./CarImageGallery";
-import { carService } from "../../services/car.service";
-import { getStoredToken } from "../../lib/auth";
-import type { Car, CarStatus, InsuranceStatus } from "../../types/car";
-
-// ── Status config ─────────────────────────────────────────────────────────────
-const STATUS_MAP: Record<CarStatus, { label: string; color: string; bg: string; border: string }> = {
-  Active:        { label: "نشط",       color: "#166534", bg: "#DCFCE7", border: "#BBF7D0" },
-  InMaintenance: { label: "صيانة",     color: "#854D0E", bg: "#FFFBEB", border: "#FDE68A" },
-  InTrip:        { label: "في رحلة",   color: "#1E40AF", bg: "#EFF6FF", border: "#BFDBFE" },
-  Inactive:      { label: "غير نشط",  color: "#64748B", bg: "#F1F5F9", border: "#E2E8F0" },
-};
-
-const INS_MAP: Record<InsuranceStatus, { label: string; color: string }> = {
-  Valid:       { label: "سارٍ",        color: "#16A34A" },
-  Expired:     { label: "منتهي",       color: "#DC2626" },
-  NotInsured:  { label: "غير مؤمَّن", color: "#D97706" },
-};
-
-// ── Helper: format date ───────────────────────────────────────────────────────
-function fmtDate(iso?: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("ar-SA", {
-    year: "numeric", month: "long", day: "numeric",
-  });
-}
-
-/** Returns true if the date is within 90 days in the future (or already past) */
-function isExpiringSoon(iso?: string | null): boolean {
-  if (!iso) return false;
-  const diff = new Date(iso).getTime() - Date.now();
-  return diff <= 90 * 86_400_000;
-}
+import { useCarDetail } from "../../hooks/useCars";
+import { STATUS_MAP, INS_MAP, fmtDate, isExpiringSoon } from "../../types/car";
+import type { Car, InsuranceStatus } from "../../types/car";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
+
 interface CarDetailPanelProps {
   carId: string;
   onClose: () => void;
@@ -47,7 +19,10 @@ interface CarDetailPanelProps {
 }
 
 // ── Row component ─────────────────────────────────────────────────────────────
-function DetailRow({ label, value, mono = false, warn = false }: { label: string; value: string; mono?: boolean; warn?: boolean }) {
+
+function DetailRow({ label, value, mono = false, warn = false }: {
+  label: string; value: string; mono?: boolean; warn?: boolean;
+}) {
   return (
     <div style={{
       display: "flex", justifyContent: "space-between", alignItems: "baseline",
@@ -68,22 +43,10 @@ function DetailRow({ label, value, mono = false, warn = false }: { label: string
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPanelProps) {
-  const [car,     setCar]     = useState<Car | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
-  const [gallery, setGallery] = useState(false);
 
-  useEffect(() => {
-    const token = getStoredToken();
-    setLoading(true);
-    setError(null);
-    carService
-      .getById(carId, token)
-      .then(res => setCar((res as unknown as { data: Car }).data))
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [carId]);
+export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPanelProps) {
+  const { car, loading, error } = useCarDetail(carId);
+  const [gallery, setGallery] = useState(false);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape" && !gallery) onClose(); };
@@ -91,7 +54,6 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
     return () => window.removeEventListener("keydown", h);
   }, [gallery, onClose]);
 
-  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <>
       {/* Backdrop */}
@@ -169,7 +131,7 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
                   );
                 })()}
                 {car.insuranceStatus && (() => {
-                  const ins = INS_MAP[car.insuranceStatus!];
+                  const ins = INS_MAP[car.insuranceStatus as InsuranceStatus];
                   return (
                     <span style={{ borderRadius: "var(--radius-full)", border: `1px solid ${ins.color}33`, background: `${ins.color}11`, padding: "0.3rem 0.875rem", fontSize: 12, fontWeight: 700, color: ins.color }}>
                       تأمين: {ins.label}
@@ -197,31 +159,31 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
               <p style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: "var(--color-text-hint)", fontWeight: 700, margin: "1.25rem 0 0.5rem" }}>
                 بيانات اللوحة
               </p>
-              <DetailRow label="رقم اللوحة"   value={`${car.plateLetters} ${car.plateNumber}`} mono />
-              <DetailRow label="نوع اللوحة"   value={car.plateType ?? "—"} />
-              <DetailRow label="رقم الاستمارة" value={car.registrationNumber ?? "—"} mono />
+              <DetailRow label="رقم اللوحة"      value={`${car.plateLetters} ${car.plateNumber}`} mono />
+              <DetailRow label="نوع اللوحة"       value={car.plateType ?? "—"} />
+              <DetailRow label="رقم الاستمارة"    value={car.registrationNumber ?? "—"} mono />
               <DetailRow label="رقم الهيكل (VIN)" value={car.vinNumber ?? "—"} mono />
 
               {/* Section: Regulatory */}
               <p style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: "var(--color-text-hint)", fontWeight: 700, margin: "1.25rem 0 0.5rem" }}>
                 الترخيص والتأمين
               </p>
-              <DetailRow label="انتهاء الاستمارة"    value={fmtDate(car.registrationExpiryDate)} warn={isExpiringSoon(car.registrationExpiryDate)} />
-              <DetailRow label="انتهاء التأمين"       value={fmtDate(car.insuranceExpiryDate)}    warn={isExpiringSoon(car.insuranceExpiryDate)} />
-              <DetailRow label="انتهاء الفحص الدوري" value={fmtDate(car.inspectionExpiryDate)}   warn={isExpiringSoon(car.inspectionExpiryDate)} />
-              <DetailRow label="رقم بطاقة التشغيل"   value={car.operationCardNumber ?? "—"} mono />
+              <DetailRow label="انتهاء الاستمارة"     value={fmtDate(car.registrationExpiryDate)} warn={isExpiringSoon(car.registrationExpiryDate)} />
+              <DetailRow label="انتهاء التأمين"        value={fmtDate(car.insuranceExpiryDate)}    warn={isExpiringSoon(car.insuranceExpiryDate)} />
+              <DetailRow label="انتهاء الفحص الدوري"  value={fmtDate(car.inspectionExpiryDate)}   warn={isExpiringSoon(car.inspectionExpiryDate)} />
+              <DetailRow label="رقم بطاقة التشغيل"    value={car.operationCardNumber ?? "—"} mono />
               <DetailRow label="انتهاء بطاقة التشغيل" value={fmtDate(car.operationCardExpiry)} />
 
               {/* Section: Operational */}
               <p style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: "var(--color-text-hint)", fontWeight: 700, margin: "1.25rem 0 0.5rem" }}>
                 بيانات تشغيلية
               </p>
-              <DetailRow label="رقم GPS"             value={car.gpsDeviceId ?? "—"} mono />
-              <DetailRow label="الطاقة الاستيعابية"  value={car.capacity != null ? String(car.capacity) : "—"} />
-              <DetailRow label="الوزن (كجم)"         value={car.weight != null ? String(car.weight) : "—"} />
-              <DetailRow label="حالة الحجز"          value={car.currentImpoundStatus ?? "بدون"} />
-              <DetailRow label="تاريخ الإضافة"       value={fmtDate(car.createdAt)} />
-              <DetailRow label="آخر تحديث"           value={fmtDate(car.updatedAt)} />
+              <DetailRow label="رقم GPS"            value={car.gpsDeviceId ?? "—"} mono />
+              <DetailRow label="الطاقة الاستيعابية" value={car.capacity != null ? String(car.capacity) : "—"} />
+              <DetailRow label="الوزن (كجم)"        value={car.weight != null ? String(car.weight) : "—"} />
+              <DetailRow label="حالة الحجز"         value={car.currentImpoundStatus ?? "بدون"} />
+              <DetailRow label="تاريخ الإضافة"      value={fmtDate(car.createdAt)} />
+              <DetailRow label="آخر تحديث"          value={fmtDate(car.updatedAt)} />
 
               {/* Status History */}
               {car.statusHistory && car.statusHistory.length > 0 && (
@@ -263,7 +225,6 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
             display: "flex", gap: "0.75rem",
             flexShrink: 0,
           }}>
-            {/* Gallery */}
             <button type="button" onClick={() => setGallery(true)}
               style={{ flex: 1, height: 40, borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface)", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "var(--font-sans)" }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -273,8 +234,6 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
               </svg>
               الصور
             </button>
-
-            {/* Edit */}
             <button type="button" onClick={() => onEdit(car)}
               style={{ flex: 2, height: 40, borderRadius: "var(--radius-md)", border: "none", background: "var(--color-brand-600)", fontSize: 13, fontWeight: 700, color: "#FFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "var(--font-sans)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -283,8 +242,6 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
               </svg>
               تعديل
             </button>
-
-            {/* Delete */}
             <button type="button" onClick={() => onDelete(car)}
               style={{ height: 40, padding: "0 1rem", borderRadius: "var(--radius-md)", border: "1px solid #FECACA", background: "#FEF2F2", fontSize: 13, fontWeight: 700, color: "#DC2626", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
               حذف
@@ -293,7 +250,6 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
         )}
       </aside>
 
-      {/* Image gallery overlay */}
       {gallery && car && (
         <CarImageGallery car={car} onClose={() => setGallery(false)} />
       )}
