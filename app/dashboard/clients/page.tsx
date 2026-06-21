@@ -48,7 +48,7 @@ export default function ClientsPage() {
 
   // ── Navigate to address management ──────────────────────────────────────
   const handleManageAddresses = (client: Client) => {
-    router.push(`/clients/${client.id}/addresses`);
+    router.push(`/dashboard/clients/${client.id}/addresses`);
   };
 
   // ── Render ───────────────────────────────────────────────────────────────

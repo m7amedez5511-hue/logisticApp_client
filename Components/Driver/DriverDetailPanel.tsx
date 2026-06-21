@@ -1,10 +1,10 @@
 "use client";
 
-
 import { useCallback, useEffect, useState } from "react";
 import { Spinner } from "../UI";
 import { driverService } from "../../services/driver.service";
 import { getStoredToken } from "../../lib/auth";
+import { DriverReportPanel } from "../Driver_Report/driverReport";
 import type { Driver } from "../../types/driver";
 import {
   DRIVER_STATUS_MAP,
@@ -14,7 +14,6 @@ import {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Format an ISO date string to a readable Arabic date. */
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("ar-SA", {
@@ -24,17 +23,10 @@ function fmtDate(iso?: string | null): string {
   });
 }
 
-/** Returns true if the date is within 90 days in the future (or already past). */
 function isExpiringSoon(iso?: string | null): boolean {
   if (!iso) return false;
   const diff = new Date(iso).getTime() - Date.now();
   return diff <= 90 * 86_400_000;
-}
-
-/** Build the full image URL via the proxy to avoid CORS issues. */
-function buildPhotoUrl(filename?: string | null): string | null {
-  if (!filename) return null;
-  return `/api/proxy/driver-photos/${filename}`;
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -60,13 +52,7 @@ function DetailRow({
         borderBottom: "1px solid var(--color-border)",
       }}
     >
-      <span
-        style={{
-          fontSize: 12,
-          color: "var(--color-text-muted)",
-          fontWeight: 600,
-        }}
-      >
+      <span style={{ fontSize: 12, color: "var(--color-text-muted)", fontWeight: 600 }}>
         {label}
       </span>
       <span
@@ -104,180 +90,72 @@ function SectionHeading({ title }: { title: string }) {
   );
 }
 
-// ── Report generator sub-panel ───────────────────────────────────────────────
+// ── Photos section ────────────────────────────────────────────────────────────
 
-function ReportPanel({ driverId }: { driverId: string }) {
-  const today = new Date().toISOString().slice(0, 10);
-  const [date, setDate] = useState(today);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [reportUrl, setReportUrl] = useState<string | null>(null);
-
-  const handleGenerate = async () => {
-    setLoading(true);
-    setError(null);
-    setReportUrl(null);
-    try {
-      const token = getStoredToken();
-      const res = await driverService.getDailyReport(driverId, date, token);
-      const url = (
-        res as unknown as { data: { reportUrl: string } }
-      ).data?.reportUrl;
-      setReportUrl(url ?? null);
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "تعذّر إنشاء التقرير.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+function PhotoCard({
+  url,
+  label,
+}: {
+  url?: string | null;
+  label: string;
+}) {
+  const [imgError, setImgError] = useState(false);
 
   return (
-    <div
-      style={{
-        marginTop: "1.5rem",
-        borderRadius: "var(--radius-lg)",
-        border: "1px solid var(--color-border)",
-        background: "var(--color-surface-muted)",
-        padding: "1rem",
-      }}
-    >
-      <p
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)" }}>
+        {label}
+      </span>
+      <div
         style={{
-          fontSize: 11,
-          letterSpacing: "0.25em",
-          textTransform: "uppercase",
-          color: "#2563EB",
-          fontWeight: 700,
-          margin: "0 0 0.75rem",
+          width: "100%",
+          aspectRatio: "4/3",
+          borderRadius: "var(--radius-md)",
+          border: "1px solid var(--color-border)",
+          background: "var(--color-surface-muted)",
+          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        إنشاء تقرير يومي
-      </p>
-
-      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-        {/* Date input */}
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <label
-            htmlFor="report-date"
-            style={{
-              display: "block",
-              fontSize: 11,
-              fontWeight: 600,
-              color: "var(--color-text-muted)",
-              marginBottom: 4,
-            }}
-          >
-            تاريخ التقرير
-          </label>
-          <input
-            id="report-date"
-            type="date"
-            value={date}
-            max={today}
-            onChange={(e) => {
-              setDate(e.target.value);
-              setReportUrl(null);
-              setError(null);
-            }}
-            style={{
-              width: "100%",
-              height: 38,
-              padding: "0 0.625rem",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              fontSize: 13,
-              color: "var(--color-text-primary)",
-              outline: "none",
-              fontFamily: "var(--font-sans)",
-            }}
+        {url && !imgError ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={url}
+            alt={label}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            onError={() => setImgError(true)}
           />
-        </div>
-
-        {/* Generate button */}
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={loading || !date}
-          style={{
-            alignSelf: "flex-end",
-            height: 38,
-            padding: "0 1rem",
-            borderRadius: "var(--radius-md)",
-            border: "none",
-            background:
-              loading || !date
-                ? "var(--color-brand-400)"
-                : "var(--color-brand-600)",
-            fontSize: 13,
-            fontWeight: 700,
-            color: "#FFF",
-            cursor: loading || !date ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontFamily: "var(--font-sans)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {loading && <Spinner size="sm" className="text-white" />}
-          {loading ? "جارٍ الإنشاء…" : "إنشاء التقرير"}
-        </button>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div
-          style={{
-            marginTop: "0.75rem",
-            borderRadius: "var(--radius-md)",
-            background: "#FEF2F2",
-            border: "1px solid #FECACA",
-            padding: "0.625rem 0.875rem",
-            fontSize: 12,
-            color: "#DC2626",
-            fontWeight: 500,
-          }}
-        >
-          ⚠ {error}
-        </div>
-      )}
-
-      {/* Success link */}
-      {reportUrl && (
-        <div
-          style={{
-            marginTop: "0.75rem",
-            borderRadius: "var(--radius-md)",
-            background: "#DCFCE7",
-            border: "1px solid #BBF7D0",
-            padding: "0.625rem 0.875rem",
-            fontSize: 12,
-            color: "#166534",
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 8,
-          }}
-        >
-          <span>✓ تم إنشاء التقرير بنجاح</span>
-          <a
-            href={reportUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: "#166534",
-              textDecoration: "underline",
-              fontWeight: 700,
-              whiteSpace: "nowrap",
-            }}
+        ) : (
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--color-text-hint)"
+            strokeWidth="1.5"
           >
-            فتح التقرير ↗
-          </a>
-        </div>
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        )}
+      </div>
+      {url && !imgError && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            fontSize: 11,
+            color: "#2563EB",
+            textDecoration: "underline",
+            textAlign: "center",
+          }}
+        >
+          عرض الصورة ↗
+        </a>
       )}
     </div>
   );
@@ -288,6 +166,7 @@ function ReportPanel({ driverId }: { driverId: string }) {
 interface DriverDetailPanelProps {
   driverId: string;
   onClose: () => void;
+  onEdit: (driver: Driver) => void;
   onDelete: (driver: Driver) => void;
 }
 
@@ -296,12 +175,13 @@ interface DriverDetailPanelProps {
 export function DriverDetailPanel({
   driverId,
   onClose,
+  onEdit,
   onDelete,
 }: DriverDetailPanelProps) {
   const [driver, setDriver] = useState<Driver | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [imgError, setImgError] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   // Fetch driver data
   const loadDriver = useCallback(async () => {
@@ -312,9 +192,7 @@ export function DriverDetailPanel({
       const res = await driverService.getById(driverId, token);
       setDriver((res as unknown as { data: Driver }).data);
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "تعذّر تحميل بيانات السائق.",
-      );
+      setError(err instanceof Error ? err.message : "تعذّر تحميل بيانات السائق.");
     } finally {
       setLoading(false);
     }
@@ -326,14 +204,11 @@ export function DriverDetailPanel({
 
   // Close on Escape key
   useEffect(() => {
-    const h = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
 
-  const photoUrl = driver ? buildPhotoUrl(driver.photo) : null;
   const statusConfig = driver ? DRIVER_STATUS_MAP[driver.status] : null;
 
   return (
@@ -350,7 +225,7 @@ export function DriverDetailPanel({
         }}
       />
 
-      {/* Slide-in panel — from the left, mirroring CarDetailPanel */}
+      {/* Slide-in panel */}
       <aside
         aria-label="تفاصيل السائق"
         style={{
@@ -377,17 +252,9 @@ export function DriverDetailPanel({
             flexShrink: 0,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              gap: 12,
-            }}
-          >
-            {/* Photo + name */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+            {/* Avatar + name */}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {/* Avatar */}
               <div
                 style={{
                   width: 56,
@@ -402,62 +269,32 @@ export function DriverDetailPanel({
                   justifyContent: "center",
                 }}
               >
-                {photoUrl && !imgError ? (
+                {driver?.photoUrl && !avatarError ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={photoUrl}
-                    alt={driver?.name ?? "صورة السائق"}
+                    src={driver.photoUrl}
+                    alt={driver.name}
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    onError={() => setImgError(true)}
+                    onError={() => setAvatarError(true)}
                   />
                 ) : (
-                  /* Fallback: initials avatar */
-                  <span
-                    style={{
-                      fontSize: 20,
-                      fontWeight: 700,
-                      color: "var(--color-brand-600)",
-                    }}
-                  >
+                  <span style={{ fontSize: 20, fontWeight: 700, color: "var(--color-brand-600)" }}>
                     {driver?.name?.charAt(0) ?? "?"}
                   </span>
                 )}
               </div>
 
               <div>
-                <p
-                  style={{
-                    fontSize: 11,
-                    letterSpacing: "0.3em",
-                    textTransform: "uppercase",
-                    color: "#2563EB",
-                    fontWeight: 600,
-                    margin: 0,
-                  }}
-                >
+                <p style={{ fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", color: "#2563EB", fontWeight: 600, margin: 0 }}>
                   ملف السائق
                 </p>
                 {driver && (
-                  <h2
-                    style={{
-                      fontSize: 17,
-                      fontWeight: 700,
-                      color: "var(--color-text-primary)",
-                      margin: "3px 0 0",
-                    }}
-                  >
+                  <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text-primary)", margin: "3px 0 0" }}>
                     {driver.name}
                   </h2>
                 )}
                 {driver?.userName && (
-                  <p
-                    style={{
-                      fontSize: 11,
-                      fontFamily: "var(--font-mono)",
-                      color: "var(--color-text-muted)",
-                      margin: "2px 0 0",
-                    }}
-                  >
+                  <p style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--color-text-muted)", margin: "2px 0 0" }}>
                     @{driver.userName}
                   </p>
                 )}
@@ -490,23 +327,12 @@ export function DriverDetailPanel({
         </div>
 
         {/* ── Scrollable content ── */}
-        <div
-          style={{ flex: 1, overflowY: "auto", padding: "1.25rem 1.5rem" }}
-        >
+        <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem 1.5rem" }}>
           {/* Loading */}
           {loading && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "2rem 0",
-              }}
-            >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2rem 0" }}>
               <Spinner size="sm" className="text-blue-600" />
-              <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-                جارٍ التحميل…
-              </span>
+              <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>جارٍ التحميل…</span>
             </div>
           )}
 
@@ -529,14 +355,7 @@ export function DriverDetailPanel({
           {driver && !loading && (
             <>
               {/* Status badges */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  flexWrap: "wrap",
-                  marginBottom: "1rem",
-                }}
-              >
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: "1rem" }}>
                 {statusConfig && (
                   <span
                     style={{
@@ -552,14 +371,7 @@ export function DriverDetailPanel({
                       gap: 6,
                     }}
                   >
-                    <span
-                      style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: "50%",
-                        background: statusConfig.dot,
-                      }}
-                    />
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: statusConfig.dot }} />
                     {statusConfig.label}
                   </span>
                 )}
@@ -582,35 +394,31 @@ export function DriverDetailPanel({
 
               {/* ── Section: Personal Info ── */}
               <SectionHeading title="البيانات الشخصية" />
-              <DetailRow label="الاسم الكامل"  value={driver.name} />
-              <DetailRow label="رقم الجوال"    value={driver.phone} mono />
+              <DetailRow label="الاسم الكامل" value={driver.name} />
+              <DetailRow label="رقم الجوال" value={driver.phone} mono />
               <DetailRow label="البريد الإلكتروني" value={driver.email ?? "—"} />
-              <DetailRow label="العنوان"        value={driver.address ?? "—"} />
-              <DetailRow label="الجنسية"        value={driver.nationality ?? "—"} />
-              <DetailRow label="الفرع"          value={driver.branch?.name ?? "—"} />
+              <DetailRow label="العنوان" value={driver.address ?? "—"} />
+              <DetailRow label="الجنسية" value={driver.nationality ?? "—"} />
+              <DetailRow label="الفرع" value={driver.branch?.name ?? "—"} />
 
               {/* ── Section: ID & GOSI ── */}
               <SectionHeading title="الهوية والتأمينات" />
               <DetailRow
                 label="نوع الهوية"
-                value={
-                  driver.nationalIdType
-                    ? NATIONAL_ID_TYPE_MAP[driver.nationalIdType]
-                    : "—"
-                }
+                value={driver.nationalIdType ? NATIONAL_ID_TYPE_MAP[driver.nationalIdType] : "—"}
               />
-              <DetailRow label="رقم الهوية"      value={driver.nationalId ?? "—"} mono />
+              <DetailRow label="رقم الهوية" value={driver.nationalId ?? "—"} mono />
               <DetailRow
                 label="انتهاء الهوية"
                 value={fmtDate(driver.nationalIdExpiry)}
                 warn={isExpiringSoon(driver.nationalIdExpiry)}
               />
-              <DetailRow label="رقم GOSI"         value={driver.gosiNumber ?? "—"} mono />
+              <DetailRow label="رقم GOSI" value={driver.gosiNumber ?? "—"} mono />
 
               {/* ── Section: License ── */}
               <SectionHeading title="بيانات رخصة القيادة" />
-              <DetailRow label="رقم الرخصة"   value={driver.licenseNumber ?? "—"} mono />
-              <DetailRow label="نوع الرخصة"   value={driver.licenseType ?? "—"} />
+              <DetailRow label="رقم الرخصة" value={driver.licenseNumber ?? "—"} mono />
+              <DetailRow label="نوع الرخصة" value={driver.licenseType ?? "—"} />
               <DetailRow
                 label="انتهاء الرخصة"
                 value={fmtDate(driver.licenseExpiry)}
@@ -619,34 +427,31 @@ export function DriverDetailPanel({
 
               {/* ── Section: Driver Card ── */}
               <SectionHeading title="بطاقة السائق" />
-              <DetailRow
-                label="رقم البطاقة"
-                value={driver.driverCardNumber ?? "—"}
-                mono
-              />
+              <DetailRow label="رقم البطاقة" value={driver.driverCardNumber ?? "—"} mono />
               <DetailRow
                 label="نوع البطاقة"
-                value={
-                  driver.driverCardType
-                    ? DRIVER_CARD_TYPE_MAP[driver.driverCardType]
-                    : "—"
-                }
+                value={driver.driverCardType ? DRIVER_CARD_TYPE_MAP[driver.driverCardType] : "—"}
               />
               <DetailRow
                 label="انتهاء البطاقة"
                 value={fmtDate(driver.driverCardExpiry)}
                 warn={isExpiringSoon(driver.driverCardExpiry)}
               />
-              <DetailRow
-                label="نوع السائق"
-                value={driver.driverType ?? "—"}
-              />
+              <DetailRow label="نوع السائق" value={driver.driverType ?? "—"} />
 
               {/* ── Section: System Info ── */}
               <SectionHeading title="معلومات النظام" />
-              <DetailRow label="اسم المستخدم"    value={driver.userName ?? "—"} mono />
-              <DetailRow label="تاريخ الإضافة"   value={fmtDate(driver.createdAt)} />
-              <DetailRow label="آخر تحديث"        value={fmtDate(driver.updatedAt)} />
+              <DetailRow label="اسم المستخدم" value={driver.userName ?? "—"} mono />
+              <DetailRow label="تاريخ الإضافة" value={fmtDate(driver.createdAt)} />
+              <DetailRow label="آخر تحديث" value={fmtDate(driver.updatedAt)} />
+
+              {/* ── Section: Photos ── */}
+              <SectionHeading title="الصور والمستندات" />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem", marginTop: "0.5rem" }}>
+                <PhotoCard url={driver.photoUrl} label="صورة السائق" />
+                <PhotoCard url={driver.nationalPhotoUrl} label="صورة الهوية" />
+                <PhotoCard url={driver.driverCardPhotoUrl} label="صورة البطاقة" />
+              </div>
 
               {/* ── Status History ── */}
               {driver.statusHistory && driver.statusHistory.length > 0 && (
@@ -654,8 +459,7 @@ export function DriverDetailPanel({
                   <SectionHeading title="سجل الحالات" />
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {driver.statusHistory.slice(0, 5).map((h) => {
-                      const s =
-                        DRIVER_STATUS_MAP[h.status] ?? DRIVER_STATUS_MAP.Active;
+                      const s = DRIVER_STATUS_MAP[h.status] ?? DRIVER_STATUS_MAP.Active;
                       return (
                         <div
                           key={h.id}
@@ -670,33 +474,16 @@ export function DriverDetailPanel({
                           }}
                         >
                           <div>
-                            <span
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 600,
-                                color: s.color,
-                              }}
-                            >
+                            <span style={{ fontSize: 12, fontWeight: 600, color: s.color }}>
                               {s.label}
                             </span>
                             {h.reason && (
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  color: "var(--color-text-muted)",
-                                  marginRight: 8,
-                                }}
-                              >
+                              <span style={{ fontSize: 11, color: "var(--color-text-muted)", marginRight: 8 }}>
                                 — {h.reason}
                               </span>
                             )}
                           </div>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: "var(--color-text-muted)",
-                            }}
-                          >
+                          <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
                             {fmtDate(h.createdAt)}
                           </span>
                         </div>
@@ -707,7 +494,7 @@ export function DriverDetailPanel({
               )}
 
               {/* ── Report Panel ── */}
-              <ReportPanel driverId={driver.id} />
+              <DriverReportPanel driverId={driver.id} />
             </>
           )}
         </div>
@@ -743,6 +530,34 @@ export function DriverDetailPanel({
             >
               حذف
             </button>
+
+            {/* Edit */}
+            <button
+              type="button"
+              onClick={() => onEdit(driver)}
+              style={{
+                height: 40,
+                padding: "0 1rem",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--color-brand-200)",
+                background: "var(--color-brand-50, #EFF6FF)",
+                fontSize: 13,
+                fontWeight: 700,
+                color: "var(--color-brand-600)",
+                cursor: "pointer",
+                fontFamily: "var(--font-sans)",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              تعديل
+            </button>
+
             {/* Close */}
             <button
               type="button"

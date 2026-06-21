@@ -1,22 +1,24 @@
 "use client";
 
-
 import { useEffect, useRef, useState } from "react";
+import * as yup from "yup";
 import { Alert, Spinner } from "../UI";
-import { get } from "../../services/api";
-import { getStoredToken } from "../../lib/auth";
+import { get } from "@/services/api";
+import { getStoredToken } from "@/lib/auth";
+import { createDriverSchema, updateDriverSchema } from "@/validations/driver.validator";
+import type { DriverSchemaErrors } from "@/validations/driver.validator";
 import type {
   Driver,
-  DriverFormErrors,
   CreateDriverPayload,
   UpdateDriverPayload,
   NationalIdType,
   DriverCardType,
   DriverStatus,
-} from "../../types/driver";
-import type { Branch } from "../../types/branch";
+} from "@/types/driver";
+import type { Branch } from "@/types/branch";
 
 // ── Shared input style ───────────────────────────────────────────────────────
+
 const inputBase: React.CSSProperties = {
   width: "100%",
   height: 40,
@@ -54,24 +56,23 @@ const sectionHeadingStyle: React.CSSProperties = {
   margin: "0.5rem 0 0",
 };
 
+const optionalLabelStyle: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 500,
+  color: "var(--color-text-hint)",
+  marginRight: 4,
+};
+
 // ── Date helper ──────────────────────────────────────────────────────────────
+
 function toIsoDateTime(val: string): string {
   if (!val) return val;
   if (val.includes("T")) return val;
   return `${val}T00:00:00.000Z`;
 }
 
-// ── Validation ───────────────────────────────────────────────────────────────
-function validate(form: Partial<CreateDriverPayload>): DriverFormErrors {
-  const e: DriverFormErrors = {};
-  if (!form.name?.trim()) e.name = "الاسم مطلوب";
-  if (!form.phone?.trim()) e.phone = "رقم الجوال مطلوب";
-  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-    e.email = "البريد الإلكتروني غير صالح";
-  return e;
-}
-
 // ── Props ────────────────────────────────────────────────────────────────────
+
 interface DriverFormModalProps {
   editDriver: Driver | null;
   branches: Branch[];
@@ -83,6 +84,7 @@ interface DriverFormModalProps {
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
+
 export function DriverFormModal({
   editDriver,
   branches: branchesProp,
@@ -110,46 +112,45 @@ export function DriverFormModal({
   }, []);
 
   // ── Form state ────────────────────────────────────────────────────────────
-  const [name, setName] = useState(editDriver?.name ?? "");
-  const [phone, setPhone] = useState(editDriver?.phone ?? "");
-  const [email, setEmail] = useState(editDriver?.email ?? "");
-  const [address, setAddress] = useState(editDriver?.address ?? "");
+  const [name, setName]               = useState(editDriver?.name ?? "");
+  const [phone, setPhone]             = useState(editDriver?.phone ?? "");
+  const [email, setEmail]             = useState(editDriver?.email ?? "");
+  const [address, setAddress]         = useState(editDriver?.address ?? "");
   const [nationality, setNationality] = useState(editDriver?.nationality ?? "");
   const [nationalIdType, setNationalIdType] = useState<NationalIdType | "">(
     editDriver?.nationalIdType ?? "",
   );
   const [nationalId, setNationalId] = useState(
-    // nationalId is not in CreateDriverPayload — read-only from Driver
     (editDriver as Driver & { nationalId?: string })?.nationalId ?? "",
   );
   const [nationalIdExpiry, setNationalIdExpiry] = useState(
     (editDriver as Driver & { nationalIdExpiry?: string })?.nationalIdExpiry?.slice(0, 10) ?? "",
   );
-  const [gosiNumber, setGosiNumber] = useState(editDriver?.gosiNumber ?? "");
-  const [licenseNumber, setLicenseNumber] = useState(editDriver?.licenseNumber ?? "");
-  const [licenseType, setLicenseType] = useState(editDriver?.licenseType ?? "");
-  const [licenseExpiry, setLicenseExpiry] = useState(
+  const [gosiNumber, setGosiNumber]             = useState(editDriver?.gosiNumber ?? "");
+  const [licenseNumber, setLicenseNumber]       = useState(editDriver?.licenseNumber ?? "");
+  const [licenseType, setLicenseType]           = useState(editDriver?.licenseType ?? "");
+  const [licenseExpiry, setLicenseExpiry]       = useState(
     editDriver?.licenseExpiry?.slice(0, 10) ?? "",
   );
   const [driverCardNumber, setDriverCardNumber] = useState(editDriver?.driverCardNumber ?? "");
-  const [driverCardType, setDriverCardType] = useState<DriverCardType | "">(
+  const [driverCardType, setDriverCardType]     = useState<DriverCardType | "">(
     editDriver?.driverCardType ?? "",
   );
   const [driverCardExpiry, setDriverCardExpiry] = useState(
     editDriver?.driverCardExpiry?.slice(0, 10) ?? "",
   );
   const [driverType, setDriverType] = useState(editDriver?.driverType ?? "");
-  const [branchId, setBranchId] = useState(
+  const [branchId, setBranchId]     = useState(
     (editDriver as Driver & { branchId?: string })?.branchId ?? "",
   );
   const [status, setStatus] = useState<DriverStatus>(editDriver?.status ?? "Active");
 
   // Photo state (new uploads only)
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [nationalPhoto, setNationalPhoto] = useState<File | null>(null);
+  const [photo, setPhoto]                   = useState<File | null>(null);
+  const [nationalPhoto, setNationalPhoto]   = useState<File | null>(null);
   const [driverCardPhoto, setDriverCardPhoto] = useState<File | null>(null);
 
-  const [errors, setErrors] = useState<DriverFormErrors>({});
+  const [errors, setErrors] = useState<DriverSchemaErrors>({});
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState("");
   const firstRef = useRef<HTMLInputElement>(null);
@@ -162,45 +163,77 @@ export function DriverFormModal({
   }, [onClose]);
 
   // ── Input error style ──────────────────────────────────────────────────────
-  const inputStyle = (field: keyof DriverFormErrors): React.CSSProperties => ({
+  const inputStyle = (field: keyof DriverSchemaErrors): React.CSSProperties => ({
     ...inputBase,
     ...(errors[field] ? { borderColor: "var(--color-danger)", background: "#FEF2F2" } : {}),
   });
 
-  const clearFieldError = (field: keyof DriverFormErrors) =>
+  const clearFieldError = (field: keyof DriverSchemaErrors) =>
     setErrors((p) => ({ ...p, [field]: undefined }));
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // ── Submit with yup validation ────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const errs = validate({ name, phone, email: email || undefined });
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    // Build the raw object to validate
+    const raw: Record<string, unknown> = {
+      name:             name          || undefined,
+      phone:            phone         || undefined,
+      email:            email         || undefined,
+      address:          address       || undefined,
+      nationality:      nationality   || undefined,
+      nationalIdType:   nationalIdType || undefined,
+      gosiNumber:       gosiNumber    || undefined,
+      licenseNumber:    licenseNumber || undefined,
+      licenseType:      licenseType   || undefined,
+      licenseExpiry:    licenseExpiry || undefined,
+      driverCardNumber: driverCardNumber || undefined,
+      driverCardType:   driverCardType   || undefined,
+      driverCardExpiry: driverCardExpiry || undefined,
+      driverType:       driverType    || undefined,
+      branchId:         branchId      || undefined,
+      ...(!isNew ? { status } : {}),
+    };
 
-    const raw: Record<string, unknown> = { name, phone };
-    if (email)           raw.email = email;
-    if (address)         raw.address = address;
-    if (nationality)     raw.nationality = nationality;
-    if (nationalIdType)  raw.nationalIdType = nationalIdType;
-    if (gosiNumber)      raw.gosiNumber = gosiNumber;
-    if (licenseNumber)   raw.licenseNumber = licenseNumber;
-    if (licenseType)     raw.licenseType = licenseType;
-    if (licenseExpiry)   raw.licenseExpiry = toIsoDateTime(licenseExpiry);
-    if (driverCardNumber) raw.driverCardNumber = driverCardNumber;
-    if (driverCardType)  raw.driverCardType = driverCardType;
-    if (driverCardExpiry) raw.driverCardExpiry = toIsoDateTime(driverCardExpiry);
-    if (driverType)      raw.driverType = driverType;
-    if (branchId)        raw.branchId = branchId;
-    if (!isNew)          raw.status = status;
-    if (photo)           raw.photo = photo;
-    if (nationalPhoto)   raw.nationalPhoto = nationalPhoto;
-    if (driverCardPhoto) raw.driverCardPhoto = driverCardPhoto;
+    try {
+      const schema = isNew ? createDriverSchema : updateDriverSchema;
+      await schema.validate(raw, { abortEarly: false });
+    } catch (err) {
+      if (err instanceof yup.ValidationError) {
+        const fieldErrors: DriverSchemaErrors = {};
+        err.inner.forEach((e) => {
+          if (e.path) {
+            fieldErrors[e.path as keyof DriverSchemaErrors] = e.message;
+          }
+        });
+        setErrors(fieldErrors);
+        return;
+      }
+    }
 
-    const payload = raw as unknown as CreateDriverPayload;
+    // ── Build clean payload to send to backend ────────────────────────────
+    const payload: Record<string, unknown> = { name, phone };
+    if (email)            payload.email            = email;
+    if (address)          payload.address          = address;
+    if (nationality)      payload.nationality      = nationality;
+    if (nationalIdType)   payload.nationalIdType   = nationalIdType;
+    if (gosiNumber)       payload.gosiNumber       = gosiNumber;
+    if (licenseNumber)    payload.licenseNumber    = licenseNumber;
+    if (licenseType)      payload.licenseType      = licenseType;
+    if (licenseExpiry)    payload.licenseExpiry    = toIsoDateTime(licenseExpiry);
+    if (driverCardNumber) payload.driverCardNumber = driverCardNumber;
+    if (driverCardType)   payload.driverCardType   = driverCardType;
+    if (driverCardExpiry) payload.driverCardExpiry = toIsoDateTime(driverCardExpiry);
+    if (driverType)       payload.driverType       = driverType;
+    if (branchId)         payload.branchId         = branchId;
+    if (!isNew)           payload.status           = status;
+    if (photo)            payload.photo            = photo;
+    if (nationalPhoto)    payload.nationalPhoto    = nationalPhoto;
+    if (driverCardPhoto)  payload.driverCardPhoto  = driverCardPhoto;
 
     setSaving(true);
     setApiError("");
-    const ok = await onSubmit(payload, isNew);
+    const ok = await onSubmit(payload as unknown as CreateDriverPayload, isNew);
     setSaving(false);
     if (ok) onClose();
     else setApiError("حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.");
@@ -309,6 +342,7 @@ export function DriverFormModal({
           <p style={sectionHeadingStyle}>البيانات الشخصية</p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+            {/* Name — required */}
             <label style={labelStyle}>
               الاسم الكامل *
               <input
@@ -323,6 +357,7 @@ export function DriverFormModal({
               {errors.name && <span style={errorTextStyle}>{errors.name}</span>}
             </label>
 
+            {/* Phone — required */}
             <label style={labelStyle}>
               رقم الجوال *
               <input
@@ -335,8 +370,10 @@ export function DriverFormModal({
               {errors.phone && <span style={errorTextStyle}>{errors.phone}</span>}
             </label>
 
+            {/* Email — optional */}
             <label style={labelStyle}>
               البريد الإلكتروني
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <input
                 style={inputStyle("email")}
                 type="email"
@@ -348,26 +385,32 @@ export function DriverFormModal({
               {errors.email && <span style={errorTextStyle}>{errors.email}</span>}
             </label>
 
+            {/* Nationality — optional */}
             <label style={labelStyle}>
               الجنسية
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <input
                 style={inputBase}
                 value={nationality}
-                onChange={(e) => setNationality(e.target.value)}
+                onChange={(e) => { setNationality(e.target.value); clearFieldError("nationality"); }}
                 placeholder="سعودي"
                 dir="rtl"
               />
+              {errors.nationality && <span style={errorTextStyle}>{errors.nationality}</span>}
             </label>
 
+            {/* Address — optional, full width */}
             <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
               العنوان
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <input
-                style={inputBase}
+                style={inputStyle("address")}
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={(e) => { setAddress(e.target.value); clearFieldError("address"); }}
                 placeholder="الرياض، حي..."
                 dir="rtl"
               />
+              {errors.address && <span style={errorTextStyle}>{errors.address}</span>}
             </label>
           </div>
 
@@ -375,12 +418,14 @@ export function DriverFormModal({
           <p style={sectionHeadingStyle}>الهوية والتأمينات</p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+            {/* National ID Type — optional */}
             <label style={labelStyle}>
               نوع الهوية
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <select
-                style={{ ...inputBase, cursor: "pointer" }}
+                style={{ ...inputStyle("nationalIdType"), cursor: "pointer" }}
                 value={nationalIdType}
-                onChange={(e) => setNationalIdType(e.target.value as NationalIdType | "")}
+                onChange={(e) => { setNationalIdType(e.target.value as NationalIdType | ""); clearFieldError("nationalIdType"); }}
                 dir="rtl"
               >
                 <option value="">اختر النوع</option>
@@ -388,10 +433,13 @@ export function DriverFormModal({
                 <option value="Iqama">إقامة</option>
                 <option value="Passport">جواز سفر</option>
               </select>
+              {errors.nationalIdType && <span style={errorTextStyle}>{errors.nationalIdType}</span>}
             </label>
 
+            {/* National ID number — not in backend validator, display only */}
             <label style={labelStyle}>
               رقم الهوية
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <input
                 style={inputBase}
                 value={nationalId}
@@ -401,8 +449,10 @@ export function DriverFormModal({
               />
             </label>
 
+            {/* National ID expiry — not in backend validator, display only */}
             <label style={labelStyle}>
               انتهاء الهوية
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <input
                 style={inputBase}
                 type="date"
@@ -411,8 +461,10 @@ export function DriverFormModal({
               />
             </label>
 
+            {/* GOSI — optional */}
             <label style={labelStyle}>
               رقم GOSI
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <input
                 style={inputBase}
                 value={gosiNumber}
@@ -427,8 +479,10 @@ export function DriverFormModal({
           <p style={sectionHeadingStyle}>رخصة القيادة</p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+            {/* License number — optional */}
             <label style={labelStyle}>
               رقم الرخصة
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <input
                 style={inputStyle("licenseNumber")}
                 value={licenseNumber}
@@ -439,8 +493,10 @@ export function DriverFormModal({
               {errors.licenseNumber && <span style={errorTextStyle}>{errors.licenseNumber}</span>}
             </label>
 
+            {/* License type — optional */}
             <label style={labelStyle}>
               نوع الرخصة
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <input
                 style={inputBase}
                 value={licenseType}
@@ -450,14 +506,17 @@ export function DriverFormModal({
               />
             </label>
 
+            {/* License expiry — optional, validated if provided */}
             <label style={labelStyle}>
               انتهاء الرخصة
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <input
-                style={inputBase}
+                style={inputStyle("licenseExpiry")}
                 type="date"
                 value={licenseExpiry}
-                onChange={(e) => setLicenseExpiry(e.target.value)}
+                onChange={(e) => { setLicenseExpiry(e.target.value); clearFieldError("licenseExpiry"); }}
               />
+              {errors.licenseExpiry && <span style={errorTextStyle}>{errors.licenseExpiry}</span>}
             </label>
           </div>
 
@@ -465,8 +524,10 @@ export function DriverFormModal({
           <p style={sectionHeadingStyle}>بطاقة السائق</p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+            {/* Card number — optional */}
             <label style={labelStyle}>
               رقم البطاقة
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <input
                 style={inputBase}
                 value={driverCardNumber}
@@ -476,12 +537,14 @@ export function DriverFormModal({
               />
             </label>
 
+            {/* Card type — optional */}
             <label style={labelStyle}>
               نوع البطاقة
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <select
-                style={{ ...inputBase, cursor: "pointer" }}
+                style={{ ...inputStyle("driverCardType"), cursor: "pointer" }}
                 value={driverCardType}
-                onChange={(e) => setDriverCardType(e.target.value as DriverCardType | "")}
+                onChange={(e) => { setDriverCardType(e.target.value as DriverCardType | ""); clearFieldError("driverCardType"); }}
                 dir="rtl"
               >
                 <option value="">اختر النوع</option>
@@ -490,16 +553,20 @@ export function DriverFormModal({
                 <option value="Annual">سنوية</option>
                 <option value="Restricted">مقيدة</option>
               </select>
+              {errors.driverCardType && <span style={errorTextStyle}>{errors.driverCardType}</span>}
             </label>
 
+            {/* Card expiry — optional, validated if provided */}
             <label style={labelStyle}>
               انتهاء البطاقة
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <input
-                style={inputBase}
+                style={inputStyle("driverCardExpiry")}
                 type="date"
                 value={driverCardExpiry}
-                onChange={(e) => setDriverCardExpiry(e.target.value)}
+                onChange={(e) => { setDriverCardExpiry(e.target.value); clearFieldError("driverCardExpiry"); }}
               />
+              {errors.driverCardExpiry && <span style={errorTextStyle}>{errors.driverCardExpiry}</span>}
             </label>
           </div>
 
@@ -507,12 +574,14 @@ export function DriverFormModal({
           <p style={sectionHeadingStyle}>بيانات تشغيلية</p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+            {/* Branch — optional */}
             <label style={labelStyle}>
               الفرع
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <select
-                style={{ ...inputBase, cursor: "pointer" }}
+                style={{ ...inputStyle("branchId"), cursor: "pointer" }}
                 value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
+                onChange={(e) => { setBranchId(e.target.value); clearFieldError("branchId"); }}
                 dir="rtl"
               >
                 <option value="">اختر الفرع</option>
@@ -520,10 +589,13 @@ export function DriverFormModal({
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </select>
+              {errors.branchId && <span style={errorTextStyle}>{errors.branchId}</span>}
             </label>
 
+            {/* Driver type — optional */}
             <label style={labelStyle}>
               نوع السائق
+              <span style={optionalLabelStyle}>(اختياري)</span>
               <input
                 style={inputBase}
                 value={driverType}
@@ -533,6 +605,7 @@ export function DriverFormModal({
               />
             </label>
 
+            {/* Status — edit only */}
             {!isNew && (
               <label style={labelStyle}>
                 الحالة
@@ -553,10 +626,13 @@ export function DriverFormModal({
 
           {/* ── Section: Photos ── */}
           <p style={sectionHeadingStyle}>الصور والمستندات</p>
+          <p style={{ fontSize: 11, color: "var(--color-text-hint)", margin: "0.25rem 0 0", fontWeight: 400 }}>
+            جميع حقول الصور اختيارية
+          </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
-            <FileInput label="صورة السائق" current={photo} onChange={setPhoto} />
-            <FileInput label="صورة الهوية" current={nationalPhoto} onChange={setNationalPhoto} />
+            <FileInput label="صورة السائق"  current={photo}          onChange={setPhoto} />
+            <FileInput label="صورة الهوية"  current={nationalPhoto}  onChange={setNationalPhoto} />
             <FileInput label="صورة البطاقة" current={driverCardPhoto} onChange={setDriverCardPhoto} />
           </div>
 

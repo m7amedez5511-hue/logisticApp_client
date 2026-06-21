@@ -4,7 +4,7 @@
 //   - src/routes/driver.route.js      → /api/v1/driver/...
 //   - src/routes/driver_report.route.js → /api/v1/drivers/:id/reports/daily
 
-import { get, post, put, del } from "./api";
+import { get, post, put, del, patch } from "./api";
 import type {
   Driver,
   DriverListResponse,
@@ -81,7 +81,7 @@ export const driverService = {
    * Requires: "update-driver" permission
    */
   update: (id: string, payload: UpdateDriverPayload, token: string | null) =>
-    put<{ data: Driver }>(`driver/${id}`, payload, token),
+    patch<{ data: Driver }>(`driver/${id}`, payload, token),
 
   /**
    * DELETE /driver/:id
@@ -100,10 +100,10 @@ export const driverService = {
    * Requires: "generate-driver-report" permission
    */
   getDailyReport: (id: string, date: string, token: string | null) =>
-    get<DriverReportResponse>(
-      `driver/${id}/reports/daily?date=${encodeURIComponent(date)}`,
-      token,
-    ),
+  get<DriverReportResponse>(
+    `drivers/${id}/reports/daily?date=${encodeURIComponent(date)}`,
+    token,
+  ),
 
   // ── Image upload (multipart) ──────────────────────────────────────────────
 

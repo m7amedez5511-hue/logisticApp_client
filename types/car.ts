@@ -201,3 +201,25 @@ export interface ToastMsg {
   type: "success" | "error";
   message: string;
 }
+//  —  CarFormErrors  ──────────────────────────────────
+
+export interface CarFormErrors {
+  manufacturer?: string;
+  model?: string;
+  year?: string;
+  color?: string;
+  plateNumber?: string;
+  plateLetters?: string;
+  plateType?: string;
+  registrationNumber?: string;
+  vinNumber?: string;
+  branchId?: string;
+  currentStatus?: string;
+  insuranceStatus?: string;
+  registrationExpiryDate?: string;
+  insuranceExpiryDate?: string;
+  inspectionExpiryDate?: string;
+  gpsDeviceId?: string;
+  capacity?: string;
+  weight?: string;
+}

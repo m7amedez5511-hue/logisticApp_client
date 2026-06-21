@@ -34,6 +34,9 @@ export interface Driver {
   createdAt: string;
   updatedAt: string;
   isDeleted?: boolean;
+  photoUrl?: string | null;
+  nationalPhotoUrl?: string | null;
+  driverCardPhotoUrl?: string | null;
 }
 
 export interface DriverStatusHistoryEntry {

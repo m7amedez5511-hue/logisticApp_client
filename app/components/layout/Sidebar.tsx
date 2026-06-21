@@ -28,6 +28,7 @@ const navSections = [
       { href: "/dashboard/clients",  label: "Clients",  icon: "ti-users-group", permission: "read-client" },
       { href: "/dashboard/branches", label: "Branches", icon: "ti-building",    permission: "read-branch" },
       { href: "/dashboard/roles",    label: "Roles",    icon: "ti-shield",      permission: "read-role"   },
+      { href: "/dashboard/role_permission",    label: "Roles & Permission",    icon: "ti-shield",      permission: "manage-role-permissions"   },
       { href: "/dashboard/audit",    label: "Audit",    icon: "ti-clipboard-list", permission: "read-audit" },
     ],
   },
