@@ -89,12 +89,13 @@ function SectionHeading({ title }: { title: string }) {
   );
 }
 
-// ── PhotoCard — resets imgError whenever the url prop changes ─────────────────
+// ── PhotoCard ─────────────────────────────────────────────────────────────────
+// key={url} on the <img> forces a full remount whenever the URL changes,
+// which clears any stale onError state from a previously failed load.
 
 function PhotoCard({ url, label }: { url?: string | null; label: string }) {
   const [imgError, setImgError] = useState(false);
 
-  // Reset error state when url changes so the new image gets a fresh attempt
   useEffect(() => {
     setImgError(false);
   }, [url]);
@@ -120,6 +121,7 @@ function PhotoCard({ url, label }: { url?: string | null; label: string }) {
         {url && !imgError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
+            key={url}
             src={url}
             alt={label}
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -179,12 +181,6 @@ export function DriverDetailPanel({
   const [driver, setDriver] = useState<Driver | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // avatarError resets when photoUrl changes
-  const [avatarError, setAvatarError] = useState(false);
-  useEffect(() => {
-    setAvatarError(false);
-  }, [driver?.photoUrl]);
 
   const loadDriver = useCallback(async () => {
     setLoading(true);
@@ -253,6 +249,7 @@ export function DriverDetailPanel({
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {/* Avatar — key={photoUrl} forces remount on photo change */}
               <div
                 style={{
                   width: 56,
@@ -267,14 +264,8 @@ export function DriverDetailPanel({
                   justifyContent: "center",
                 }}
               >
-                {driver?.photoUrl && !avatarError ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={driver.photoUrl}
-                    alt={driver.name}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    onError={() => setAvatarError(true)}
-                  />
+                {driver?.photoUrl ? (
+                  <AvatarImg src={driver.photoUrl} name={driver.name} />
                 ) : (
                   <span style={{ fontSize: 20, fontWeight: 700, color: "var(--color-brand-600)" }}>
                     {driver?.name?.charAt(0) ?? "?"}
@@ -543,5 +534,32 @@ export function DriverDetailPanel({
         )}
       </aside>
     </>
+  );
+}
+
+// ── AvatarImg ─────────────────────────────────────────────────────────────────
+// Separate component so key={src} forces a full remount on photo change,
+// avoiding stale onError state from a previously failed load.
+
+function AvatarImg({ src, name }: { src: string; name: string }) {
+  const [error, setError] = useState(false);
+
+  if (error) {
+    return (
+      <span style={{ fontSize: 20, fontWeight: 700, color: "var(--color-brand-600)" }}>
+        {name.charAt(0)}
+      </span>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      key={src}
+      src={src}
+      alt={name}
+      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      onError={() => setError(true)}
+    />
   );
 }

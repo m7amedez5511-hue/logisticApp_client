@@ -217,6 +217,8 @@ export function DriverFormModal({
     if (address)          payload.address          = address;
     if (nationality)      payload.nationality      = nationality;
     if (nationalIdType)   payload.nationalIdType   = nationalIdType;
+    if (nationalId)       payload.nationalId       = nationalId;
+    if (nationalIdExpiry) payload.nationalIdExpiry = toIsoDateTime(nationalIdExpiry);
     if (gosiNumber)       payload.gosiNumber       = gosiNumber;
     if (licenseNumber)    payload.licenseNumber    = licenseNumber;
     if (licenseType)      payload.licenseType      = licenseType;
@@ -233,10 +235,22 @@ export function DriverFormModal({
 
     setSaving(true);
     setApiError("");
-    const ok = await onSubmit(payload as unknown as CreateDriverPayload, isNew);
-    setSaving(false);
-    if (ok) onClose();
-    else setApiError("حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.");
+
+    try {
+      const ok = await onSubmit(payload as unknown as CreateDriverPayload, isNew);
+      if (ok) {
+        onClose();
+      } else {
+        // onSubmit returned false without throwing — show generic fallback
+        setApiError("حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.");
+      }
+    } catch (err) {
+      // onSubmit threw — surface the real API error message
+      const message = err instanceof Error ? err.message : "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.";
+      setApiError(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ── File input helper ──────────────────────────────────────────────────────
@@ -436,7 +450,7 @@ export function DriverFormModal({
               {errors.nationalIdType && <span style={errorTextStyle}>{errors.nationalIdType}</span>}
             </label>
 
-            {/* National ID number — not in backend validator, display only */}
+            {/* National ID number */}
             <label style={labelStyle}>
               رقم الهوية
               <span style={optionalLabelStyle}>(اختياري)</span>
@@ -449,7 +463,7 @@ export function DriverFormModal({
               />
             </label>
 
-            {/* National ID expiry — not in backend validator, display only */}
+            {/* National ID expiry */}
             <label style={labelStyle}>
               انتهاء الهوية
               <span style={optionalLabelStyle}>(اختياري)</span>

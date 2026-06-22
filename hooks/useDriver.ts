@@ -101,6 +101,7 @@ export function useDrivers() {
   }, [page, search, loadDrivers]);
 
   // ── Create ────────────────────────────────────────────────────────────────
+  // Throws on failure so DriverFormModal can display the real API error message.
   const createDriver = useCallback(
     async (
       payload: CreateDriverPayload & {
@@ -109,38 +110,28 @@ export function useDrivers() {
         driverCardPhoto?: File;
       },
     ): Promise<boolean> => {
-      try {
-        const token = getStoredToken();
-        const hasFiles = payload.photo || payload.nationalPhoto || payload.driverCardPhoto;
+      const token = getStoredToken();
+      const hasFiles = payload.photo || payload.nationalPhoto || payload.driverCardPhoto;
 
-        if (hasFiles) {
-          const res = await driverService.createWithImages(payload, token);
-          const created = (res as unknown as { data: Driver }).data;
-          // The multipart create response isn't guaranteed to carry the same
-          // photoUrl/nationalPhotoUrl/driverCardPhotoUrl shape as GET /driver/:id
-          // (signed URL, CDN path, etc.), so re-fetch by id before the list reload
-          // picks it up — cheap insurance against a half-loaded card.
-          if (created?.id) {
-            await driverService.getById(created.id, token).catch(() => null);
-          }
-        } else {
-          await driverService.create(payload, token);
+      if (hasFiles) {
+        const res = await driverService.createWithImages(payload, token);
+        const created = (res as unknown as { data: Driver }).data;
+        if (created?.id) {
+          await driverService.getById(created.id, token).catch(() => null);
         }
-
-        notify({ type: "success", message: "تم إضافة السائق بنجاح." });
-        // Reload list to include the new driver
-        await loadDrivers(page, search);
-        return true;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "تعذّر إضافة السائق.";
-        notify({ type: "error", message });
-        return false;
+      } else {
+        await driverService.create(payload, token);
       }
+
+      notify({ type: "success", message: "تم إضافة السائق بنجاح." });
+      await loadDrivers(page, search);
+      return true;
     },
     [notify, loadDrivers, page, search],
   );
 
   // ── Update ────────────────────────────────────────────────────────────────
+  // Throws on failure so DriverFormModal can display the real API error message.
   const updateDriver = useCallback(
     async (
       id: string,
@@ -150,34 +141,23 @@ export function useDrivers() {
         driverCardPhoto?: File;
       },
     ): Promise<boolean> => {
-      try {
-        const token = getStoredToken();
-        const hasFiles = payload.photo || payload.nationalPhoto || payload.driverCardPhoto;
+      const token = getStoredToken();
+      const hasFiles = payload.photo || payload.nationalPhoto || payload.driverCardPhoto;
 
-        let updatedDriver: Driver;
+      let updatedDriver: Driver;
 
-        if (hasFiles) {
-          // Route to multipart when files are present — avoids File→{} serialization bug
-          await driverService.updateWithImages(id, payload, token);
-          // Image URLs returned by the multipart endpoint aren't guaranteed to match
-          // the shape from GET /driver/:id (signed URL, CDN path, etc.), so re-fetch
-          // the canonical record instead of trusting the mutation response.
-          const fresh = await driverService.getById(id, token);
-          updatedDriver = (fresh as unknown as { data: Driver }).data;
-        } else {
-          const res = await driverService.update(id, payload, token);
-          updatedDriver = (res as unknown as { data: Driver }).data;
-        }
-
-        // Instantly update the row in the list without a full reload
-        dispatch({ type: "UPDATE", driver: updatedDriver });
-        notify({ type: "success", message: "تم تحديث بيانات السائق بنجاح." });
-        return true;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "تعذّر تحديث بيانات السائق.";
-        notify({ type: "error", message });
-        return false;
+      if (hasFiles) {
+        await driverService.updateWithImages(id, payload, token);
+        const fresh = await driverService.getById(id, token);
+        updatedDriver = (fresh as unknown as { data: Driver }).data;
+      } else {
+        const res = await driverService.update(id, payload, token);
+        updatedDriver = (res as unknown as { data: Driver }).data;
       }
+
+      dispatch({ type: "UPDATE", driver: updatedDriver });
+      notify({ type: "success", message: "تم تحديث بيانات السائق بنجاح." });
+      return true;
     },
     [notify],
   );

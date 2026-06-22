@@ -9,10 +9,11 @@ export function PhotoCard({
 }) {
   const [imgError, setImgError] = useState(false);
 
-  // Reset error when url changes so updated images get a fresh load attempt
+  // Reset error state when url changes so updated images get a fresh load attempt
   useEffect(() => {
     setImgError(false);
   }, [url]);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <span
@@ -38,8 +39,11 @@ export function PhotoCard({
         }}
       >
         {url && !imgError ? (
+          // key={url} forces a full remount whenever the URL changes,
+          // clearing any stale error state from a previous failed load.
           // eslint-disable-next-line @next/next/no-img-element
           <img
+            key={url}
             src={url}
             alt={label}
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -62,7 +66,7 @@ export function PhotoCard({
       </div>
       {url && !imgError && (
         <a
-          href={url} 
+          href={url}
           target="_blank"
           rel="noopener noreferrer"
           style={{

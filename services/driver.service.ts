@@ -17,16 +17,14 @@ function buildQuery(params: Record<string, string | number | undefined>): string
   return "?" + entries.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&");
 }
 
-// ── Image URL proxy ───────────────────────────────────────────────────────────
-// Converts absolute Express image URLs to Next.js proxy paths to avoid CORS issues.
-// Pattern matches: http(s)://any-host/uploads/driver-photos/filename.jpg
-// → /api/proxy-image/driver-photos/filename.jpg
+// ── Image URL normaliser ──────────────────────────────────────────────────────
+// Returns the URL as-is — <img> tags are not subject to CORS, so we can point
+// directly at the backend without a Next.js proxy hop.
+// Only strips query-string noise or fixes obviously malformed paths if needed.
 
-function proxyImageUrl(url: string | null | undefined): string | null {
+function normaliseImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  const match = url.match(/\/uploads\/driver-photos\/(.+)$/);
-  if (match) return `/api/proxy-image/driver-photos/${match[1]}`;
-  return url; // return as-is if pattern doesn't match
+  return url;
 }
 
 function mapDriverImages<
@@ -38,33 +36,39 @@ function mapDriverImages<
 >(driver: T): T {
   return {
     ...driver,
-    photoUrl:           proxyImageUrl(driver.photoUrl),
-    nationalPhotoUrl:   proxyImageUrl(driver.nationalPhotoUrl),
-    driverCardPhotoUrl: proxyImageUrl(driver.driverCardPhotoUrl),
+    photoUrl:           normaliseImageUrl(driver.photoUrl),
+    nationalPhotoUrl:   normaliseImageUrl(driver.nationalPhotoUrl),
+    driverCardPhotoUrl: normaliseImageUrl(driver.driverCardPhotoUrl),
   };
 }
 
-// ── Image compression ─────────────────────────────────────────────────────────
-// Reduces image to max 800px and quality 0.75 before upload to avoid LIMIT_FILE_SIZE
 
-async function compressImage(file: File, maxPx = 800, quality = 0.75): Promise<File> {
+
+// ── Image compression ─────────────────────────────────────────────────────────
+// Resizes to max 1024px while preserving the original file type and name.
+
+async function compressImage(file: File, maxPx = 1024, quality = 0.82): Promise<File> {
   return new Promise((resolve) => {
     const img = new Image();
-    const url = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(file);
 
     img.onload = () => {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objectUrl);
 
-      // Calculate new dimensions while preserving aspect ratio
       let { width, height } = img;
-      if (width > maxPx || height > maxPx) {
-        if (width >= height) {
-          height = Math.round((height / width) * maxPx);
-          width  = maxPx;
-        } else {
-          width  = Math.round((width / height) * maxPx);
-          height = maxPx;
-        }
+
+      // Only resize if actually oversized
+      if (width <= maxPx && height <= maxPx) {
+        resolve(file);
+        return;
+      }
+
+      if (width >= height) {
+        height = Math.round((height / width) * maxPx);
+        width  = maxPx;
+      } else {
+        width  = Math.round((width / height) * maxPx);
+        height = maxPx;
       }
 
       const canvas = document.createElement("canvas");
@@ -72,22 +76,24 @@ async function compressImage(file: File, maxPx = 800, quality = 0.75): Promise<F
       canvas.height = height;
       canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
 
+      // Preserve original MIME type — don't force jpeg on png/webp files
+      const mimeType = file.type || "image/jpeg";
+
       canvas.toBlob(
         (blob) => {
           if (!blob) { resolve(file); return; }
-          resolve(new File([blob], file.name, { type: "image/jpeg", lastModified: Date.now() }));
+          resolve(new File([blob], file.name, { type: mimeType, lastModified: Date.now() }));
         },
-        "image/jpeg",
+        mimeType,
         quality,
       );
     };
 
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
-    img.src = url;
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
+    img.src = objectUrl;
   });
 }
 
-// Compress all image fields present in the payload
 async function compressPayloadImages<
   T extends { photo?: File; nationalPhoto?: File; driverCardPhoto?: File },
 >(payload: T): Promise<T> {
@@ -173,7 +179,6 @@ export const driverService = {
     },
     token: string | null,
   ): Promise<{ data: Driver }> => {
-    // Compress before building FormData
     const compressed = await compressPayloadImages(payload);
 
     const form = new FormData();
@@ -215,7 +220,6 @@ export const driverService = {
     },
     token: string | null,
   ): Promise<{ data: Driver }> => {
-    // Compress before building FormData
     const compressed = await compressPayloadImages(payload);
 
     const form = new FormData();
