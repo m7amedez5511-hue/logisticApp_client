@@ -25,8 +25,7 @@ function fmtDate(iso?: string | null): string {
 
 function isExpiringSoon(iso?: string | null): boolean {
   if (!iso) return false;
-  const diff = new Date(iso).getTime() - Date.now();
-  return diff <= 90 * 86_400_000;
+  return new Date(iso).getTime() - Date.now() <= 90 * 86_400_000;
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -90,16 +89,15 @@ function SectionHeading({ title }: { title: string }) {
   );
 }
 
-// ── Photos section ────────────────────────────────────────────────────────────
+// ── PhotoCard — resets imgError whenever the url prop changes ─────────────────
 
-function PhotoCard({
-  url,
-  label,
-}: {
-  url?: string | null;
-  label: string;
-}) {
+function PhotoCard({ url, label }: { url?: string | null; label: string }) {
   const [imgError, setImgError] = useState(false);
+
+  // Reset error state when url changes so the new image gets a fresh attempt
+  useEffect(() => {
+    setImgError(false);
+  }, [url]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -181,9 +179,13 @@ export function DriverDetailPanel({
   const [driver, setDriver] = useState<Driver | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [avatarError, setAvatarError] = useState(false);
 
-  // Fetch driver data
+  // avatarError resets when photoUrl changes
+  const [avatarError, setAvatarError] = useState(false);
+  useEffect(() => {
+    setAvatarError(false);
+  }, [driver?.photoUrl]);
+
   const loadDriver = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -198,11 +200,8 @@ export function DriverDetailPanel({
     }
   }, [driverId]);
 
-  useEffect(() => {
-    loadDriver();
-  }, [loadDriver]);
+  useEffect(() => { loadDriver(); }, [loadDriver]);
 
-  // Close on Escape key
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
@@ -253,7 +252,6 @@ export function DriverDetailPanel({
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-            {/* Avatar + name */}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div
                 style={{
@@ -301,7 +299,6 @@ export function DriverDetailPanel({
               </div>
             </div>
 
-            {/* Close button */}
             <button
               type="button"
               onClick={onClose}
@@ -328,7 +325,6 @@ export function DriverDetailPanel({
 
         {/* ── Scrollable content ── */}
         <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem 1.5rem" }}>
-          {/* Loading */}
           {loading && (
             <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2rem 0" }}>
               <Spinner size="sm" className="text-blue-600" />
@@ -336,18 +332,15 @@ export function DriverDetailPanel({
             </div>
           )}
 
-          {/* Error */}
           {error && (
-            <div
-              style={{
-                borderRadius: "var(--radius-md)",
-                background: "#FEF2F2",
-                border: "1px solid #FECACA",
-                padding: "0.75rem 1rem",
-                fontSize: 13,
-                color: "#DC2626",
-              }}
-            >
+            <div style={{
+              borderRadius: "var(--radius-md)",
+              background: "#FEF2F2",
+              border: "1px solid #FECACA",
+              padding: "0.75rem 1rem",
+              fontSize: 13,
+              color: "#DC2626",
+            }}>
               ⚠ {error}
             </div>
           )}
@@ -357,51 +350,45 @@ export function DriverDetailPanel({
               {/* Status badges */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: "1rem" }}>
                 {statusConfig && (
-                  <span
-                    style={{
-                      borderRadius: "var(--radius-full)",
-                      border: `1px solid ${statusConfig.border}`,
-                      background: statusConfig.bg,
-                      padding: "0.3rem 0.875rem",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: statusConfig.color,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
+                  <span style={{
+                    borderRadius: "var(--radius-full)",
+                    border: `1px solid ${statusConfig.border}`,
+                    background: statusConfig.bg,
+                    padding: "0.3rem 0.875rem",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: statusConfig.color,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}>
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: statusConfig.dot }} />
                     {statusConfig.label}
                   </span>
                 )}
                 {!driver.isActive && (
-                  <span
-                    style={{
-                      borderRadius: "var(--radius-full)",
-                      border: "1px solid #FECACA",
-                      background: "#FEF2F2",
-                      padding: "0.3rem 0.875rem",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: "#DC2626",
-                    }}
-                  >
+                  <span style={{
+                    borderRadius: "var(--radius-full)",
+                    border: "1px solid #FECACA",
+                    background: "#FEF2F2",
+                    padding: "0.3rem 0.875rem",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#DC2626",
+                  }}>
                     محذوف
                   </span>
                 )}
               </div>
 
-              {/* ── Section: Personal Info ── */}
               <SectionHeading title="البيانات الشخصية" />
-              <DetailRow label="الاسم الكامل" value={driver.name} />
-              <DetailRow label="رقم الجوال" value={driver.phone} mono />
+              <DetailRow label="الاسم الكامل"     value={driver.name} />
+              <DetailRow label="رقم الجوال"        value={driver.phone} mono />
               <DetailRow label="البريد الإلكتروني" value={driver.email ?? "—"} />
-              <DetailRow label="العنوان" value={driver.address ?? "—"} />
-              <DetailRow label="الجنسية" value={driver.nationality ?? "—"} />
-              <DetailRow label="الفرع" value={driver.branch?.name ?? "—"} />
+              <DetailRow label="العنوان"           value={driver.address ?? "—"} />
+              <DetailRow label="الجنسية"           value={driver.nationality ?? "—"} />
+              <DetailRow label="الفرع"             value={driver.branch?.name ?? "—"} />
 
-              {/* ── Section: ID & GOSI ── */}
               <SectionHeading title="الهوية والتأمينات" />
               <DetailRow
                 label="نوع الهوية"
@@ -415,7 +402,6 @@ export function DriverDetailPanel({
               />
               <DetailRow label="رقم GOSI" value={driver.gosiNumber ?? "—"} mono />
 
-              {/* ── Section: License ── */}
               <SectionHeading title="بيانات رخصة القيادة" />
               <DetailRow label="رقم الرخصة" value={driver.licenseNumber ?? "—"} mono />
               <DetailRow label="نوع الرخصة" value={driver.licenseType ?? "—"} />
@@ -425,7 +411,6 @@ export function DriverDetailPanel({
                 warn={isExpiringSoon(driver.licenseExpiry)}
               />
 
-              {/* ── Section: Driver Card ── */}
               <SectionHeading title="بطاقة السائق" />
               <DetailRow label="رقم البطاقة" value={driver.driverCardNumber ?? "—"} mono />
               <DetailRow
@@ -439,21 +424,18 @@ export function DriverDetailPanel({
               />
               <DetailRow label="نوع السائق" value={driver.driverType ?? "—"} />
 
-              {/* ── Section: System Info ── */}
               <SectionHeading title="معلومات النظام" />
-              <DetailRow label="اسم المستخدم" value={driver.userName ?? "—"} mono />
+              <DetailRow label="اسم المستخدم"  value={driver.userName ?? "—"} mono />
               <DetailRow label="تاريخ الإضافة" value={fmtDate(driver.createdAt)} />
-              <DetailRow label="آخر تحديث" value={fmtDate(driver.updatedAt)} />
+              <DetailRow label="آخر تحديث"     value={fmtDate(driver.updatedAt)} />
 
-              {/* ── Section: Photos ── */}
               <SectionHeading title="الصور والمستندات" />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem", marginTop: "0.5rem" }}>
-                <PhotoCard url={driver.photoUrl} label="صورة السائق" />
-                <PhotoCard url={driver.nationalPhotoUrl} label="صورة الهوية" />
+                <PhotoCard url={driver.photoUrl}           label="صورة السائق" />
+                <PhotoCard url={driver.nationalPhotoUrl}   label="صورة الهوية" />
                 <PhotoCard url={driver.driverCardPhotoUrl} label="صورة البطاقة" />
               </div>
 
-              {/* ── Status History ── */}
               {driver.statusHistory && driver.statusHistory.length > 0 && (
                 <>
                   <SectionHeading title="سجل الحالات" />
@@ -474,9 +456,7 @@ export function DriverDetailPanel({
                           }}
                         >
                           <div>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: s.color }}>
-                              {s.label}
-                            </span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: s.color }}>{s.label}</span>
                             {h.reason && (
                               <span style={{ fontSize: 11, color: "var(--color-text-muted)", marginRight: 8 }}>
                                 — {h.reason}
@@ -493,7 +473,6 @@ export function DriverDetailPanel({
                 </>
               )}
 
-              {/* ── Report Panel ── */}
               <DriverReportPanel driverId={driver.id} />
             </>
           )}
@@ -511,44 +490,32 @@ export function DriverDetailPanel({
               flexShrink: 0,
             }}
           >
-            {/* Delete */}
             <button
               type="button"
               onClick={() => onDelete(driver)}
               style={{
-                height: 40,
-                padding: "0 1rem",
+                height: 40, padding: "0 1rem",
                 borderRadius: "var(--radius-md)",
                 border: "1px solid #FECACA",
                 background: "#FEF2F2",
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#DC2626",
-                cursor: "pointer",
-                fontFamily: "var(--font-sans)",
+                fontSize: 13, fontWeight: 700, color: "#DC2626",
+                cursor: "pointer", fontFamily: "var(--font-sans)",
               }}
             >
               حذف
             </button>
 
-            {/* Edit */}
             <button
               type="button"
               onClick={() => onEdit(driver)}
               style={{
-                height: 40,
-                padding: "0 1rem",
+                height: 40, padding: "0 1rem",
                 borderRadius: "var(--radius-md)",
                 border: "1px solid var(--color-brand-200)",
                 background: "var(--color-brand-50, #EFF6FF)",
-                fontSize: 13,
-                fontWeight: 700,
-                color: "var(--color-brand-600)",
-                cursor: "pointer",
-                fontFamily: "var(--font-sans)",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
+                fontSize: 13, fontWeight: 700, color: "var(--color-brand-600)",
+                cursor: "pointer", fontFamily: "var(--font-sans)",
+                display: "flex", alignItems: "center", gap: 6,
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -558,21 +525,16 @@ export function DriverDetailPanel({
               تعديل
             </button>
 
-            {/* Close */}
             <button
               type="button"
               onClick={onClose}
               style={{
-                flex: 1,
-                height: 40,
+                flex: 1, height: 40,
                 borderRadius: "var(--radius-md)",
                 border: "1px solid var(--color-border)",
                 background: "var(--color-surface)",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--color-text-secondary)",
-                cursor: "pointer",
-                fontFamily: "var(--font-sans)",
+                fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)",
+                cursor: "pointer", fontFamily: "var(--font-sans)",
               }}
             >
               إغلاق

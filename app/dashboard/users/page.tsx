@@ -41,9 +41,9 @@ export default function UsersPage() {
   const handleDeleteConfirm = async () => {
     if (!deleteTarget || deleting) return;
     setDeleting(true);
-    console.log(setDeleting(true))
+    
     const ok = await deleteUser(deleteTarget.id);
-    console.log(ok)
+    
     setDeleting(false);
     if (ok) setDeleteTarget(null);
   };

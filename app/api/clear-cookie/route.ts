@@ -1,4 +1,4 @@
-// app/api/auth/clear-cookie/route.ts
+
 // Clears the HttpOnly auth cookie on logout.
 // Only the server can delete an HttpOnly cookie.
 

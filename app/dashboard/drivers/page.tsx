@@ -1,12 +1,9 @@
 "use client";
 
-
 import { useState, useCallback } from "react";
 import { Alert, Spinner } from "@/Components/UI";
 import { DriverFormModal } from "@/Components/Driver/DriverFormModal";
 import { DriverDeleteModal } from "@/Components/Driver/DriverDeleteModal";
-import { driverService } from "@/services";
-import { getStoredToken } from "@/lib/auth";
 import { useDrivers } from "@/hooks/useDriver";
 import { CreateDriverPayload, Driver, DRIVER_STATUS_MAP, UpdateDriverPayload } from "@/types/driver";
 import { DriverDetailPanel } from "@/Components/Driver/DriverDetailPanel";
@@ -52,7 +49,8 @@ export default function DriversPage() {
   const {
     drivers, loading, error, total, pages, page,
     search, setPage, handleSearch, clearError,
-    deleteDriver, notification, reload,
+    createDriver, updateDriver, deleteDriver,
+    notification, reload,
   } = useDrivers();
 
   // ── Panel / modal state ───────────────────────────────────────────────────
@@ -60,6 +58,8 @@ export default function DriversPage() {
   const [formDriver, setFormDriver]             = useState<Driver | null | "new">(null);
   const [deleteTarget, setDeleteTarget]         = useState<Driver | null>(null);
   const [deleting, setDeleting]                 = useState(false);
+  // Bumped after a successful edit to force the detail panel to re-fetch
+  const [panelRefreshKey, setPanelRefreshKey]   = useState(0);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleEdit = useCallback((driver: Driver) => {
@@ -77,34 +77,33 @@ export default function DriversPage() {
       payload: CreateDriverPayload | UpdateDriverPayload,
       isNew: boolean,
     ): Promise<boolean> => {
-      try {
-        const token = getStoredToken();
-        if (isNew) {
-          // Use multipart if there are file fields
-          const hasFiles =
-            (payload as CreateDriverPayload & { photo?: File }).photo ||
-            (payload as CreateDriverPayload & { nationalPhoto?: File }).nationalPhoto ||
-            (payload as CreateDriverPayload & { driverCardPhoto?: File }).driverCardPhoto;
+      let ok: boolean;
 
-          if (hasFiles) {
-            await driverService.createWithImages(
-              payload as Parameters<typeof driverService.createWithImages>[0],
-              token,
-            );
-          } else {
-            await driverService.create(payload as CreateDriverPayload, token);
-          }
-        } else {
-          const id = (formDriver as Driver).id;
-          await driverService.update(id, payload as UpdateDriverPayload, token);
-        }
-        reload();
-        return true;
-      } catch {
-        return false;
+      if (isNew) {
+        ok = await createDriver(
+          payload as CreateDriverPayload & {
+            photo?: File;
+            nationalPhoto?: File;
+            driverCardPhoto?: File;
+          },
+        );
+      } else {
+        const id = (formDriver as Driver).id;
+        ok = await updateDriver(
+          id,
+          payload as UpdateDriverPayload & {
+            photo?: File;
+            nationalPhoto?: File;
+            driverCardPhoto?: File;
+          },
+        );
+        // Re-fetch detail panel so updated status is visible immediately
+        if (ok && selectedDriverId) setPanelRefreshKey((k) => k + 1);
       }
+
+      return ok;
     },
-    [formDriver, reload],
+    [formDriver, createDriver, updateDriver, selectedDriverId],
   );
 
   const handleConfirmDelete = useCallback(async () => {
@@ -198,10 +197,7 @@ export default function DriversPage() {
 
         {/* ── Notifications ── */}
         {notification && (
-          <Alert
-            type={notification.type}
-            message={notification.message}
-          />
+          <Alert type={notification.type} message={notification.message} />
         )}
         {error && (
           <Alert type="error" message={error} onClose={clearError} />
@@ -259,29 +255,18 @@ export default function DriversPage() {
                     onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-hover, #F8FAFC)")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 !== 0 ? "var(--color-surface-muted)" : "transparent")}
                   >
-                    {/* Name + phone */}
                     <div>
                       <p style={{ fontWeight: 600, color: "var(--color-text-primary)", margin: 0 }}>{d.name}</p>
                       <p style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-text-muted)" }}>{d.phone}</p>
                     </div>
-
-                    {/* Branch */}
                     <span style={{ color: "var(--color-text-secondary)" }}>{d.branch?.name ?? "—"}</span>
-
-                    {/* Nationality */}
                     <span style={{ color: "var(--color-text-secondary)" }}>{d.nationality ?? "—"}</span>
-
-                    {/* License expiry */}
                     <span style={{ fontSize: 12, fontWeight: licWarn ? 600 : 400, color: licWarn ? "#D97706" : "var(--color-text-secondary)" }}>
                       {licWarn && "⚠ "}{fmtDate(d.licenseExpiry)}
                     </span>
-
-                    {/* National ID expiry */}
                     <span style={{ fontSize: 12, fontWeight: idWarn ? 600 : 400, color: idWarn ? "#D97706" : "var(--color-text-secondary)" }}>
                       {idWarn && "⚠ "}{fmtDate((d as Driver & { nationalIdExpiry?: string }).nationalIdExpiry)}
                     </span>
-
-                    {/* Status badge */}
                     <span style={{
                       display: "inline-flex", alignItems: "center", gap: 5,
                       borderRadius: "var(--radius-full)",
@@ -344,9 +329,10 @@ export default function DriversPage() {
         </div>
       </section>
 
-      {/* ── Detail panel ── */}
+      {/* ── Detail panel — key forces re-fetch after successful edit ── */}
       {selectedDriverId && (
         <DriverDetailPanel
+          key={`${selectedDriverId}-${panelRefreshKey}`}
           driverId={selectedDriverId}
           onClose={() => setSelectedDriverId(null)}
           onEdit={handleEdit}
