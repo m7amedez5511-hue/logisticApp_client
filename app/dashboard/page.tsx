@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
-import { useDashboardSummary } from "../../hooks/useDashboardSummary";
-import { clearAuth, getStoredUser } from "../../lib/auth";
-import { Spinner, Alert } from "../../Components/UI";
+import { useDashboardSummary } from "@/src/hooks/useDashboardSummary";
+import { clearAuth, getStoredUser } from "@/src/lib/auth";
+import { Spinner, Alert } from "@/src/Components/UI";
 
 export default function DashboardPage() {
   const router = useRouter();

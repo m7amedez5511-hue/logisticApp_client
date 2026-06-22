@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Alert }              from "@/Components/UI";
-import { UserTable }          from "@/Components/User/UserTable";
-import { UserFormModal }      from "@/Components/User/UserFormModal";
-import { UserDetailModal }    from "@/Components/User/UserDetailModal";
-import { DeleteConfirmModal } from "@/Components/User/DeleteConfirmModal";
-import { Toast }              from "@/Components/User/Toast";
-import { useUsers }           from "@/hooks/useUser";
-import type { User, UserFormData } from "@/types/user";
+import { Alert, Toast } from "@/src/Components/UI";   
+import { UserTable }          from "@/src/Components/User/UserTable";
+import { UserFormModal }      from "@/src/Components/User/UserFormModal";
+import { UserDetailModal }    from "@/src/Components/User/UserDetailModal";
+import { DeleteConfirmModal } from "@/src/Components/User/DeleteConfirmModal";
+import { useUsers }           from "@/src/hooks/useUser";
+import type { User, UserFormData } from "@/src/types/user";
 
 export default function UsersPage() {
   // ── Modal state ─────────────────────────────────────────────────────────────

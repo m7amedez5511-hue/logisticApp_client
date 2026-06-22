@@ -3,15 +3,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Spinner } from "@/Components/UI";
-import { TripFormModal } from "@/Components/Trip/Tripformmodal";
-import { TripDeleteModal } from "@/Components/Trip/Tripdeletemodal";
-import { TripReportPanel } from "@/Components/Trip_Report/Tripreportpanel";
-import { tripService } from "@/services/trip.service";
-import { getStoredToken } from "@/lib/auth";
-import { useTrips } from "@/hooks/useTrip";
-import type { Trip, CreateTripPayload, UpdateTripPayload } from "@/types/trip";
-import { TRIP_STATUS_MAP } from "@/types/trip";
+import { Spinner } from "@/src/Components/UI";
+import { TripFormModal } from "@/src/Components/Trip/Tripformmodal";
+import { TripDeleteModal } from "@/src/Components/Trip/Tripdeletemodal";
+import { TripReportPanel } from "@/src/Components/Trip_Report/Tripreportpanel";
+import { tripService } from "@/src/services/trip.service";
+import { getStoredToken } from "@/src/lib/auth";
+import { useTrips } from "@/src/hooks/useTrip";
+import type { Trip, CreateTripPayload, UpdateTripPayload } from "@/src/types/trip";
+import { TRIP_STATUS_MAP } from "@/src/types/trip";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

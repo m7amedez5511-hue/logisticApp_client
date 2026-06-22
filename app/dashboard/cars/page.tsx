@@ -2,13 +2,13 @@
 // app/(dashboard)/cars/page.tsx
 
 import { useCallback, useState } from "react";
-import { Spinner, Alert } from "@/Components/UI";
-import { CarFormModal }   from "@/Components/car/CarFormModal";
-import { CarDetailPanel } from "@/Components/car/CarDetailPanel";
-import { CarDeleteModal } from "@/Components/car/CarDeleteModal";
-import { useCars, useCarMutations, useToast } from "@/hooks/useCars";
-import { fmtDateShort, isExpiringSoon, STATUS_MAP, INS_MAP } from "@/types/car";
-import type { Car, CreateCarPayload, ToastMsg, UpdateCarPayload } from "@/types/car";
+import { Spinner, Alert } from "@/src/Components/UI";
+import { CarFormModal }   from "@/src/Components/car/CarFormModal";
+import { CarDetailPanel } from "@/src/Components/car/CarDetailPanel";
+import { CarDeleteModal } from "@/src/Components/car/CarDeleteModal";
+import { useCars, useCarMutations, useToast } from "@/src/hooks/useCars";
+import { fmtDateShort, isExpiringSoon, STATUS_MAP, INS_MAP } from "@/src/types/car";
+import type { Car, CreateCarPayload, ToastMsg, UpdateCarPayload } from "@/src/types/car";
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 

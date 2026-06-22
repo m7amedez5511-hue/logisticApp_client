@@ -2,18 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Alert }              from "@/Components/UI";
-import { Toast }              from "@/Components/Client/Toast";
-import { useClientAddresses } from "@/hooks/useClientAddresses";
-import { clientService }      from "@/services/client.service";
-import { getStoredToken }     from "@/lib/auth";
+import { Alert }              from "@/src/Components/UI";
+import { Toast }              from "@/src/Components/Client/Toast";
+import { useClientAddresses } from "@/src/hooks/useClientAddresses";
+import { clientService }      from "@/src/services/client.service";
+import { getStoredToken }     from "@/src/lib/auth";
 import type {
   Client,
   ClientAddress,
   ClientAddressFormData,
-} from "@/types/client";
-import { AddressFormModal } from "@/Components/Client/Addressformmodal";
-import { DeleteConfirmModal } from "@/Components/Client/Deleteconfirmmodal";
+} from "@/src/types/client";
+import { AddressFormModal } from "@/src/Components/Client/Addressformmodal";
+import { DeleteConfirmModal } from "@/src/Components/Client/Deleteconfirmmodal";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 

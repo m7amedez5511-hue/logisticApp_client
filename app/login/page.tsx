@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { loginUser } from "../../lib/auth";
-import Logo from "../../utils/logo";
-import { Button } from "../../Components/UI";
-import { Input }  from "../../Components/UI";
-import { Alert }  from "../../Components/UI";
+import { loginUser } from "@/src/lib/auth";
+import Logo from "@/src/utils/logo";
+import { Button } from "@/src/Components/UI";
+import { Input }  from "@/src/Components/UI";
+import { Alert }  from "@/src/Components/UI";
 
 export default function LoginPage() {
   const router = useRouter();

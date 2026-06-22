@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getStoredToken } from "@/lib/auth";
-import { get } from "@/services/api";
-import { Spinner, Alert } from "@/Components/UI";
+import { getStoredToken } from "@/src/lib/auth";
+import { get } from "@/src/services/api";
+import { Spinner, Alert } from "@/src/Components/UI";
 
 interface Order {
   id: string;

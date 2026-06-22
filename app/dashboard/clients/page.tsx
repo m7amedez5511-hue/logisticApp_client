@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Alert }               from "@/Components/UI";
-import { Toast }               from "@/Components/Client/Toast";
-import { useClients }          from "@/hooks/useClients";
-import type { Client, ClientFormData } from "@/types/client";
-import { ClientFormModal } from "@/Components/Client/Clientformmodal";
-import { ClientTable } from "@/Components/Client/Clienttable";
-import { DeleteConfirmModal } from "@/Components/Client/Deleteconfirmmodal";
+import { Alert }               from "@/src/Components/UI";
+import { Toast }               from "@/src/Components/Client/Toast";
+import { useClients }          from "@/src/hooks/useClients";
+import type { Client, ClientFormData } from "@/src/types/client";
+import { ClientFormModal } from "@/src/Components/Client/Clientformmodal";
+import { ClientTable } from "@/src/Components/Client/Clienttable";
+import { DeleteConfirmModal } from "@/src/Components/Client/Deleteconfirmmodal";
 
 export default function ClientsPage() {
   const router = useRouter();

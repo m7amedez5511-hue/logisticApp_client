@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Navbar from "./components/layout/Navbar";
-import Logo from "@/utils/logo";
+import Logo from "@/src/utils/logo";
 
 const stats = [
   { label: "الطلبات النشطة", value: "48", color: "text-blue-600" },

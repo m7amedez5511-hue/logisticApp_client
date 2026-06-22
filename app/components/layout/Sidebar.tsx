@@ -2,8 +2,8 @@
 
 import Link      from "next/link";
 import { usePathname } from "next/navigation";
-import { getStoredUser } from "../../../lib/auth";
-import Logo from "../../../utils/logo";
+import { getStoredUser } from "@/src/lib/auth";
+import Logo from "@/src/utils/logo";
 
 const navSections = [
   {

@@ -1,4 +1,4 @@
-import Logo from "@/utils/logo";
+import Logo from "@/src/utils/logo";
 import Link from "next/link";
 
 

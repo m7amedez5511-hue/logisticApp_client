@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Spinner } from "@/Components/UI";
-import { DriverFormModal } from "@/Components/Driver/DriverFormModal";
-import { DriverDeleteModal } from "@/Components/Driver/DriverDeleteModal";
-import { DriverReportPanel } from "@/Components/Driver_Report/driverReport";
+import { Spinner } from "@/src/Components/UI";
+import { DriverFormModal } from "@/src/Components/Driver/DriverFormModal";
+import { DriverDeleteModal } from "@/src/Components/Driver/DriverDeleteModal";
+import { DriverReportPanel } from "@/src/Components/Driver_Report/driverReport";
 import { driverService } from "@/services";
 import { getStoredToken } from "@/lib/auth";
-import type { Driver, CreateDriverPayload, UpdateDriverPayload } from "@/types/driver";
-import { DRIVER_STATUS_MAP, DRIVER_CARD_TYPE_MAP, NATIONAL_ID_TYPE_MAP } from "@/types/driver";
-import { PhotoCard } from "@/Components/Driver/DriverPhotos";
+import type { Driver, CreateDriverPayload, UpdateDriverPayload } from "@/src/types/driver";
+import { DRIVER_STATUS_MAP, DRIVER_CARD_TYPE_MAP, NATIONAL_ID_TYPE_MAP } from "@/src/types/driver";
+import { PhotoCard } from "@/src/Components/Driver/DriverPhotos";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

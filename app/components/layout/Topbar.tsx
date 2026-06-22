@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { clearAuth, getStoredUser } from "../../../lib/auth";
+import { clearAuth, getStoredUser } from "@/src/lib/auth";
 
 export function Topbar() {
   const router = useRouter();

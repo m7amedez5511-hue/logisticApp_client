@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTrips } from "@/hooks/useTrip";
-import { tripService } from "@/services/trip.service";
-import { getStoredToken } from "@/lib/auth";
-import { TripFormModal } from "@/Components/Trip/Tripformmodal";
-import { TripDeleteModal } from "@/Components/Trip/Tripdeletemodal";
-import { Spinner } from "@/Components/UI";
-import type { Trip, TripStatus, CreateTripPayload, UpdateTripPayload } from "@/types/trip";
-import { TRIP_STATUS_MAP } from "@/types/trip";
+import { useTrips } from "@/src/hooks/useTrip";
+import { tripService } from "@/src/services/trip.service";
+import { getStoredToken } from "@/src/lib/auth";
+import { TripFormModal } from "@/src/Components/Trip/Tripformmodal";
+import { TripDeleteModal } from "@/src/Components/Trip/Tripdeletemodal";
+import { Spinner } from "@/src/Components/UI";
+import type { Trip, TripStatus, CreateTripPayload, UpdateTripPayload } from "@/src/types/trip";
+import { TRIP_STATUS_MAP } from "@/src/types/trip";
 
 // ── Status badge ─────────────────────────────────────────────────────────────
 
