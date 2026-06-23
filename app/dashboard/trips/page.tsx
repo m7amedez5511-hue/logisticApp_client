@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTrips } from "@/src/hooks/useTrip";
 import { tripService } from "@/src/services/trip.service";
@@ -8,8 +8,31 @@ import { getStoredToken } from "@/src/lib/auth";
 import { TripFormModal } from "@/src/Components/Trip/Tripformmodal";
 import { TripDeleteModal } from "@/src/Components/Trip/Tripdeletemodal";
 import { Spinner } from "@/src/Components/UI";
+import { Toast, type ToastNotification } from "@/src/Components/UI/Toast";
 import type { Trip, TripStatus, CreateTripPayload, UpdateTripPayload } from "@/src/types/trip";
 import { TRIP_STATUS_MAP } from "@/src/types/trip";
+
+// ── API error extractor ────────────────────────────────────────────────────
+// Same logic as the detail page / useTrip.ts — kept local so create/update
+// here can notify independently of the list hook's own notification state.
+
+function extractApiMessage(err: unknown, fallback: string): string {
+  if (typeof err === "string" && err.trim()) return err.trim();
+
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    const responseData = (e["response"] as Record<string, unknown> | undefined)?.["data"];
+    if (responseData && typeof responseData === "object") {
+      const rd = responseData as Record<string, unknown>;
+      if (typeof rd["message"] === "string" && rd["message"].trim()) return rd["message"];
+      if (Array.isArray(rd["message"])) return (rd["message"] as string[]).join(" — ");
+      if (typeof rd["error"] === "string" && rd["error"].trim()) return rd["error"];
+    }
+    if (typeof e["message"] === "string" && e["message"].trim()) return e["message"];
+  }
+
+  return fallback;
+}
 
 // ── Status badge ─────────────────────────────────────────────────────────────
 
@@ -28,31 +51,6 @@ function StatusBadge({ status }: { status: TripStatus }) {
   );
 }
 
-// ── Toast ────────────────────────────────────────────────────────────────────
-
-function Toast({ type, message }: { type: "success" | "error"; message: string }) {
-  const ok = type === "success";
-  return (
-    <div
-      role="status"
-      style={{
-        position: "fixed", bottom: 24, insetInlineStart: 24, zIndex: 80,
-        display: "flex", alignItems: "center", gap: 10,
-        padding: "0.75rem 1.125rem",
-        borderRadius: "var(--radius-lg)",
-        border: `1px solid ${ok ? "#BBF7D0" : "#FECACA"}`,
-        background: ok ? "#DCFCE7" : "#FEF2F2",
-        color: ok ? "#166534" : "#991B1B",
-        boxShadow: "0 12px 32px rgba(0,0,0,.18)",
-        fontSize: 13, fontWeight: 600,
-        fontFamily: "var(--font-sans)",
-      }}
-    >
-      {ok ? "✓" : "⚠"} {message}
-    </div>
-  );
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TripsPage() {
@@ -62,8 +60,25 @@ export default function TripsPage() {
     page, setPage,
     search, handleSearch,
     status, handleStatusFilter,
-    deleteTrip, notification, reload,
+    reload,
   } = useTrips();
+
+  // ── Notifications (standalone — fired explicitly by every action below) ──
+  const [notification, setNotification] = useState<ToastNotification | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const notify = useCallback((n: ToastNotification) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setNotification(n);
+    timerRef.current = setTimeout(() => setNotification(null), 4000);
+  }, []);
+
+  const dismissNotification = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setNotification(null);
+  }, []);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   // Local input value is debounced before it reaches the hook's `search`,
   // exactly like the table reloads only after the user stops typing.
@@ -79,27 +94,45 @@ export default function TripsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Trip | null>(null);
   const [deleting, setDeleting]         = useState(false);
 
-  // ── Create / update — called directly, same as the driver detail page ──────
+  // ── Create / update — calls tripService directly and notifies explicitly ──
   const handleSubmit = async (
     payload: CreateTripPayload | UpdateTripPayload,
     isNew: boolean,
   ): Promise<boolean> => {
-    const token = getStoredToken();
-    if (isNew) {
-      await tripService.create(payload as CreateTripPayload, token);
-    } else {
-      await tripService.update(editTrip!.id, payload as UpdateTripPayload, token);
+    try {
+      const token = getStoredToken();
+      if (isNew) {
+        await tripService.create(payload as CreateTripPayload, token);
+        notify({ type: "success", message: "تم إضافة الرحلة بنجاح." });
+      } else {
+        await tripService.update(editTrip!.id, payload as UpdateTripPayload, token);
+        notify({ type: "success", message: "تم تحديث بيانات الرحلة بنجاح." });
+      }
+      reload();
+      return true;
+    } catch (err) {
+      notify({
+        type: "error",
+        message: extractApiMessage(err, isNew ? "تعذّر إضافة الرحلة." : "تعذّر تحديث الرحلة."),
+      });
+      return false;
     }
-    reload();
-    return true;
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    const ok = await deleteTrip(deleteTarget.id);
-    setDeleting(false);
-    if (ok) setDeleteTarget(null);
+    try {
+      const token = getStoredToken();
+      await tripService.delete(deleteTarget.id, token);
+      notify({ type: "success", message: "تم حذف الرحلة بنجاح." });
+      setDeleteTarget(null);
+      reload();
+    } catch (err) {
+      notify({ type: "error", message: extractApiMessage(err, "تعذّر حذف الرحلة.") });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -336,7 +369,7 @@ export default function TripsPage() {
       )}
 
       {/* ── Toast ── */}
-      {notification && <Toast type={notification.type} message={notification.message} />}
+      <Toast notification={notification} onDismiss={dismissNotification} />
     </div>
   );
 }

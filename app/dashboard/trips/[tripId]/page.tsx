@@ -1,7 +1,6 @@
-// app/dashboard/trips/[tripId]/page.tsx
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Spinner } from "@/src/Components/UI";
 import { TripFormModal } from "@/src/Components/Trip/Tripformmodal";
@@ -9,10 +8,31 @@ import { TripDeleteModal } from "@/src/Components/Trip/Tripdeletemodal";
 import { TripReportPanel } from "@/src/Components/Trip_Report/Tripreportpanel";
 import { tripService } from "@/src/services/trip.service";
 import { getStoredToken } from "@/src/lib/auth";
-import { useTrips } from "@/src/hooks/useTrip";
 import type { Trip, CreateTripPayload, UpdateTripPayload } from "@/src/types/trip";
 import { TRIP_STATUS_MAP } from "@/src/types/trip";
-import { Toast } from "@/src/Components/UI/Toast";
+import { Toast, type ToastNotification } from "@/src/Components/UI/Toast";
+
+// ── API error extractor ────────────────────────────────────────────────────
+// Same shape-walking logic as useTrip.ts — duplicated here on purpose so this
+// page no longer depends on the list hook for a single piece of UI feedback.
+
+function extractApiMessage(err: unknown, fallback: string): string {
+  if (typeof err === "string" && err.trim()) return err.trim();
+
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    const responseData = (e["response"] as Record<string, unknown> | undefined)?.["data"];
+    if (responseData && typeof responseData === "object") {
+      const rd = responseData as Record<string, unknown>;
+      if (typeof rd["message"] === "string" && rd["message"].trim()) return rd["message"];
+      if (Array.isArray(rd["message"])) return (rd["message"] as string[]).join(" — ");
+      if (typeof rd["error"] === "string" && rd["error"].trim()) return rd["error"];
+    }
+    if (typeof e["message"] === "string" && e["message"].trim()) return e["message"];
+  }
+
+  return fallback;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -167,8 +187,22 @@ export default function TripDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting]     = useState(false);
 
-  // ── Hook (handles create / update / delete + notifications) ──────────────
-  const { updateTrip, deleteTrip, notification, dismissNotification } = useTrips();
+  // ── Notifications (standalone — no longer borrowed from the list hook) ───
+  const [notification, setNotification] = useState<ToastNotification | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const notify = useCallback((n: ToastNotification) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setNotification(n);
+    timerRef.current = setTimeout(() => setNotification(null), 4000);
+  }, []);
+
+  const dismissNotification = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setNotification(null);
+  }, []);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   // ── Load trip ─────────────────────────────────────────────────────────────
   const loadTrip = useCallback(async () => {
@@ -186,19 +220,6 @@ export default function TripDetailPage() {
     }
   }, [tripId]);
 
-  // Silent background refresh — does NOT touch loading state so the Toast
-  // notification stays visible during the data refetch after an update.
-  const refreshTrip = useCallback(async () => {
-    if (!tripId) return;
-    try {
-      const token = getStoredToken();
-      const res = await tripService.getById(tripId, token);
-      setTrip((res as unknown as { data: Trip }).data);
-    } catch {
-      // Silently ignore: the success toast is already showing.
-    }
-  }, [tripId]);
-
   useEffect(() => {
     loadTrip();
   }, [loadTrip]);
@@ -210,24 +231,34 @@ export default function TripDetailPage() {
       _isNew: boolean,
     ): Promise<boolean> => {
       if (!trip) return false;
-      const ok = await updateTrip(trip.id, payload as UpdateTripPayload);
-      if (ok) await refreshTrip();
-      return ok;
+      try {
+        const token = getStoredToken();
+        const res = await tripService.update(trip.id, payload as UpdateTripPayload, token);
+        const updated = (res as unknown as { data: Trip }).data;
+        setTrip(updated);
+        notify({ type: "success", message: "تم تحديث بيانات الرحلة بنجاح." });
+        return true;
+      } catch (err) {
+        notify({ type: "error", message: extractApiMessage(err, "تعذّر تحديث الرحلة.") });
+        return false;
+      }
     },
-    [trip, updateTrip, refreshTrip],
+    [trip, notify],
   );
 
   // ── Delete confirm ────────────────────────────────────────────────────────
   const handleConfirmDelete = useCallback(async () => {
     if (!trip) return;
     setDeleting(true);
-    const ok = await deleteTrip(trip.id);
-    if (ok) {
+    try {
+      const token = getStoredToken();
+      await tripService.delete(trip.id, token);
       router.push("/dashboard/trips");
-    } else {
+    } catch (err) {
+      notify({ type: "error", message: extractApiMessage(err, "تعذّر حذف الرحلة.") });
       setDeleting(false);
     }
-  }, [trip, deleteTrip, router]);
+  }, [trip, router, notify]);
 
   // ── Status config ─────────────────────────────────────────────────────────
   const statusConfig = trip ? TRIP_STATUS_MAP[trip.status] : null;
