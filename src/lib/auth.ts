@@ -1,11 +1,11 @@
-import { authService }   from "@/src/services/auth.service";
+import { authService } from "@/src/services/auth.service";
 import type { AuthUser } from "@/src/types/auth";
 
 const AUTH_TOKEN_KEY    = "auth_token";
 const AUTH_USER_KEY     = "auth_user";
 const AUTH_TOKEN_COOKIE = "auth_token";
 
-// ─── Cookie helpers ───────────────────────────
+// ── Cookie helpers ─────────────────────────────────────────────────────────
 function setTokenCookie(token: string) {
   if (typeof document === "undefined") return;
   const exp = new Date(Date.now() + 7 * 864e5).toUTCString();
@@ -17,7 +17,7 @@ function deleteTokenCookie() {
   document.cookie = `${AUTH_TOKEN_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
 }
 
-// ─── Storage ──────────────────────────────────
+// ── Storage ────────────────────────────────────────────────────────────────
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(AUTH_TOKEN_KEY);
@@ -37,24 +37,33 @@ export function saveAuth(token: string, user: AuthUser) {
   setTokenCookie(token);
 }
 
-export function clearAuth() {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-  localStorage.removeItem(AUTH_USER_KEY);
-  deleteTokenCookie();
+/**
+ * Clear auth state: removes localStorage keys, calls /api/clear-cookie to
+ * remove the HttpOnly cookie (only the server can delete an HttpOnly cookie).
+ */
+export async function clearAuth(): Promise<void> {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+    deleteTokenCookie();
+  }
+  try {
+    await fetch("/api/clear-cookie", { method: "POST", cache: "no-store" });
+  } catch {
+    // Best-effort — if the network call fails the cookie will expire on its own
+  }
 }
 
-// ─── Blocked roles ────────────────────────────
+// ── Blocked roles ──────────────────────────────────────────────────────────
 const BLOCKED_ROLES = ["driver", "سائق"] as const;
 
-// ─── Login ────────────────────────────────────
+// ── Login ──────────────────────────────────────────────────────────────────
 type RawRole = { name?: string; permissions?: Array<{ permission?: { slug?: string } }> } | string;
 
 export async function loginUser(identity: string, password: string) {
   const payload = await authService.login({ identity, password });
 
-  const { token, user } = payload.data  || {};
-  console.log({ token, user } );
+  const { token, user } = payload.data || {};
   if (!token || !user) {
     throw new Error("اسم المستخدم أو كلمة المرور غير صحيحة.");
   }
@@ -80,6 +89,17 @@ export async function loginUser(identity: string, password: string) {
         .map(e => e?.permission?.slug)
         .filter((s): s is string => Boolean(s))
     : [];
+
+  // Store HttpOnly cookie via server endpoint
+  try {
+    await fetch("/api/auth/set-cookie", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+  } catch {
+    // Non-fatal — middleware will still work if cookie was already set
+  }
 
   const fullUser: AuthUser = { ...user, role: roleName, permissions };
   saveAuth(token, fullUser);

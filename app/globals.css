@@ -12,7 +12,11 @@
 html {
   scroll-behavior: smooth;
   font-size: 14px;
-  /* RTL is set per route-group layout, not globally */
+  /* `dir` is now set on <html> in app/layout.tsx (lang="ar" dir="rtl").
+     Tailwind v4 ships native `rtl:` / `ltr:` variants that key off this
+     attribute, so utility classes like `rtl:flex-row-reverse` work
+     without a plugin. Route groups no longer need to set `dir`
+     individually — see report Section 1. */
 }
 
 body {
@@ -85,7 +89,17 @@ body {
 }
 
 /* ── Focus ring utility ─────────────────────────────── */
+/* Unchanged: box-shadow rings are direction-neutral. */
 .focus-ring {
   outline: none;
   box-shadow: 0 0 0 2px var(--color-brand-600);
+}
+
+/* ── RTL icon mirroring ─────────────────────────────────
+   Directional glyphs (chevrons, arrows, "back") need to visually
+   point the opposite way in RTL even though the underlying icon
+   font glyph doesn't change. Apply .icon-flip-rtl to any <i>/<svg>
+   whose meaning is "forward"/"back" rather than purely decorative. */
+[dir="rtl"] .icon-flip-rtl {
+  transform: scaleX(-1);
 }

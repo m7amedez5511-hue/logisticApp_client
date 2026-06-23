@@ -1,7 +1,11 @@
-export { request, get, post, put, del, ApiError } from "./api";
+export { request, get, post, put, patch, del, ApiError } from "./api";
 export { authService } from "./auth.service";
 export { dashboardService } from "./dashboard.service";
 export { clientService } from "./client.service";
-export {userService} from "./user.service";
+export { clientAddressService } from "./clientAddress.service";
+export { userService } from "./user.service";
 export { carService } from "./car.service";
 export { driverService } from "./driver.service";
+export { tripService } from "./trip.service";
+export { orderService } from "./order.service";
+export { roleService } from "./role.service";

@@ -13,7 +13,11 @@
   --color-brand-800:  #1E3A8A;
   --color-brand-900:  #172554;
 
-  /* ── Sidebar gradient stops ── */
+  /* ── Sidebar gradient stops ──
+     NOTE: kept as named stops only (top/mid/bottom), never left/right,
+     so the gradient direction is safe to reuse unchanged in RTL. The
+     gradient in Sidebar.tsx already runs top→bottom (175deg), which is
+     direction-agnostic — no change needed for RTL. */
   --sidebar-grad-top:    #1E3A8A;
   --sidebar-grad-mid:    #1D4ED8;
   --sidebar-grad-bottom: #1565C0;
@@ -79,11 +83,16 @@
   --radius-full: 9999px;
 
   /* ── Layout ── */
-  --sidebar-width:   240px;
-  --topbar-height:    56px;
-  --page-padding-x:   24px;
+  --sidebar-width:         240px;
+  --sidebar-width-compact:  72px;  /* NEW: collapsed icon rail for md/sm screens */
+  --topbar-height:          56px;
+  --page-padding-x:         24px;
 
-  /* ── Shadows ── */
+  /* ── Shadows ──
+     NOTE: shadows here are blur+spread only (no x-offset), so they are
+     already direction-neutral and need no RTL variant. If a future
+     shadow ever needs an x-offset, derive it from `--start`/`--end`
+     rather than hardcoding a flipped value inline. */
   --shadow-card:    0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
   --shadow-overlay: 0 10px 40px rgba(0,0,0,.1);
 
@@ -93,4 +102,39 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-spin { animation: none; }
+}
+
+/* ──────────────────────────────────────────────────────
+   RTL / LTR direction layer
+   Toggled by `dir="rtl"` / `dir="ltr"` on <html> (set in the
+   root app/layout.tsx). Everything below uses CSS logical
+   properties so it self-flips with the `dir` attribute —
+   no JS, no duplicate stylesheets, no per-component branching.
+   ────────────────────────────────────────────────────── */
+
+[dir="rtl"] {
+  --start: right;
+  --end: left;
+}
+
+[dir="ltr"],
+:root {
+  --start: left;
+  --end: right;
+}
+
+/* Utility for any inline-direction border that previously assumed LTR
+   (e.g. a left border used as "this edge touches the rail"). */
+.border-inline-start {
+  border-inline-start: 1px solid var(--color-border-dark);
+  border-inline-end: none;
+}
+
+/* Numerals, codes, and API paths read LTR even inside an RTL document
+   (see Edge Cases in the report). Apply to any inline span wrapping
+   such content. */
+.ltr-embed {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
 }

@@ -12,6 +12,7 @@ import { getStoredToken } from "@/src/lib/auth";
 import { useTrips } from "@/src/hooks/useTrip";
 import type { Trip, CreateTripPayload, UpdateTripPayload } from "@/src/types/trip";
 import { TRIP_STATUS_MAP } from "@/src/types/trip";
+import { Toast } from "@/src/Components/UI/Toast";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -167,7 +168,7 @@ export default function TripDetailPage() {
   const [deleting, setDeleting]     = useState(false);
 
   // ── Hook (handles create / update / delete + notifications) ──────────────
-  const { updateTrip, deleteTrip, notification } = useTrips();
+  const { updateTrip, deleteTrip, notification, dismissNotification } = useTrips();
 
   // ── Load trip ─────────────────────────────────────────────────────────────
   const loadTrip = useCallback(async () => {
@@ -185,6 +186,19 @@ export default function TripDetailPage() {
     }
   }, [tripId]);
 
+  // Silent background refresh — does NOT touch loading state so the Toast
+  // notification stays visible during the data refetch after an update.
+  const refreshTrip = useCallback(async () => {
+    if (!tripId) return;
+    try {
+      const token = getStoredToken();
+      const res = await tripService.getById(tripId, token);
+      setTrip((res as unknown as { data: Trip }).data);
+    } catch {
+      // Silently ignore: the success toast is already showing.
+    }
+  }, [tripId]);
+
   useEffect(() => {
     loadTrip();
   }, [loadTrip]);
@@ -197,10 +211,10 @@ export default function TripDetailPage() {
     ): Promise<boolean> => {
       if (!trip) return false;
       const ok = await updateTrip(trip.id, payload as UpdateTripPayload);
-      if (ok) await loadTrip();
+      if (ok) await refreshTrip();
       return ok;
     },
-    [trip, updateTrip, loadTrip],
+    [trip, updateTrip, refreshTrip],
   );
 
   // ── Delete confirm ────────────────────────────────────────────────────────
@@ -281,34 +295,7 @@ export default function TripDetailPage() {
   return (
     <>
       {/* ── Toast notification ── */}
-      {notification && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "1.5rem",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 90,
-            minWidth: 260,
-            maxWidth: 400,
-            borderRadius: "var(--radius-lg)",
-            padding: "0.75rem 1.25rem",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            fontFamily: "var(--font-sans)",
-            fontSize: 13,
-            fontWeight: 600,
-            boxShadow: "0 8px 24px rgba(0,0,0,.18)",
-            ...(notification.type === "success"
-              ? { background: "#DCFCE7", border: "1px solid #BBF7D0", color: "#166534" }
-              : { background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626" }),
-          }}
-        >
-          <span>{notification.type === "success" ? "✓" : "⚠"}</span>
-          {notification.message}
-        </div>
-      )}
+      <Toast notification={notification} onDismiss={dismissNotification} />
 
       <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 

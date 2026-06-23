@@ -35,6 +35,7 @@ export const createTripSchema = yup.object({
 
   // Optional
   startTime: yup.string().optional(), // doc: ISO 8601, default now()
+  branchId: yup.string().required("الفرع مطلوبة").uuid("معرّف الفرع غير صالح"),// doc
 
   endTime: yup
     .string()
@@ -50,8 +51,7 @@ export const createTripSchema = yup.object({
       },
     ),
 
-  branchId: yup.string().uuid("معرّف الفرع غير صالح").optional(), // doc
-
+  
   status: yup
     .mixed<TripStatus>()
     .oneOf(TRIP_STATUSES, "حالة الرحلة غير صالحة")

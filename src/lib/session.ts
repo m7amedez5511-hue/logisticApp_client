@@ -8,7 +8,7 @@ export interface ClientSession {
   phone: string;
 }
 
-// ── Cookie helpers ────────────────────────────────────
+// ── Cookie helpers ─────────────────────────────────────────────────────────
 export function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
@@ -24,7 +24,7 @@ export function deleteCookie(name: string) {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
 }
 
-// ── Session read / write ──────────────────────────────
+// ── Session read / write ───────────────────────────────────────────────────
 export function loadSession(): ClientSession | null {
   try {
     const raw = typeof localStorage !== "undefined"

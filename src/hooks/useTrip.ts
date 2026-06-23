@@ -1,17 +1,45 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { tripService } from "@/src/services/trip.service";
 import type { Trip, TripStatus, CreateTripPayload, UpdateTripPayload } from "@/src/types/trip";
 
 // ── Notification type ──────────────────────────────────────────────────────
+
 export interface TripNotification {
   type: "success" | "error";
   message: string;
 }
 
+// ── API error extractor ────────────────────────────────────────────────────
+// Walks common API error shapes to pull the real backend message.
+// Falls back to the provided default only when nothing useful is found.
+
+function extractApiMessage(err: unknown, fallback: string): string {
+  if (typeof err === "string" && err.trim()) return err.trim();
+
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+
+    // Shape: { response: { data: { message: string } } }  (axios-style)
+    const responseData = (e["response"] as Record<string, unknown> | undefined)?.["data"];
+    if (responseData && typeof responseData === "object") {
+      const rd = responseData as Record<string, unknown>;
+      if (typeof rd["message"] === "string" && rd["message"].trim()) return rd["message"];
+      if (Array.isArray(rd["message"])) return (rd["message"] as string[]).join(" — ");
+      if (typeof rd["error"] === "string" && rd["error"].trim()) return rd["error"];
+    }
+
+    // Shape: { message: string }  (plain Error / fetch wrapper)
+    if (typeof e["message"] === "string" && e["message"].trim()) return e["message"];
+  }
+
+  return fallback;
+}
+
 // ── Table state / reducer ──────────────────────────────────────────────────
+
 interface TableState {
   trips: Trip[];
   loading: boolean;
@@ -31,22 +59,14 @@ type TableAction =
 
 function reducer(s: TableState, a: TableAction): TableState {
   switch (a.type) {
-    case "LOAD_START":
-      return { ...s, loading: true, error: null };
-    case "LOAD_OK":
-      return { ...s, loading: false, trips: a.trips, total: a.total, pages: a.pages };
-    case "LOAD_ERR":
-      return { ...s, loading: false, error: a.error };
-    case "ADD":
-      return { ...s, trips: [a.trip, ...s.trips], total: s.total + 1 };
-    case "UPDATE":
-      return { ...s, trips: s.trips.map(t => (t.id === a.trip.id ? a.trip : t)) };
-    case "DELETE":
-      return { ...s, trips: s.trips.filter(t => t.id !== a.id) };
-    case "CLEAR_ERR":
-      return { ...s, error: null };
-    default:
-      return s;
+    case "LOAD_START":  return { ...s, loading: true, error: null };
+    case "LOAD_OK":     return { ...s, loading: false, trips: a.trips, total: a.total, pages: a.pages };
+    case "LOAD_ERR":    return { ...s, loading: false, error: a.error };
+    case "ADD":         return { ...s, trips: [a.trip, ...s.trips], total: s.total + 1 };
+    case "UPDATE":      return { ...s, trips: s.trips.map(t => (t.id === a.trip.id ? a.trip : t)) };
+    case "DELETE":      return { ...s, trips: s.trips.filter(t => t.id !== a.id) };
+    case "CLEAR_ERR":   return { ...s, error: null };
+    default:            return s;
   }
 }
 
@@ -59,6 +79,7 @@ const initialState: TableState = {
 };
 
 // ── Main hook ──────────────────────────────────────────────────────────────
+
 export function useTrips() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [search, setSearch] = useState("");
@@ -66,13 +87,21 @@ export function useTrips() {
   const [page, setPage]     = useState(1);
   const [notification, setNotification] = useState<TripNotification | null>(null);
 
-  /** Show a toast for 4 seconds then auto-dismiss. */
+  // Ref so the dismiss timer can be cleared if a new notification arrives
+  // before the previous one expires — prevents stale-closure memory leaks.
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const notify = useCallback((n: TripNotification) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
     setNotification(n);
-    setTimeout(() => setNotification(null), 4000);
+    timerRef.current = setTimeout(() => setNotification(null), 4000);
   }, []);
 
+  // Clear pending timer on unmount
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
   // ── Fetch trips ───────────────────────────────────────────────────────────
+
   const loadTrips = useCallback(
     async (p: number, q: string, st: TripStatus | "") => {
       dispatch({ type: "LOAD_START" });
@@ -84,10 +113,7 @@ export function useTrips() {
         );
         const payload = (
           res as unknown as {
-            data: {
-              data: Trip[];
-              pagination?: { total: number; totalPages: number };
-            };
+            data: { data: Trip[]; pagination?: { total: number; totalPages: number } };
           }
         ).data ?? res;
 
@@ -97,10 +123,10 @@ export function useTrips() {
           total: payload.pagination?.total ?? 0,
           pages: payload.pagination?.totalPages ?? 1,
         });
-      } catch {
+      } catch (err) {
         dispatch({
           type: "LOAD_ERR",
-          error: "تعذّر تحميل بيانات الرحلات. يرجى المحاولة مجدداً.",
+          error: extractApiMessage(err, "تعذّر تحميل بيانات الرحلات. يرجى المحاولة مجدداً."),
         });
       }
     },
@@ -112,6 +138,7 @@ export function useTrips() {
   }, [page, search, status, loadTrips]);
 
   // ── Create ────────────────────────────────────────────────────────────────
+
   const createTrip = useCallback(
     async (payload: CreateTripPayload): Promise<boolean> => {
       try {
@@ -122,10 +149,7 @@ export function useTrips() {
         notify({ type: "success", message: "تم إضافة الرحلة بنجاح." });
         return true;
       } catch (err) {
-        notify({
-          type: "error",
-          message: err instanceof Error ? err.message : "تعذّر إضافة الرحلة.",
-        });
+        notify({ type: "error", message: extractApiMessage(err, "تعذّر إضافة الرحلة.") });
         return false;
       }
     },
@@ -133,6 +157,7 @@ export function useTrips() {
   );
 
   // ── Update ────────────────────────────────────────────────────────────────
+
   const updateTrip = useCallback(
     async (id: string, payload: UpdateTripPayload): Promise<boolean> => {
       try {
@@ -143,10 +168,7 @@ export function useTrips() {
         notify({ type: "success", message: "تم تحديث بيانات الرحلة بنجاح." });
         return true;
       } catch (err) {
-        notify({
-          type: "error",
-          message: err instanceof Error ? err.message : "تعذّر تحديث الرحلة.",
-        });
+        notify({ type: "error", message: extractApiMessage(err, "تعذّر تحديث الرحلة.") });
         return false;
       }
     },
@@ -154,6 +176,7 @@ export function useTrips() {
   );
 
   // ── Delete ────────────────────────────────────────────────────────────────
+
   const deleteTrip = useCallback(
     async (id: string): Promise<boolean> => {
       try {
@@ -163,23 +186,20 @@ export function useTrips() {
         notify({ type: "success", message: "تم حذف الرحلة بنجاح." });
         return true;
       } catch (err) {
-        notify({
-          type: "error",
-          message: err instanceof Error ? err.message : "تعذّر حذف الرحلة.",
-        });
+        notify({ type: "error", message: extractApiMessage(err, "تعذّر حذف الرحلة.") });
         return false;
       }
     },
     [notify],
   );
 
-  // ── Search helper ─────────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
   const handleSearch = useCallback((q: string) => {
     setSearch(q);
     setPage(1);
   }, []);
 
-  // ── Status filter helper ──────────────────────────────────────────────────
   const handleStatusFilter = useCallback((s: TripStatus | "") => {
     setStatus(s);
     setPage(1);
@@ -198,6 +218,10 @@ export function useTrips() {
     updateTrip,
     deleteTrip,
     notification,
+    dismissNotification: () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setNotification(null);
+    },
     reload: () => loadTrips(page, search, status),
   };
 }
