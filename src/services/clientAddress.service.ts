@@ -1,4 +1,3 @@
-// Mirrors user.service.ts pattern: explicit token param, buildPayload helper.
 import { get, post, put, patch, del } from "./api";
 import type {
   ApiResponse,
@@ -9,32 +8,32 @@ import type {
 const base = (clientId: string) => `client/${clientId}/addresses`;
 
 export const clientAddressService = {
-  /** جلب جميع عناوين عميل معين */
+  /** get all client adresses*/
   getAll: (clientId: string, token: string | null) =>
     get<ApiResponse<ClientAddress[]>>(base(clientId), token),
 
-  /** جلب عنوان واحد بالـ ID */
+  /** get adress by id*/
   getById: (clientId: string, addressId: string, token: string | null) =>
     get<ApiResponse<ClientAddress>>(`${base(clientId)}/${addressId}`, token),
 
-  /** إضافة عنوان جديد لعميل */
+  /** create new client adress*/
   create: (clientId: string, data: ClientAddressFormData, token: string | null) =>
     post<ApiResponse<ClientAddress>>(base(clientId), buildPayload(clientId, data), token),
 
-  /** تعديل عنوان موجود */
+  /** update adresses*/
   update: (clientId: string, addressId: string, data: ClientAddressFormData, token: string | null) =>
     put<ApiResponse<ClientAddress>>(`${base(clientId)}/${addressId}`, buildPayload(clientId, data), token),
 
-  /** حذف عنوان */
+  /** delete client adresses*/
   delete: (clientId: string, addressId: string, token: string | null) =>
     del<void>(`${base(clientId)}/${addressId}`, token),
 
-  /** تعيين عنوان كعنوان رئيسي — الباكند يُلغي الاختيار عن الباقين */
+  /** but adesses as a main client addresses*/
   setPrimary: (clientId: string, addressId: string, token: string | null) =>
     patch<ApiResponse<ClientAddress>>(`${base(clientId)}/${addressId}/primary`, {}, token),
 };
 
-/** تحويل بيانات النموذج إلى payload */
+/** cheange adress info to payload */
 function buildPayload(clientId: string, data: ClientAddressFormData): Record<string, unknown> {
   return {
     clientId,

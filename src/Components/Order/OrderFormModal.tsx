@@ -1,13 +1,15 @@
 "use client";
 
-
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { Alert, Spinner } from "../UI";
 import { getStoredToken } from "@/src/lib/auth";
 import { clientService } from "@/src/services/client.service";
-import { tripService }   from "@/src/services/trip.service";
-import { createOrderSchema, updateOrderSchema } from "@/src/validations/order.validation";
+import { tripService } from "@/src/services/trip.service";
+import {
+  createOrderSchema,
+  updateOrderSchema,
+} from "@/src/validations/order.validation";
 import type { ValidationError } from "yup";
 import type {
   Order,
@@ -17,7 +19,7 @@ import type {
   PaymentStatus,
 } from "@/src/types/order";
 import type { Client } from "@/src/types/client";
-import type { Trip }   from "@/src/types/trip";
+import type { Trip } from "@/src/types/trip";
 import type { OrderSchemaErrors } from "@/src/validations/order.validation";
 
 // ── Shared input / label styles — verbatim from DriverFormModal.tsx ──────────
@@ -91,84 +93,119 @@ interface OrderFormModalProps {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalProps) {
+export function OrderFormModal({
+  editOrder,
+  onClose,
+  onSubmit,
+}: OrderFormModalProps) {
   const isNew = editOrder === null;
 
   // ── Relation data — clients & trips loaded once on mount ─────────────────
-  const [clients, setClients]           = useState<Client[]>([]);
-  const [trips,   setTrips]             = useState<Trip[]>([]);
-  const [relLoading, setRelLoading]     = useState(true);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [relLoading, setRelLoading] = useState(true);
 
   // ── Form state ────────────────────────────────────────────────────────────
-  const [shipmentNumber, setShipmentNumber] = useState(editOrder?.shipmentNumber ?? "");
-  const [recipientName,  setRecipientName]  = useState(editOrder?.recipientName  ?? "");
-  const [recipientPhone, setRecipientPhone] = useState(editOrder?.recipientPhone ?? "");
-  const [clientId,       setClientId]       = useState(editOrder?.clientId       ?? "");
-  const [tripId,         setTripId]         = useState(editOrder?.tripId         ?? "");
-  const [type,           setType]           = useState(editOrder?.type           ?? "");
-  const [quantity,       setQuantity]       = useState(String(editOrder?.quantity ?? 1));
-  const [weight,         setWeight]         = useState(
+  const [shipmentNumber, setShipmentNumber] = useState(
+    editOrder?.shipmentNumber ?? "",
+  );
+  const [recipientName, setRecipientName] = useState(
+    editOrder?.recipientName ?? "",
+  );
+  const [recipientPhone, setRecipientPhone] = useState(
+    editOrder?.recipientPhone ?? "",
+  );
+  const [clientId, setClientId] = useState(editOrder?.clientId ?? "");
+  const [tripId, setTripId] = useState(editOrder?.tripId ?? "");
+  const [type, setType] = useState(editOrder?.type ?? "");
+  const [quantity, setQuantity] = useState(String(editOrder?.quantity ?? 1));
+  const [weight, setWeight] = useState(
     editOrder?.weight != null ? String(editOrder.weight) : "",
   );
-  const [subTotal,       setSubTotal]       = useState(
+  const [subTotal, setSubTotal] = useState(
     editOrder?.subTotal != null ? String(editOrder.subTotal) : "",
   );
-  const [vatRate,        setVatRate]        = useState(
+  const [vatRate, setVatRate] = useState(
     editOrder?.vatRate != null ? String(editOrder.vatRate) : "",
   );
-  const [paymentMethod,  setPaymentMethod]  = useState<PaymentMethod | "">(
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
     editOrder?.paymentMethod ?? "",
   );
-  const [paymentStatus,  setPaymentStatus]  = useState<PaymentStatus | "">(
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | "">(
     editOrder?.paymentStatus ?? "",
   );
 
   // ── Address state ─────────────────────────────────────────────────────────
   // Delivery address (عنوان التسليم) — always creates new MongoDB doc
-  const [delCity,       setDelCity]       = useState(editOrder?.deliveryAddress?.details?.city       ?? "");
-  const [delDistrict,   setDelDistrict]   = useState(editOrder?.deliveryAddress?.details?.district   ?? "");
-  const [delStreet,     setDelStreet]     = useState(editOrder?.deliveryAddress?.details?.street     ?? "");
-  const [delBuildingNo, setDelBuildingNo] = useState(editOrder?.deliveryAddress?.details?.buildingNo ?? "");
-  const [delUnitNo,     setDelUnitNo]     = useState(editOrder?.deliveryAddress?.details?.unitNo     ?? "");
-  const [delZipCode,    setDelZipCode]    = useState(editOrder?.deliveryAddress?.details?.zipCode    ?? "");
+  const [delCity, setDelCity] = useState(
+    editOrder?.deliveryAddress?.details?.city ?? "",
+  );
+  const [delDistrict, setDelDistrict] = useState(
+    editOrder?.deliveryAddress?.details?.district ?? "",
+  );
+  const [delStreet, setDelStreet] = useState(
+    editOrder?.deliveryAddress?.details?.street ?? "",
+  );
+  const [delBuildingNo, setDelBuildingNo] = useState(
+    editOrder?.deliveryAddress?.details?.buildingNo ?? "",
+  );
+  const [delUnitNo, setDelUnitNo] = useState(
+    editOrder?.deliveryAddress?.details?.unitNo ?? "",
+  );
+  const [delZipCode, setDelZipCode] = useState(
+    editOrder?.deliveryAddress?.details?.zipCode ?? "",
+  );
   // GeoJSON coordinates [longitude, latitude] — required by backend
-  const [delLng,        setDelLng]        = useState(
+  const [delLng, setDelLng] = useState(
     editOrder?.deliveryAddress?.location?.coordinates?.[0] != null
       ? String(editOrder.deliveryAddress!.location!.coordinates![0])
       : "",
   );
-  const [delLat,        setDelLat]        = useState(
+  const [delLat, setDelLat] = useState(
     editOrder?.deliveryAddress?.location?.coordinates?.[1] != null
       ? String(editOrder.deliveryAddress!.location!.coordinates![1])
       : "",
   );
 
   // Pickup address (عنوان الاستلام) — إما ID موجود أو object جديد
-  const [pickupMode,    setPickupMode]    = useState<"id" | "new">(
+  const [pickupMode, setPickupMode] = useState<"id" | "new">(
     editOrder?.pickupAddressId ? "id" : "new",
   );
-  const [pickupAddressId, setPickupAddressId] = useState(editOrder?.pickupAddressId ?? "");
-  const [pkpCity,       setPkpCity]       = useState(editOrder?.pickupAddress?.details?.city       ?? "");
-  const [pkpDistrict,   setPkpDistrict]   = useState(editOrder?.pickupAddress?.details?.district   ?? "");
-  const [pkpStreet,     setPkpStreet]     = useState(editOrder?.pickupAddress?.details?.street     ?? "");
-  const [pkpBuildingNo, setPkpBuildingNo] = useState(editOrder?.pickupAddress?.details?.buildingNo ?? "");
-  const [pkpUnitNo,     setPkpUnitNo]     = useState(editOrder?.pickupAddress?.details?.unitNo     ?? "");
-  const [pkpZipCode,    setPkpZipCode]    = useState(editOrder?.pickupAddress?.details?.zipCode    ?? "");
+  const [pickupAddressId, setPickupAddressId] = useState(
+    editOrder?.pickupAddressId ?? "",
+  );
+  const [pkpCity, setPkpCity] = useState(
+    editOrder?.pickupAddress?.details?.city ?? "",
+  );
+  const [pkpDistrict, setPkpDistrict] = useState(
+    editOrder?.pickupAddress?.details?.district ?? "",
+  );
+  const [pkpStreet, setPkpStreet] = useState(
+    editOrder?.pickupAddress?.details?.street ?? "",
+  );
+  const [pkpBuildingNo, setPkpBuildingNo] = useState(
+    editOrder?.pickupAddress?.details?.buildingNo ?? "",
+  );
+  const [pkpUnitNo, setPkpUnitNo] = useState(
+    editOrder?.pickupAddress?.details?.unitNo ?? "",
+  );
+  const [pkpZipCode, setPkpZipCode] = useState(
+    editOrder?.pickupAddress?.details?.zipCode ?? "",
+  );
   // GeoJSON coordinates [longitude, latitude] — optional for pickup
-  const [pkpLng,        setPkpLng]        = useState(
+  const [pkpLng, setPkpLng] = useState(
     editOrder?.pickupAddress?.location?.coordinates?.[0] != null
       ? String(editOrder.pickupAddress!.location!.coordinates![0])
       : "",
   );
-  const [pkpLat,        setPkpLat]        = useState(
+  const [pkpLat, setPkpLat] = useState(
     editOrder?.pickupAddress?.location?.coordinates?.[1] != null
       ? String(editOrder.pickupAddress!.location!.coordinates![1])
       : "",
   );
 
-
-  const [errors,   setErrors]   = useState<OrderSchemaErrors>({});
-  const [saving,   setSaving]   = useState(false);
+  const [errors, setErrors] = useState<OrderSchemaErrors>({});
+  const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState("");
   const firstRef = useRef<HTMLInputElement>(null);
 
@@ -185,7 +222,10 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
         const clientList: Client[] = clientPayload.data ?? [];
 
         // Fetch first 100 trips (active ones the order can be assigned to)
-        const tripRes = await tripService.getAll({ page: 1, limit: 100 }, token);
+        const tripRes = await tripService.getAll(
+          { page: 1, limit: 100 },
+          token,
+        );
         const tripPayload = (tripRes as any).data ?? tripRes;
         const tripList: Trip[] = tripPayload.data ?? [];
 
@@ -201,19 +241,27 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
         // links — but now they also see a message explaining why.
         console.error("OrderFormModal: failed to load clients/trips", err);
         if (!cancelled) {
-          setApiError("تعذّر تحميل قوائم العملاء والرحلات. تحقق من اتصالك وحاول إعادة فتح النافذة.");
+          setApiError(
+            "تعذّر تحميل قوائم العملاء والرحلات. تحقق من اتصالك وحاول إعادة فتح النافذة.",
+          );
         }
       } finally {
         if (!cancelled) setRelLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // ── Keyboard / focus setup ────────────────────────────────────────────────
-  useEffect(() => { firstRef.current?.focus(); }, []);
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    firstRef.current?.focus();
+  }, []);
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
@@ -221,14 +269,13 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
   // ── Dynamic input error style ─────────────────────────────────────────────
   const inputStyle = (field: keyof OrderSchemaErrors): React.CSSProperties => ({
     ...inputBase,
-    border: errors[field]
-      ? "1px solid var(--color-danger)"
-      : inputBase.border,
+    border: errors[field] ? "1px solid var(--color-danger)" : inputBase.border,
     ...(errors[field] ? { background: "#FEF2F2" } : {}),
   });
 
   const clearFieldError = useCallback(
-    (field: keyof OrderSchemaErrors) => setErrors((p) => ({ ...p, [field]: undefined })),
+    (field: keyof OrderSchemaErrors) =>
+      setErrors((p) => ({ ...p, [field]: undefined })),
     [],
   );
 
@@ -244,11 +291,11 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
           recipientName,
           recipientPhone,
           quantity: quantity ? Number(quantity) : undefined,
-          weight:   weight   ? Number(weight)   : undefined,
+          weight: weight ? Number(weight) : undefined,
           subTotal: subTotal ? Number(subTotal) : undefined,
-          vatRate:  vatRate  ? Number(vatRate)  : undefined,
-          paymentMethod:  paymentMethod  || undefined,
-          paymentStatus:  paymentStatus  || undefined,
+          vatRate: vatRate ? Number(vatRate) : undefined,
+          paymentMethod: paymentMethod || undefined,
+          paymentStatus: paymentStatus || undefined,
           type: type || undefined,
         },
         { abortEarly: false },
@@ -263,13 +310,26 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
       setErrors(bag);
       return false;
     }
-  }, [isNew, tripId, clientId, shipmentNumber, recipientName, recipientPhone,
-      quantity, weight, subTotal, vatRate, paymentMethod, paymentStatus, type]);
+  }, [
+    isNew,
+    tripId,
+    clientId,
+    shipmentNumber,
+    recipientName,
+    recipientPhone,
+    quantity,
+    weight,
+    subTotal,
+    vatRate,
+    paymentMethod,
+    paymentStatus,
+    type,
+  ]);
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     console.log("her");
-    
+
     e.preventDefault();
 
     const valid = await runValidation();
@@ -291,21 +351,21 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
     if (tripId) payload.tripId = tripId;
 
     // Optional fields — include only when filled
-    if (type)          payload.type          = type;
-    if (weight)        payload.weight        = Number(weight);
-    if (subTotal)      payload.subTotal      = Number(subTotal);
-    if (vatRate)       payload.vatRate       = Number(vatRate);
+    if (type) payload.type = type;
+    if (weight) payload.weight = Number(weight);
+    if (subTotal) payload.subTotal = Number(subTotal);
+    if (vatRate) payload.vatRate = Number(vatRate);
     if (paymentMethod) payload.paymentMethod = paymentMethod;
     if (paymentStatus) payload.paymentStatus = paymentStatus;
 
     // ── Build delivery address object (only if at least one field filled) ──
     const delDetails = {
-      ...(delCity       && { city:       delCity }),
-      ...(delDistrict   && { district:   delDistrict }),
-      ...(delStreet     && { street:     delStreet }),
+      ...(delCity && { city: delCity }),
+      ...(delDistrict && { district: delDistrict }),
+      ...(delStreet && { street: delStreet }),
       ...(delBuildingNo && { buildingNo: delBuildingNo }),
-      ...(delUnitNo     && { unitNo:     delUnitNo }),
-      ...(delZipCode    && { zipCode:    delZipCode }),
+      ...(delUnitNo && { unitNo: delUnitNo }),
+      ...(delZipCode && { zipCode: delZipCode }),
     };
     // coordinates are always included when provided (required by backend GeoJSON schema)
     const delCoordinates =
@@ -325,12 +385,12 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
       payload.pickupAddressId = pickupAddressId.trim();
     } else {
       const pkpDetails = {
-        ...(pkpCity       && { city:       pkpCity }),
-        ...(pkpDistrict   && { district:   pkpDistrict }),
-        ...(pkpStreet     && { street:     pkpStreet }),
+        ...(pkpCity && { city: pkpCity }),
+        ...(pkpDistrict && { district: pkpDistrict }),
+        ...(pkpStreet && { street: pkpStreet }),
         ...(pkpBuildingNo && { buildingNo: pkpBuildingNo }),
-        ...(pkpUnitNo     && { unitNo:     pkpUnitNo }),
-        ...(pkpZipCode    && { zipCode:    pkpZipCode }),
+        ...(pkpUnitNo && { unitNo: pkpUnitNo }),
+        ...(pkpZipCode && { zipCode: pkpZipCode }),
       };
       const pkpCoordinates =
         pkpLng.trim() && pkpLat.trim()
@@ -345,12 +405,14 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
       }
     }
 
-
     setSaving(true);
     setApiError("");
 
     try {
-      const ok = await onSubmit(payload as unknown as CreateOrderPayload, isNew);
+      const ok = await onSubmit(
+        payload as unknown as CreateOrderPayload,
+        isNew,
+      );
       if (ok) {
         onClose();
       } else {
@@ -358,7 +420,9 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
       }
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.";
+        err instanceof Error
+          ? err.message
+          : "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.";
       setApiError(message);
     } finally {
       setSaving(false);
@@ -371,57 +435,88 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
       role="dialog"
       aria-modal="true"
       aria-labelledby="order-modal-title"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
       style={{
-        position: "fixed", inset: 0, zIndex: 50,
-        background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "1rem", overflowY: "auto",
+        position: "fixed",
+        inset: 0,
+        zIndex: 50,
+        background: "rgba(15,23,42,0.55)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem",
+        overflowY: "auto",
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: 640,
+          width: "100%",
+          maxWidth: 640,
           background: "var(--color-surface)",
           borderRadius: "var(--radius-2xl)",
           border: "1px solid var(--color-border)",
           boxShadow: "0 24px 64px rgba(0,0,0,.18)",
-          overflow: "hidden", margin: "auto",
+          overflow: "hidden",
+          margin: "auto",
         }}
       >
         {/* ── Header ── */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "1.25rem 1.5rem",
-          borderBottom: "1px solid var(--color-border)",
-          background: "var(--color-surface-muted)",
-        }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "1.25rem 1.5rem",
+            borderBottom: "1px solid var(--color-border)",
+            background: "var(--color-surface-muted)",
+          }}
+        >
           <div>
-            <p style={{
-              fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase",
-              color: "#2563EB", fontWeight: 600, margin: 0,
-            }}>
+            <p
+              style={{
+                fontSize: 11,
+                letterSpacing: "0.3em",
+                textTransform: "uppercase",
+                color: "#2563EB",
+                fontWeight: 600,
+                margin: 0,
+              }}
+            >
               {isNew ? "إنشاء طلب" : "تعديل طلب"}
             </p>
             <h2
               id="order-modal-title"
               style={{
-                fontSize: 17, fontWeight: 700,
+                fontSize: 17,
+                fontWeight: 700,
                 color: "var(--color-text-primary)",
-                margin: "4px 0 0", fontFamily: "var(--font-mono)",
+                margin: "4px 0 0",
+                fontFamily: "var(--font-mono)",
               }}
             >
               {isNew ? "طلب جديد" : editOrder?.shipmentNumber}
             </h2>
           </div>
           <button
-            type="button" onClick={onClose} aria-label="إغلاق"
+            type="button"
+            onClick={onClose}
+            aria-label="إغلاق"
             style={{
-              width: 34, height: 34, borderRadius: "var(--radius-md)",
-              border: "1px solid var(--color-border)", background: "var(--color-surface)",
-              cursor: "pointer", fontSize: 18, color: "var(--color-text-muted)",
-              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 34,
+              height: 34,
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--color-border)",
+              background: "var(--color-surface)",
+              cursor: "pointer",
+              fontSize: 18,
+              color: "var(--color-text-muted)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             ×
@@ -434,20 +529,32 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
           noValidate
           style={{
             padding: "1.5rem",
-            display: "flex", flexDirection: "column", gap: "1rem",
-            maxHeight: "75vh", overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem",
+            maxHeight: "75vh",
+            overflowY: "auto",
           }}
           dir="rtl"
         >
           {apiError && (
-            <Alert type="error" message={apiError} onClose={() => setApiError("")} />
+            <Alert
+              type="error"
+              message={apiError}
+              onClose={() => setApiError("")}
+            />
           )}
 
           {/* ── Section: Shipment & Recipient ── */}
           <p style={sectionHeadingStyle}>بيانات الشحنة والمستلم</p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "0.75rem",
+            }}
+          >
             {/* Shipment number — required */}
             <label style={labelStyle}>
               رقم الشحنة *
@@ -500,9 +607,19 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
                 <span style={errorTextStyle}>{errors.clientId}</span>
               )}
               {/* Helper link */}
-              <Link href="/dashboard/clients" style={createLinkStyle} tabIndex={-1}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2.5">
+              <Link
+                href="/dashboard/clients"
+                style={createLinkStyle}
+                tabIndex={-1}
+              >
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
@@ -578,9 +695,19 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
                 <span style={errorTextStyle}>{errors.tripId}</span>
               )}
               {/* Helper link */}
-              <Link href="/dashboard/trips" style={createLinkStyle} tabIndex={-1}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2.5">
+              <Link
+                href="/dashboard/trips"
+                style={createLinkStyle}
+                tabIndex={-1}
+              >
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
@@ -592,7 +719,13 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
           {/* ── Section: Shipment details ── */}
           <p style={sectionHeadingStyle}>تفاصيل الشحنة</p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              gap: "0.75rem",
+            }}
+          >
             {/* Type — optional */}
             <label style={labelStyle}>
               نوع الشحنة
@@ -644,7 +777,13 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
           {/* ── Section: Payment ── */}
           <p style={sectionHeadingStyle}>بيانات الدفع</p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              gap: "0.75rem",
+            }}
+          >
             {/* Subtotal — optional */}
             <label style={labelStyle}>
               الإجمالي الفرعي
@@ -694,7 +833,9 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
               <select
                 style={{ ...inputBase, cursor: "pointer" }}
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod | "")}
+                onChange={(e) =>
+                  setPaymentMethod(e.target.value as PaymentMethod | "")
+                }
                 dir="rtl"
               >
                 <option value="">اختر الطريقة</option>
@@ -728,36 +869,78 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
 
           {/* ── Section: Delivery Address ── */}
           <p style={sectionHeadingStyle}>عنوان التسليم</p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              gap: "0.75rem",
+            }}
+          >
             <label style={labelStyle}>
               المدينة
               <span style={optionalLabelStyle}>(اختياري)</span>
-              <input style={inputBase} value={delCity} onChange={(e) => setDelCity(e.target.value)} placeholder="الرياض" dir="rtl" />
+              <input
+                style={inputBase}
+                value={delCity}
+                onChange={(e) => setDelCity(e.target.value)}
+                placeholder="الرياض"
+                dir="rtl"
+              />
             </label>
             <label style={labelStyle}>
               الحي
               <span style={optionalLabelStyle}>(اختياري)</span>
-              <input style={inputBase} value={delDistrict} onChange={(e) => setDelDistrict(e.target.value)} placeholder="العليا" dir="rtl" />
+              <input
+                style={inputBase}
+                value={delDistrict}
+                onChange={(e) => setDelDistrict(e.target.value)}
+                placeholder="العليا"
+                dir="rtl"
+              />
             </label>
             <label style={labelStyle}>
               الشارع
               <span style={optionalLabelStyle}>(اختياري)</span>
-              <input style={inputBase} value={delStreet} onChange={(e) => setDelStreet(e.target.value)} placeholder="شارع الأمير محمد" dir="rtl" />
+              <input
+                style={inputBase}
+                value={delStreet}
+                onChange={(e) => setDelStreet(e.target.value)}
+                placeholder="شارع الأمير محمد"
+                dir="rtl"
+              />
             </label>
             <label style={labelStyle}>
               رقم المبنى
               <span style={optionalLabelStyle}>(اختياري)</span>
-              <input style={inputBase} value={delBuildingNo} onChange={(e) => setDelBuildingNo(e.target.value)} placeholder="1234" dir="ltr" />
+              <input
+                style={inputBase}
+                value={delBuildingNo}
+                onChange={(e) => setDelBuildingNo(e.target.value)}
+                placeholder="1234"
+                dir="ltr"
+              />
             </label>
             <label style={labelStyle}>
               رقم الوحدة
               <span style={optionalLabelStyle}>(اختياري)</span>
-              <input style={inputBase} value={delUnitNo} onChange={(e) => setDelUnitNo(e.target.value)} placeholder="56" dir="ltr" />
+              <input
+                style={inputBase}
+                value={delUnitNo}
+                onChange={(e) => setDelUnitNo(e.target.value)}
+                placeholder="56"
+                dir="ltr"
+              />
             </label>
             <label style={labelStyle}>
               الرمز البريدي
               <span style={optionalLabelStyle}>(اختياري)</span>
-              <input style={inputBase} value={delZipCode} onChange={(e) => setDelZipCode(e.target.value)} placeholder="12345" dir="ltr" />
+              <input
+                style={inputBase}
+                value={delZipCode}
+                onChange={(e) => setDelZipCode(e.target.value)}
+                placeholder="12345"
+                dir="ltr"
+              />
             </label>
             {/* GeoJSON coordinates — required by backend */}
             <label style={labelStyle}>
@@ -790,20 +973,31 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
           <p style={sectionHeadingStyle}>عنوان الاستلام</p>
 
           {/* Toggle: existing ID or new address */}
-          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.25rem" }}>
+          <div
+            style={{ display: "flex", gap: "0.5rem", marginBottom: "0.25rem" }}
+          >
             {(["id", "new"] as const).map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => setPickupMode(m)}
                 style={{
-                  height: 32, padding: "0 0.875rem",
+                  height: 32,
+                  padding: "0 0.875rem",
                   borderRadius: "var(--radius-md)",
                   border: `1px solid ${pickupMode === m ? "var(--color-brand-600)" : "var(--color-border)"}`,
-                  background: pickupMode === m ? "var(--color-brand-50, #EFF6FF)" : "var(--color-surface)",
-                  fontSize: 12, fontWeight: 600,
-                  color: pickupMode === m ? "var(--color-brand-600)" : "var(--color-text-secondary)",
-                  cursor: "pointer", fontFamily: "var(--font-sans)",
+                  background:
+                    pickupMode === m
+                      ? "var(--color-brand-50, #EFF6FF)"
+                      : "var(--color-surface)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color:
+                    pickupMode === m
+                      ? "var(--color-brand-600)"
+                      : "var(--color-text-secondary)",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-sans)",
                 }}
               >
                 {m === "id" ? "عنوان موجود (ID)" : "عنوان جديد"}
@@ -824,36 +1018,78 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
               />
             </label>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: "0.75rem",
+              }}
+            >
               <label style={labelStyle}>
                 المدينة
                 <span style={optionalLabelStyle}>(اختياري)</span>
-                <input style={inputBase} value={pkpCity} onChange={(e) => setPkpCity(e.target.value)} placeholder="جدة" dir="rtl" />
+                <input
+                  style={inputBase}
+                  value={pkpCity}
+                  onChange={(e) => setPkpCity(e.target.value)}
+                  placeholder="جدة"
+                  dir="rtl"
+                />
               </label>
               <label style={labelStyle}>
                 الحي
                 <span style={optionalLabelStyle}>(اختياري)</span>
-                <input style={inputBase} value={pkpDistrict} onChange={(e) => setPkpDistrict(e.target.value)} placeholder="الروضة" dir="rtl" />
+                <input
+                  style={inputBase}
+                  value={pkpDistrict}
+                  onChange={(e) => setPkpDistrict(e.target.value)}
+                  placeholder="الروضة"
+                  dir="rtl"
+                />
               </label>
               <label style={labelStyle}>
                 الشارع
                 <span style={optionalLabelStyle}>(اختياري)</span>
-                <input style={inputBase} value={pkpStreet} onChange={(e) => setPkpStreet(e.target.value)} placeholder="شارع التحلية" dir="rtl" />
+                <input
+                  style={inputBase}
+                  value={pkpStreet}
+                  onChange={(e) => setPkpStreet(e.target.value)}
+                  placeholder="شارع التحلية"
+                  dir="rtl"
+                />
               </label>
               <label style={labelStyle}>
                 رقم المبنى
                 <span style={optionalLabelStyle}>(اختياري)</span>
-                <input style={inputBase} value={pkpBuildingNo} onChange={(e) => setPkpBuildingNo(e.target.value)} placeholder="4321" dir="ltr" />
+                <input
+                  style={inputBase}
+                  value={pkpBuildingNo}
+                  onChange={(e) => setPkpBuildingNo(e.target.value)}
+                  placeholder="4321"
+                  dir="ltr"
+                />
               </label>
               <label style={labelStyle}>
                 رقم الوحدة
                 <span style={optionalLabelStyle}>(اختياري)</span>
-                <input style={inputBase} value={pkpUnitNo} onChange={(e) => setPkpUnitNo(e.target.value)} placeholder="12" dir="ltr" />
+                <input
+                  style={inputBase}
+                  value={pkpUnitNo}
+                  onChange={(e) => setPkpUnitNo(e.target.value)}
+                  placeholder="12"
+                  dir="ltr"
+                />
               </label>
               <label style={labelStyle}>
                 الرمز البريدي
                 <span style={optionalLabelStyle}>(اختياري)</span>
-                <input style={inputBase} value={pkpZipCode} onChange={(e) => setPkpZipCode(e.target.value)} placeholder="23456" dir="ltr" />
+                <input
+                  style={inputBase}
+                  value={pkpZipCode}
+                  onChange={(e) => setPkpZipCode(e.target.value)}
+                  placeholder="23456"
+                  dir="ltr"
+                />
               </label>
               {/* GeoJSON coordinates — optional for pickup */}
               <label style={labelStyle}>
@@ -886,20 +1122,27 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
           )}
 
           {/* ── Actions ── */}
-          <div style={{
-            display: "flex", gap: "0.5rem",
-            justifyContent: "flex-end", paddingTop: "0.5rem",
-          }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "0.5rem",
+              justifyContent: "flex-end",
+              paddingTop: "0.5rem",
+            }}
+          >
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
               style={{
-                height: 40, padding: "0 1.25rem",
+                height: 40,
+                padding: "0 1.25rem",
                 borderRadius: "var(--radius-md)",
                 border: "1px solid var(--color-border)",
                 background: "var(--color-surface)",
-                fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--color-text-secondary)",
                 cursor: saving ? "not-allowed" : "pointer",
                 fontFamily: "var(--font-sans)",
               }}
@@ -909,14 +1152,22 @@ export function OrderFormModal({ editOrder, onClose, onSubmit }: OrderFormModalP
             <button
               type="submit"
               disabled={saving}
+              onClick={() => console.log("BUTTON CLICKED DIRECTLY")}
               style={{
-                height: 40, padding: "0 1.5rem",
+                height: 40,
+                padding: "0 1.5rem",
                 borderRadius: "var(--radius-md)",
                 border: "none",
-                background: saving ? "var(--color-brand-400)" : "var(--color-brand-600)",
-                fontSize: 13, fontWeight: 700, color: "#FFF",
+                background: saving
+                  ? "var(--color-brand-400)"
+                  : "var(--color-brand-600)",
+                fontSize: 13,
+                fontWeight: 700,
+                color: "#FFF",
                 cursor: saving ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", gap: 8,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
                 fontFamily: "var(--font-sans)",
               }}
             >

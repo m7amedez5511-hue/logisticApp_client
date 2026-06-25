@@ -5,7 +5,20 @@ const SAUDI_PHONE_RE = /^(05\d{8}|009665\d{8}|\+9665\d{8})$/;
 
 // ── Address sub-schemas (mirrors backend orderAddressSchema) ─────────────────
 
-// Delivery address — location.coordinates required by the backend (MongoDB GeoJSON)
+// Delivery address — coordinates SHOULD be required by the backend (MongoDB
+// GeoJSON), but they must NOT be marked .required() at the yup-schema level
+// here. yup.object({...}).optional() on the parent does not skip validating
+// .required() fields nested two levels down when the parent key is missing
+// from the payload entirely — yup still walks into the nested object schema
+// and fails on the inner .required(), even though `deliveryAddress` was never
+// sent in the validated value. (Confirmed by direct testing: a payload with
+// no `deliveryAddress` key at all still threw "إحداثيات موقع التسليم مطلوبة"
+// before this fix — which is exactly why handleSubmit appeared to silently
+// do nothing on every submit once this field was added.)
+//
+// Real requiredness (only require coordinates once the user is actually
+// filling in a delivery address) is enforced in OrderFormModal.tsx instead,
+// right before building the payload.
 const deliveryAddressSchema = yup.object({
   details: yup.object({
     city:       yup.string().trim().optional(),
@@ -21,8 +34,8 @@ const deliveryAddressSchema = yup.object({
       .array()
       .of(yup.number().required())
       .length(2, "الإحداثيات يجب أن تكون [خط الطول, خط العرض]")
-      .required("إحداثيات موقع التسليم مطلوبة"),
-  }).required("موقع التسليم مطلوب"),
+      .optional(),
+  }).optional(),
 }).optional();
 
 // Pickup address — coordinates optional (user may supply an existing ID instead)

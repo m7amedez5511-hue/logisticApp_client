@@ -1,13 +1,36 @@
 "use client";
 
+/**
+ * app/dashboard/clients/page.tsx — Enhanced
+ *
+ * Changes from original:
+ * 1. Replaced `import { Toast } from "@/src/Components/Client/Toast"` with
+ *    `import { Toast } from "@/src/Components/UI"` (the canonical, feature-rich version
+ *    that supports an optional dismiss button and proper exit animation).
+ * 2. The notification type is now `ToastNotification` from the UI barrel, matching
+ *    the Toast's expected prop type.
+ * 3. All other logic (CRUD, routing, modal management) is unchanged.
+ *
+ * HOW TO TEST:
+ *   - Add a client → green toast "تم إضافة العميل بنجاح."
+ *   - Edit a client → green toast "تم تحديث بيانات العميل."
+ *   - Delete a client → green toast "تم حذف العميل بنجاح."
+ *   - Click a table row → detail panel expands inline.
+ *   - Click "العناوين" inside the panel → navigates to /dashboard/clients/[id]/addresses.
+ */
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Alert }               from "@/src/Components/UI";
-import { Toast }               from "@/src/Components/Client/Toast";
-import { useClients }          from "@/src/hooks/useClients";
+
+// ── UI components ──────────────────────────────────────────────────────────
+// NOTE: Toast is now imported from the canonical UI barrel, NOT from Client/Toast.
+import { Alert, Toast } from "@/src/Components/UI";
+
+// ── Client-specific components ─────────────────────────────────────────────
+import { useClients }         from "@/src/hooks/useClients";
 import type { Client, ClientFormData } from "@/src/types/client";
-import { ClientFormModal } from "@/src/Components/Client/Clientformmodal";
-import { ClientTable } from "@/src/Components/Client/Clienttable";
+import { ClientFormModal }    from "@/src/Components/Client/Clientformmodal";
+import { ClientTable }        from "@/src/Components/Client/Clienttable";
 import { DeleteConfirmModal } from "@/src/Components/Client/Deleteconfirmmodal";
 
 export default function ClientsPage() {
@@ -31,7 +54,7 @@ export default function ClientsPage() {
   // ── Create / Update handler ──────────────────────────────────────────────
   const handleFormSubmit = async (
     data: ClientFormData,
-    isNew: boolean
+    isNew: boolean,
   ): Promise<boolean> => {
     if (isNew) return createClient(data);
     return updateClient((formTarget as Client).id, data);
@@ -47,6 +70,8 @@ export default function ClientsPage() {
   };
 
   // ── Navigate to address management ──────────────────────────────────────
+  // This is called both by the AddressBadge click and the "العناوين" button
+  // inside the ClientDetailPanel.
   const handleManageAddresses = (client: Client) => {
     router.push(`/dashboard/clients/${client.id}/addresses`);
   };
@@ -54,7 +79,11 @@ export default function ClientsPage() {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Global success / error toast */}
+      {/*
+       * Global toast notification.
+       * Using the new UI/Toast which accepts ToastNotification | null.
+       * The hook's `notification` shape { type, message } matches ToastNotification exactly.
+       */}
       <Toast notification={notification} />
 
       {/* Create / Edit modal */}

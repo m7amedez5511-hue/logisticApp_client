@@ -1,10 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { Alert, Spinner } from "../UI";
-import type { Client, ClientFormData, ClientFormErrors } from "@/src/types/client";
+import {
+  createClientSchema,
+  updateClientSchema,
+  CLIENT_TYPES,
+  type CreateClientFormValues,
+  type UpdateClientFormValues,
+} from "@/src/validations/client.validator";
+import type { Client } from "@/src/types/client";
 
-// ── Fixed styles (same token system as UserFormModal) ──────────────────────
+// ── Styles ─────────────────────────────────────────────────────────────────
 const S = {
   input: {
     width: "100%",
@@ -33,82 +42,60 @@ const S = {
   } as React.CSSProperties,
 };
 
-// ── Validation ─────────────────────────────────────────────────────────────
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^\+?[0-9]{10,15}$/;
-
-function validate(data: ClientFormData): ClientFormErrors {
-  const e: ClientFormErrors = {};
-  if (!data.name.trim())  e.name  = "اسم العميل مطلوب";
-  if (!data.email.trim()) {
-    e.email = "البريد الإلكتروني مطلوب";
-  } else if (!EMAIL_RE.test(data.email)) {
-    e.email = "صيغة البريد الإلكتروني غير صحيحة";
-  }
-  if (!data.phone.trim()) {
-    e.phone = "رقم الهاتف مطلوب";
-  } else if (!PHONE_RE.test(data.phone.replace(/\s/g, ""))) {
-    e.phone = "رقم هاتف غير صالح (10–15 رقم)";
-  }
-  return e;
-}
+// error border helper
+const withError = (hasError: boolean): React.CSSProperties => ({
+  ...S.input,
+  ...(hasError ? { borderColor: "var(--color-danger)", background: "#FEF2F2" } : {}),
+});
 
 // ── Props ──────────────────────────────────────────────────────────────────
 interface ClientFormModalProps {
-  editClient: Client | null;   // null = create mode, Client = edit mode
+  editClient: Client | null; // null = create mode
   onClose:   () => void;
-  onSubmit:  (data: ClientFormData, isNew: boolean) => Promise<boolean>;
+  onSubmit:  (
+    data: CreateClientFormValues | UpdateClientFormValues,
+    isNew: boolean
+  ) => Promise<boolean>;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
-export function ClientFormModal({
-  editClient,
-  onClose,
-  onSubmit,
-}: ClientFormModalProps) {
+export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormModalProps) {
   const isNew = editClient === null;
 
-  const [form, setForm] = useState<ClientFormData>({
-    name:  editClient?.name  ?? "",
-    email: editClient?.email ?? "",
-    phone: editClient?.phone ?? "",
-    taxId: editClient?.taxId ?? "",
-    notes: editClient?.notes ?? "",
-  });
-  const [errors,   setErrors]   = useState<ClientFormErrors>({});
-  const [saving,   setSaving]   = useState(false);
-  const [apiError, setApiError] = useState("");
-  const firstInputRef           = useRef<HTMLInputElement>(null);
+  // pick schema based on mode
+  const schema = isNew ? createClientSchema : updateClientSchema;
 
-  useEffect(() => { firstInputRef.current?.focus(); }, []);
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateClientFormValues | UpdateClientFormValues>({
+    resolver: yupResolver(Schema) as never,
+    defaultValues: {
+      name:       editClient?.name       ?? "",
+      email:      editClient?.email      ?? "",
+      phone:      editClient?.phone      ?? "",
+      clientType: editClient?.clientType ?? undefined,
+    },
+  });
+
+  // close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const set = (field: keyof ClientFormData) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setForm((p) => ({ ...p, [field]: e.target.value }));
-      if (errors[field]) setErrors((p) => ({ ...p, [field]: undefined }));
-    };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const errs = validate(form);
-    if (Object.keys(errs).length) { setErrors(errs); return; }
-    setSaving(true);
-    setApiError("");
-    const ok = await onSubmit(form, isNew);
-    setSaving(false);
-    if (ok) onClose();
-    else setApiError("حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.");
+  const submitHandler = async (data: CreateClientFormValues | UpdateClientFormValues) => {
+    const ok = await onSubmit(data, isNew);
+    if (ok) {
+      onClose();
+    } else {
+      // surface a generic api error via the name field (sentinel key)
+      setError("name", { message: "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً." });
+    }
   };
-
-  const inputStyle = (field: keyof ClientFormErrors): React.CSSProperties => ({
-    ...S.input,
-    ...(errors[field] ? { borderColor: "var(--color-danger)", background: "#FEF2F2" } : {}),
-  });
 
   return (
     <div
@@ -200,7 +187,7 @@ export function ClientFormModal({
 
         {/* Body */}
         <form
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmit(submitHandler)}
           noValidate
           style={{
             padding: "1.5rem",
@@ -209,23 +196,24 @@ export function ClientFormModal({
             gap: "1rem",
           }}
         >
-          {apiError && (
-            <Alert type="error" message={apiError} onClose={() => setApiError("")} />
+          {/* Generic API error shown above the form */}
+          {errors.name?.type === "manual" && (
+            <Alert type="error" message={errors.name.message ?? ""} onClose={() => {}} />
           )}
 
-          {/* Name */}
+          {/* Name — required in create, optional in update */}
           <label style={S.label}>
-            اسم العميل *
+            اسم العميل {isNew && "*"}
             <input
-              ref={firstInputRef}
-              style={inputStyle("name")}
-              value={form.name}
-              onChange={set("name")}
+              {...register("name")}
+              style={withError(!!errors.name)}
               placeholder="شركة لوجي فلو للتوصيل"
               autoComplete="organization"
               dir="rtl"
             />
-            {errors.name && <span style={S.errorText}>{errors.name}</span>}
+            {errors.name && errors.name.type !== "manual" && (
+              <span style={S.errorText}>{errors.name.message}</span>
+            )}
           </label>
 
           {/* Email + Phone */}
@@ -236,62 +224,81 @@ export function ClientFormModal({
               gap: "0.75rem",
             }}
           >
+            {/* Email — optional in both schemas */}
             <label style={S.label}>
-              البريد الإلكتروني *
+              البريد الإلكتروني
               <input
-                style={inputStyle("email")}
+                {...register("email")}
+                style={withError(!!errors.email)}
                 type="email"
-                value={form.email}
-                onChange={set("email")}
                 placeholder="info@company.sa"
                 autoComplete="email"
                 dir="ltr"
               />
-              {errors.email && <span style={S.errorText}>{errors.email}</span>}
+              {errors.email && (
+                <span style={S.errorText}>{errors.email.message}</span>
+              )}
             </label>
+
+            {/* Phone — required in create, optional in update */}
             <label style={S.label}>
-              رقم الهاتف *
+              رقم الهاتف {isNew && "*"}
               <input
-                style={inputStyle("phone")}
+                {...register("phone")}
+                style={withError(!!errors.phone)}
                 type="tel"
-                value={form.phone}
-                onChange={set("phone")}
-                placeholder="+966 5x xxx xxxx"
+                placeholder="05xxxxxxxx"
                 autoComplete="tel"
                 dir="ltr"
               />
-              {errors.phone && <span style={S.errorText}>{errors.phone}</span>}
+              {errors.phone && (
+                <span style={S.errorText}>{errors.phone.message}</span>
+              )}
             </label>
           </div>
 
-          {/* Tax ID */}
+          {/* Client Type — optional in both schemas */}
           <label style={S.label}>
-            الرقم الضريبي (اختياري)
-            <input
-              style={S.input}
-              value={form.taxId}
-              onChange={set("taxId")}
-              placeholder="300xxxxxxxxx"
-              dir="ltr"
-            />
+            نوع العميل
+            <select
+              {...register("clientType")}
+              style={{ ...withError(!!errors.clientType), cursor: "pointer" }}
+              dir="rtl"
+            >
+              <option value="">اختر النوع</option>
+              {CLIENT_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t === "Individual" ? "فرد" : "شركة"}
+                </option>
+              ))}
+            </select>
+            {errors.clientType && (
+              <span style={S.errorText}>{errors.clientType.message}</span>
+            )}
           </label>
 
-          {/* Notes */}
-          <label style={S.label}>
-            ملاحظات (اختياري)
-            <textarea
+          {/* isActive — update mode only */}
+          {!isNew && (
+            <label
               style={{
-                ...S.input,
-                height: 80,
-                padding: "0.5rem 0.75rem",
-                resize: "vertical",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--color-text-secondary)",
+                cursor: "pointer",
               }}
-              value={form.notes}
-              onChange={set("notes")}
-              placeholder="أي معلومات إضافية عن العميل…"
-              dir="rtl"
-            />
-          </label>
+            >
+              <input
+                type="checkbox"
+                {...register("isActive" as never)}
+                defaultChecked={editClient?.isActive ?? true}
+                style={{ width: 14, height: 14, cursor: "pointer" }}
+              />
+              عميل نشط
+            </label>
+          )}
 
           {/* Actions */}
           <div
@@ -305,7 +312,7 @@ export function ClientFormModal({
             <button
               type="button"
               onClick={onClose}
-              disabled={saving}
+              disabled={isSubmitting}
               style={{
                 height: 40,
                 padding: "0 1.25rem",
@@ -315,7 +322,7 @@ export function ClientFormModal({
                 fontSize: 13,
                 fontWeight: 600,
                 color: "var(--color-text-secondary)",
-                cursor: saving ? "not-allowed" : "pointer",
+                cursor: isSubmitting ? "not-allowed" : "pointer",
                 fontFamily: "var(--font-sans)",
               }}
             >
@@ -323,27 +330,27 @@ export function ClientFormModal({
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={isSubmitting}
               style={{
                 height: 40,
                 padding: "0 1.5rem",
                 borderRadius: "var(--radius-md)",
                 border: "none",
-                background: saving
+                background: isSubmitting
                   ? "var(--color-brand-400)"
                   : "var(--color-brand-600)",
                 fontSize: 13,
                 fontWeight: 700,
                 color: "#FFF",
-                cursor: saving ? "not-allowed" : "pointer",
+                cursor: isSubmitting ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
                 fontFamily: "var(--font-sans)",
               }}
             >
-              {saving && <Spinner size="sm" className="text-white" />}
-              {saving ? "جارٍ الحفظ…" : isNew ? "إضافة العميل" : "حفظ التغييرات"}
+              {isSubmitting && <Spinner size="sm" className="text-white" />}
+              {isSubmitting ? "جارٍ الحفظ…" : isNew ? "إضافة العميل" : "حفظ التغييرات"}
             </button>
           </div>
         </form>
