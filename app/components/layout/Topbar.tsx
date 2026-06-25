@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { clearAuth, getStoredUser } from "@/src/lib/auth";
+import { useSidebarDrawer, BrandIconButton } from "./Sidebar";
 
 export function Topbar() {
   const router = useRouter();
+  const { setOpen } = useSidebarDrawer();
 
   async function handleLogout() {
     await clearAuth();
@@ -24,33 +26,27 @@ export function Topbar() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        /*
-          `justify-content: space-between` and `display: flex` are
-          direction-agnostic — they already flip with `dir` for free.
-          The title block (first child) lands at the inline-start edge
-          (right, in RTL) and the actions cluster (second child) lands
-          at inline-end (left). That matches the brief's "primary
-          actions easily accessible" requirement: in Arabic dashboards
-          the page title reads first at the right, and the role badge
-          + logout sit together at the natural reading end — unchanged
-          from before, just now correctly positioned by `dir` instead
-          of by accident.
-        */
       }}
     >
+      {/* عنوان الصفحة */}
       <div>
         <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text-primary)", margin: 0, textAlign: "start" }}>
           لوحة التحكم
         </p>
         <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0, textAlign: "start" }}>
-          {/* English product label intentionally stays LTR-embedded so
-              "Operations dashboard" doesn't get its word order or
-              punctuation reversed by the surrounding RTL run. */}
           <span className="ltr-embed">Operations dashboard</span>
         </p>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      {/* أكشنز */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+
+        {/* زرار المنيو — sm فقط، globals.css بتتحكم في الـ display */}
+        <div id="topbar-menu-btn">
+          <BrandIconButton onClick={() => setOpen(true)} />
+        </div>
+
+        {/* الدور */}
         <div
           suppressHydrationWarning
           style={{
@@ -65,14 +61,13 @@ export function Topbar() {
           {user?.role ?? "—"}
         </div>
 
+        {/* خروج */}
         <button
           type="button"
           onClick={handleLogout}
           style={{
-            fontSize: 12,
-            fontWeight: 500,
-            color: "#DC2626",
-            background: "#FEF2F2",
+            fontSize: 12, fontWeight: 500,
+            color: "#DC2626", background: "#FEF2F2",
             border: "1px solid #FECACA",
             borderRadius: "var(--radius-full)",
             padding: "5px 14px",

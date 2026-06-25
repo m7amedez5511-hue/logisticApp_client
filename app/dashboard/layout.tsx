@@ -1,36 +1,64 @@
-import { Sidebar } from "../components/layout/Sidebar";
-import { Topbar }  from "../components/layout/Topbar";
+"use client";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
+import { Sidebar, SidebarProvider } from "../components/layout/Sidebar";
+import { Topbar } from "../components/layout/Topbar";
+
+function DashShell({ children }: { children: React.ReactNode }) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+
+    function applyPadding() {
+      if (!el) return;
+      const w = window.innerWidth;
+      if (w >= 768 && w < 1024) {
+        
+        el.style.paddingInlineEnd = "72px";
+      } else {
+        el.style.paddingInlineEnd = "0px";
+      }
+    }
+
+    applyPadding();
+    window.addEventListener("resize", applyPadding);
+    return () => window.removeEventListener("resize", applyPadding);
+  }, [pathname]);
+
   return (
     <div
-      className="flex min-h-screen"
-      style={{ background: "var(--color-surface-muted)" }}
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: "var(--color-surface-muted)",
+      }}
     >
-      {/*
-        Sidebar is still the first flex child. With dir="rtl" on <html>
-        (set in app/layout.tsx) this is enough to place the full
-        sidebar on the right with no positional CSS — see Sidebar.tsx.
-      */}
       <Sidebar />
-
-      {/*
-        The compact icon rail (md and below) is `position: fixed`, so it
-        doesn't take up flex space. This wrapper reserves room for it
-        with `paddingInlineEnd`, which means "right padding in RTL,
-        left padding in LTR" — it never needs to be touched again if
-        direction changes.
-      */}
       <div
-        className="flex min-w-0 flex-1 flex-col md:[padding-inline-end:var(--sidebar-width-compact)] lg:[padding-inline-end:0]"
+        ref={contentRef}
+        id="dash-content"
+        style={{
+          flex: 1,
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
+        }}
       >
         <Topbar />
-        <main className="flex-1 p-6">{children}</main>
+        <main style={{ flex: 1, padding: "1.7rem" }}>{children}</main>
       </div>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SidebarProvider>
+      <DashShell>{children}</DashShell>
+    </SidebarProvider>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useReducer } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 import { orderService } from "@/src/services/order.service";
 import type {
   Order,
@@ -8,174 +8,194 @@ import type {
   UpdateOrderPayload,
   UpdateOrderStatusPayload,
 } from "@/src/types/order";
+import type { ToastNotification } from "@/src/Components/UI";
 
-// ── State ─────────────────────────────────────────────────
-interface State {
+export type OrderNotification = ToastNotification;
+
+// ── Table state / reducer ──────────────────────────────────────────────────
+// Mirrors useDriver.ts's TableState/TableAction shape so the two resource
+// hooks stay readable side by side.
+interface TableState {
   orders: Order[];
-  total: number;
-  page: number;
-  totalPages: number;
   loading: boolean;
-  submitting: boolean;
+  total: number;
+  pages: number;
   error: string | null;
 }
 
-type Action =
-  | { type: "FETCH_START" }
-  | { type: "FETCH_SUCCESS"; payload: { orders: Order[]; total: number; totalPages: number; page: number } }
-  | { type: "FETCH_ERROR"; error: string }
-  | { type: "SUBMIT_START" }
-  | { type: "SUBMIT_SUCCESS"; order: Order; isNew: boolean }
-  | { type: "SUBMIT_ERROR"; error: string }
-  | { type: "DELETE_SUCCESS"; id: string }
-  | { type: "CLEAR_ERROR" };
+type TableAction =
+  | { type: "LOAD_START" }
+  | { type: "LOAD_OK"; orders: Order[]; total: number; pages: number }
+  | { type: "LOAD_ERR"; error: string }
+  | { type: "DELETE"; id: string }
+  | { type: "UPDATE"; order: Order }
+  | { type: "CLEAR_ERR" };
 
-const initialState: State = {
-  orders: [],
-  total: 0,
-  page: 1,
-  totalPages: 1,
-  loading: false,
-  submitting: false,
-  error: null,
-};
-
-function reducer(state: State, action: Action): State {
-  switch (action.type) {
-    case "FETCH_START":
-      return { ...state, loading: true, error: null };
-    case "FETCH_SUCCESS":
-      return {
-        ...state,
-        loading: false,
-        orders: action.payload.orders,
-        total: action.payload.total,
-        totalPages: action.payload.totalPages,
-        page: action.payload.page,
-      };
-    case "FETCH_ERROR":
-      return { ...state, loading: false, error: action.error };
-    case "SUBMIT_START":
-      return { ...state, submitting: true, error: null };
-    case "SUBMIT_SUCCESS":
-      return {
-        ...state,
-        submitting: false,
-        orders: action.isNew
-          ? [action.order, ...state.orders]
-          : state.orders.map((o) => (o.id === action.order.id ? action.order : o)),
-      };
-    case "SUBMIT_ERROR":
-      return { ...state, submitting: false, error: action.error };
-    case "DELETE_SUCCESS":
-      return { ...state, orders: state.orders.filter((o) => o.id !== action.id) };
-    case "CLEAR_ERROR":
-      return { ...state, error: null };
+function reducer(s: TableState, a: TableAction): TableState {
+  switch (a.type) {
+    case "LOAD_START":
+      return { ...s, loading: true, error: null };
+    case "LOAD_OK":
+      return { ...s, loading: false, orders: a.orders, total: a.total, pages: a.pages };
+    case "LOAD_ERR":
+      return { ...s, loading: false, error: a.error };
+    case "DELETE":
+      return { ...s, orders: s.orders.filter((o) => o.id !== a.id) };
+    // Instantly reflect the updated order in the list without a full reload
+    case "UPDATE":
+      return { ...s, orders: s.orders.map((o) => (o.id === a.order.id ? a.order : o)) };
+    case "CLEAR_ERR":
+      return { ...s, error: null };
     default:
-      return state;
+      return s;
   }
 }
 
-// ── Hook ──────────────────────────────────────────────────
-export function useOrders(autoFetch = true) {
+const initialState: TableState = {
+  orders: [],
+  loading: true,
+  total: 0,
+  pages: 1,
+  error: null,
+};
+
+// ── Main hook ──────────────────────────────────────────────────────────────
+export function useOrders() {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [notification, setNotification] = useState<ToastNotification | null>(null);
 
-  const fetchOrders = useCallback(
-    async (page = 1, limit = 20) => {
-      dispatch({ type: "FETCH_START" });
-      try {
-        const res = await orderService.getAll({ page, limit });
-        const body = (res as unknown as { data: { data: Order[]; meta: { total: number; totalPages: number; page: number } } }).data;
-        dispatch({
-          type: "FETCH_SUCCESS",
-          payload: {
-            orders: body.data,
-            total: body.meta.total,
-            totalPages: body.meta.totalPages,
-            page: body.meta.page,
-          },
-        });
-      } catch (err: unknown) {
-        dispatch({
-          type: "FETCH_ERROR",
-          error: err instanceof Error ? err.message : "Failed to load orders",
-        });
-      }
-    },
-    [],
-  );
-
-  const createOrder = useCallback(async (payload: CreateOrderPayload) => {
-    dispatch({ type: "SUBMIT_START" });
-    try {
-      const res = await orderService.create(payload);
-      const order = (res as unknown as { data: Order }).data;
-      dispatch({ type: "SUBMIT_SUCCESS", order, isNew: true });
-      return order;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to create order";
-      dispatch({ type: "SUBMIT_ERROR", error: msg });
-      throw new Error(msg);
-    }
+  // Show a toast for 4 seconds then auto-dismiss — same timing as useDriver.ts
+  const notify = useCallback((n: ToastNotification) => {
+    setNotification(n);
+    setTimeout(() => setNotification(null), 4000);
   }, []);
 
-  const updateOrder = useCallback(
-    async (id: string, payload: UpdateOrderPayload) => {
-      dispatch({ type: "SUBMIT_START" });
-      try {
-        const res = await orderService.update(id, payload);
-        const order = (res as unknown as { data: Order }).data;
-        dispatch({ type: "SUBMIT_SUCCESS", order, isNew: false });
-        return order;
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Failed to update order";
-        dispatch({ type: "SUBMIT_ERROR", error: msg });
-        throw new Error(msg);
-      }
-    },
-    [],
-  );
-
-  const updateStatus = useCallback(
-    async (id: string, payload: UpdateOrderStatusPayload) => {
-      dispatch({ type: "SUBMIT_START" });
-      try {
-        const res = await orderService.updateStatus(id, payload);
-        const order = (res as unknown as { data: Order }).data;
-        dispatch({ type: "SUBMIT_SUCCESS", order, isNew: false });
-        return order;
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Failed to update status";
-        dispatch({ type: "SUBMIT_ERROR", error: msg });
-        throw new Error(msg);
-      }
-    },
-    [],
-  );
-
-  const deleteOrder = useCallback(async (id: string) => {
+  // ── Fetch orders ───────────────────────────────────────────────────────
+  const loadOrders = useCallback(async (p: number, q: string, status: string) => {
+    dispatch({ type: "LOAD_START" });
     try {
-      await orderService.delete(id);
-      dispatch({ type: "DELETE_SUCCESS", id });
-    } catch (err: unknown) {
-      dispatch({
-        type: "FETCH_ERROR",
-        error: err instanceof Error ? err.message : "Failed to delete order",
+      const res = await orderService.getAll({
+        page: p,
+        limit: 12,
+        ...(q ? { search: q } : {}),
+        ...(status ? { currentStatus: status } : {}),
       });
+      const payload = (res as unknown as { data: { data: Order[]; meta: { total: number; totalPages: number } } }).data ?? res;
+
+      dispatch({
+        type: "LOAD_OK",
+        orders: payload.data ?? [],
+        total: payload.meta?.total ?? 0,
+        pages: payload.meta?.totalPages ?? 1,
+      });
+    } catch {
+      dispatch({ type: "LOAD_ERR", error: "تعذّر تحميل بيانات الطلبات. يرجى المحاولة مجدداً." });
     }
   }, []);
 
   useEffect(() => {
-    if (autoFetch) fetchOrders();
-  }, [autoFetch, fetchOrders]);
+    loadOrders(page, search, statusFilter);
+  }, [page, search, statusFilter, loadOrders]);
+
+  // ── Create ──────────────────────────────────────────────────────────────
+  const createOrder = useCallback(
+    async (payload: CreateOrderPayload): Promise<boolean> => {
+      try {
+        await orderService.create(payload);
+        notify({ type: "success", message: "تم إنشاء الطلب بنجاح." });
+        await loadOrders(page, search, statusFilter);
+        return true;
+      } catch (err) {
+        // نعرض رسالة الخطأ كـ toast برضو، مش بس نرميها لفوق
+        const message = err instanceof Error ? err.message : "تعذّر إنشاء الطلب. يرجى المحاولة لاحقاً.";
+        notify({ type: "error", message });
+        throw err; // يفضل يترمي عشان OrderFormModal يعرضه جوه المودال كمان لو محتاج
+      }
+    },
+    [notify, loadOrders, page, search, statusFilter],
+  );
+
+  // ── Update ──────────────────────────────────────────────────────────────
+  const updateOrder = useCallback(
+    async (id: string, payload: UpdateOrderPayload): Promise<boolean> => {
+      try {
+        const res = await orderService.update(id, payload);
+        const updated = (res as unknown as { data: Order }).data ?? (res as unknown as Order);
+        dispatch({ type: "UPDATE", order: updated });
+        notify({ type: "success", message: "تم تحديث الطلب بنجاح." });
+        return true;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "تعذّر تحديث الطلب. يرجى المحاولة لاحقاً.";
+        notify({ type: "error", message });
+        throw err;
+      }
+    },
+    [notify],
+  );
+
+  // ── Update status (separate endpoint — orders/:id/status) ─────────────
+  const updateStatus = useCallback(
+    async (id: string, payload: UpdateOrderStatusPayload): Promise<boolean> => {
+      try {
+        const res = await orderService.updateStatus(id, payload);
+        const updated = (res as unknown as { data: Order }).data ?? (res as unknown as Order);
+        dispatch({ type: "UPDATE", order: updated });
+        notify({ type: "success", message: "تم تحديث حالة الطلب بنجاح." });
+        return true;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "تعذّر تحديث حالة الطلب.";
+        notify({ type: "error", message });
+        throw err;
+      }
+    },
+    [notify],
+  );
+
+  // ── Delete ──────────────────────────────────────────────────────────────
+  const deleteOrder = useCallback(
+    async (id: string): Promise<boolean> => {
+      try {
+        await orderService.delete(id);
+        dispatch({ type: "DELETE", id });
+        notify({ type: "success", message: "تم حذف الطلب بنجاح." });
+        return true;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "تعذّر حذف الطلب.";
+        notify({ type: "error", message });
+        return false;
+      }
+    },
+    [notify],
+  );
+
+  // ── Search / filter helpers ────────────────────────────────────────────
+  const handleSearch = useCallback((q: string) => {
+    setSearch(q);
+    setPage(1);
+  }, []);
+
+  const handleStatusFilter = useCallback((status: string) => {
+    setStatusFilter(status);
+    setPage(1);
+  }, []);
 
   return {
     ...state,
-    fetchOrders,
+    page,
+    search,
+    statusFilter,
+    setPage,
+    handleSearch,
+    handleStatusFilter,
+    clearError: () => dispatch({ type: "CLEAR_ERR" }),
     createOrder,
     updateOrder,
     updateStatus,
     deleteOrder,
-    clearError: () => dispatch({ type: "CLEAR_ERROR" }),
+    notification,
+    reload: () => loadOrders(page, search, statusFilter),
   };
 }

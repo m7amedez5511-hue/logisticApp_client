@@ -1,7 +1,6 @@
 @import "../src/styles/tokens.css";
 @import "tailwindcss";
 
-
 /* ── Base resets ────────────────────────────────────── */
 *,
 *::before,
@@ -12,11 +11,6 @@
 html {
   scroll-behavior: smooth;
   font-size: 14px;
-  /* `dir` is now set on <html> in app/layout.tsx (lang="ar" dir="rtl").
-     Tailwind v4 ships native `rtl:` / `ltr:` variants that key off this
-     attribute, so utility classes like `rtl:flex-row-reverse` work
-     without a plugin. Route groups no longer need to set `dir`
-     individually — see report Section 1. */
 }
 
 body {
@@ -29,8 +23,63 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ════════════════════════════════════════════════════
+   SIDEBAR VISIBILITY
+   ⚠️  مفيش display في أي inline style على الـ sidebar elements
+   ⚠️  !important عشان يغلب أي حاجة تانية
+   ════════════════════════════════════════════════════ */
+
+/* default: كل العناصر مخفية */
+#sb-full,
+#sb-compact,
+#sb-drawer,
+#topbar-menu-btn {
+  display: none !important;
+}
+
+/* lg+ (≥1024px): full sidebar */
+@media (min-width: 1024px) {
+  #sb-full    { display: flex !important; }
+  #sb-compact { display: none !important; }
+  #sb-drawer  { display: none !important; }
+  #topbar-menu-btn { display: none !important; }
+}
+
+/* md (768px–1023px): compact rail */
+@media (min-width: 768px) and (max-width: 1023px) {
+  #sb-full    { display: none !important; }
+  #sb-compact { display: flex !important; }
+  #sb-drawer  { display: none !important; }
+  #topbar-menu-btn { display: none !important; }
+}
+
+/* sm (<768px): drawer + topbar button */
+@media (max-width: 767px) {
+  #sb-full    { display: none !important; }
+  #sb-compact { display: none !important; }
+  #sb-drawer  { display: flex !important; }
+  #topbar-menu-btn { display: flex !important; }
+}
+
+/* ════════════════════════════════════════════════════
+   DASH CONTENT PADDING
+   class selector بيغلب على inline style في CSS
+   بيحجز مكان الـ compact rail الـ fixed على md
+   ════════════════════════════════════════════════════ */
+
+/* sm + lg: مفيش padding إضافي */
+.dash-content-wrapper {
+  padding-inline-end: 0;
+}
+
+/* md فقط: حجز 72px لمكان الـ compact rail */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .dash-content-wrapper {
+    padding-inline-end: var(--sidebar-width-compact);
+  }
+}
+
 /* ── Tailwind theme bridge ──────────────────────────── */
-/* Expose CSS variables as Tailwind color utilities.     */
 @theme inline {
   --color-primary-*: initial;
   --color-sand-*:    initial;
@@ -88,18 +137,20 @@ body {
   --font-mono:        var(--font-mono);
 }
 
-/* ── Focus ring utility ─────────────────────────────── */
-/* Unchanged: box-shadow rings are direction-neutral. */
+/* ── Focus ring ─────────────────────────────────────── */
 .focus-ring {
   outline: none;
   box-shadow: 0 0 0 2px var(--color-brand-600);
 }
 
-/* ── RTL icon mirroring ─────────────────────────────────
-   Directional glyphs (chevrons, arrows, "back") need to visually
-   point the opposite way in RTL even though the underlying icon
-   font glyph doesn't change. Apply .icon-flip-rtl to any <i>/<svg>
-   whose meaning is "forward"/"back" rather than purely decorative. */
+/* ── RTL icon mirroring ─────────────────────────────── */
 [dir="rtl"] .icon-flip-rtl {
   transform: scaleX(-1);
+}
+
+/* ── LTR embed for codes/paths ──────────────────────── */
+.ltr-embed {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
 }

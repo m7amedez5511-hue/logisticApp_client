@@ -1,5 +1,5 @@
 // services/order.service.ts
-import { get, post, put, del } from "./api";
+import { get, post, put, del, patch } from "./api";
 import type {
   Order,
   CreateOrderPayload,
@@ -27,11 +27,11 @@ export const orderService = {
 
   /** Update order metadata */
   update: (id: string, payload: UpdateOrderPayload) =>
-    put<Order>(`orders/${id}`, payload),
+    patch<Order>(`orders/${id}`, payload),
 
   /** Update order status with optional reason */
   updateStatus: (id: string, payload: UpdateOrderStatusPayload) =>
-    put<Order>(`orders/${id}/status`, payload),
+    patch<Order>(`orders/${id}/status`, payload),
 
   /** Transfer order to a different trip */
   transfer: (id: string, payload: TransferOrderPayload) =>

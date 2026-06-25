@@ -12,6 +12,7 @@ export type PaymentStatus = "Pending" | "Paid" | "Failed" | "Refunded";
 export interface OrderAddress {
   details?: {
     city?: string;
+    state?: string;
     district?: string;
     street?: string;
     buildingNo?: string;
@@ -19,7 +20,7 @@ export interface OrderAddress {
     zipCode?: string;
   };
   location?: {
-    coordinates?: [number, number];
+    coordinates?: [number, number]; // [longitude, latitude]
   };
 }
 
@@ -40,8 +41,12 @@ export interface Order {
   type?: string | null;
   quantity: number;
   weight?: number | null;
+  // Hybrid address IDs (stored in PostgreSQL, resolve to MongoDB docs)
   deliveryAddressId?: string | null;
   pickupAddressId?: string | null;
+  // Populated address objects returned by the API (from MongoDB)
+  deliveryAddress?: OrderAddress | null;
+  pickupAddress?: OrderAddress | null;
   createdAt: string;
   updatedAt: string;
   statusHistory?: Array<{
@@ -69,8 +74,11 @@ export interface CreateOrderPayload {
   type?: string;
   quantity?: number;
   weight?: number;
+  // Delivery address: send a NEW address object (backend writes to MongoDB)
   deliveryAddress?: OrderAddress;
+  // Pickup: send an existing MongoDB ID OR a new address object
   pickupAddressId?: string;
+  pickupAddress?: OrderAddress;
 }
 
 export interface UpdateOrderPayload extends Partial<CreateOrderPayload> {
