@@ -42,7 +42,6 @@ const S = {
   } as React.CSSProperties,
 };
 
-// error border helper
 const withError = (hasError: boolean): React.CSSProperties => ({
   ...S.input,
   ...(hasError ? { borderColor: "var(--color-danger)", background: "#FEF2F2" } : {}),
@@ -50,7 +49,7 @@ const withError = (hasError: boolean): React.CSSProperties => ({
 
 // ── Props ──────────────────────────────────────────────────────────────────
 interface ClientFormModalProps {
-  editClient: Client | null; // null = create mode
+  editClient: Client | null;
   onClose:   () => void;
   onSubmit:  (
     data: CreateClientFormValues | UpdateClientFormValues,
@@ -62,7 +61,7 @@ interface ClientFormModalProps {
 export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormModalProps) {
   const isNew = editClient === null;
 
-  // pick schema based on mode
+  // FIX 1: was `Schema` (capital S) — now correctly `schema`
   const schema = isNew ? createClientSchema : updateClientSchema;
 
   const {
@@ -71,7 +70,7 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
     setError,
     formState: { errors, isSubmitting },
   } = useForm<CreateClientFormValues | UpdateClientFormValues>({
-    resolver: yupResolver(Schema) as never,
+    resolver: yupResolver(schema) as never, // FIX 1 applied here
     defaultValues: {
       name:       editClient?.name       ?? "",
       email:      editClient?.email      ?? "",
@@ -80,7 +79,6 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
     },
   });
 
-  // close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
@@ -92,7 +90,6 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
     if (ok) {
       onClose();
     } else {
-      // surface a generic api error via the name field (sentinel key)
       setError("name", { message: "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً." });
     }
   };
@@ -196,12 +193,10 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
             gap: "1rem",
           }}
         >
-          {/* Generic API error shown above the form */}
           {errors.name?.type === "manual" && (
             <Alert type="error" message={errors.name.message ?? ""} onClose={() => {}} />
           )}
 
-          {/* Name — required in create, optional in update */}
           <label style={S.label}>
             اسم العميل {isNew && "*"}
             <input
@@ -216,7 +211,6 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
             )}
           </label>
 
-          {/* Email + Phone */}
           <div
             style={{
               display: "grid",
@@ -224,7 +218,6 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
               gap: "0.75rem",
             }}
           >
-            {/* Email — optional in both schemas */}
             <label style={S.label}>
               البريد الإلكتروني
               <input
@@ -240,7 +233,6 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
               )}
             </label>
 
-            {/* Phone — required in create, optional in update */}
             <label style={S.label}>
               رقم الهاتف {isNew && "*"}
               <input
@@ -257,7 +249,6 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
             </label>
           </div>
 
-          {/* Client Type — optional in both schemas */}
           <label style={S.label}>
             نوع العميل
             <select
@@ -277,7 +268,6 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
             )}
           </label>
 
-          {/* isActive — update mode only */}
           {!isNew && (
             <label
               style={{
@@ -300,7 +290,6 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
             </label>
           )}
 
-          {/* Actions */}
           <div
             style={{
               display: "flex",

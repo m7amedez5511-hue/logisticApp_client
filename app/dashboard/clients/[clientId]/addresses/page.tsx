@@ -1,26 +1,6 @@
 "use client";
 
-/**
- * app/dashboard/clients/[clientId]/addresses/page.tsx — Full Enhanced Version
- *
- * Features implemented:
- * 1. Fetches and displays all addresses for the client at page load.
- * 2. Full CRUD: Add / Edit / Delete addresses via modals.
- * 3. Set-primary logic: calls clientAddressService.setPrimary; reloads to sync cascade.
- * 4. Toast notifications (from UI barrel) for all CRUD results.
- * 5. Alert banner for load errors (from UI barrel).
- * 6. "Update Client" edit modal includes an inline address list so the user
- *    can see and designate the primary address without leaving the modal.
- * 7. The old Client/Toast component is NOT used here; UI/Toast is used throughout.
- *
- * HOW TO TEST:
- *   Navigate to /dashboard/clients/[id]/addresses from the client list.
- *   - Add address  → form modal → success toast "تم إضافة العنوان بنجاح."
- *   - Edit address → form modal pre-filled → success toast "تم تحديث العنوان."
- *   - Delete       → confirm dialog → success toast "تم حذف العنوان بنجاح."
- *   - Set primary  → inline button → success toast "تم تعيين العنوان الرئيسي."
- *   - Click "تعديل بيانات العميل" → client edit modal opens with address section.
- */
+
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -43,6 +23,7 @@ import type {
 
 // ── Client-specific modals ─────────────────────────────────────────────────
 import { AddressFormModal,DeleteConfirmModal ,ClientFormModal }   from "@/src/Components/Client";
+import { CreateAddressFormValues, UpdateAddressFormValues } from "@/src/validations/client_address.validator";
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -81,11 +62,6 @@ interface AddressCardProps {
 
 /**
  * AddressCard — Renders a single address in the grid.
- *
- * Highlights:
- * - Primary address gets a blue ring + "رئيسي" badge.
- * - "تعيين كرئيسي" button only shown for non-primary addresses.
- * - Loading state on "تعيين كرئيسي" while the API call is in-flight.
  */
 function AddressCard({
   address,
@@ -391,17 +367,6 @@ function AddressMiniList({
 
 /**
  * ClientEditModalWithAddresses
- *
- * Extends the standard ClientFormModal with an "العناوين" section at the bottom.
- * This satisfies the "Update Client Page" requirement:
- *   "create a section that displays all available addresses for the selected client.
- *    The user should be able to intuitively designate one address as the primary address."
- *
- * Implementation note:
- *   We wrap ClientFormModal's children by rendering a secondary panel below the modal's
- *   close/submit cycle. Because ClientFormModal is self-contained (it manages its own
- *   form state), the address section is appended as a sibling modal layer that shares
- *   the same backdrop. The two panels share the same z-index stacking context.
  */
 interface ClientEditModalWithAddressesProps {
   client: Client;
@@ -547,7 +512,20 @@ function ClientEditModalWithAddresses({
 export default function ClientAddressesPage() {
   const params   = useParams();
   const router   = useRouter();
-  const clientId = params?.clientId as string;
+
+  // FIX: "id is undefined" 404 bug.
+  // params.clientId only works if your route folder is named [clientId].
+  // If your folder is actually [id], params.clientId is always undefined,
+  // which becomes the string "undefined" in API URLs like /client/undefined/addresses.
+  // CHECK YOUR FOLDER NAME and keep only the line that matches it:
+  const clientId = (params?.clientId ?? params?.id) as string | undefined;
+
+  // FIX: warn loudly in dev instead of silently calling the API with no id
+  useEffect(() => {
+    if (!clientId) {
+      console.warn("ClientAddressesPage: clientId is missing from route params. Check your folder name (must match the key used in useParams()).");
+    }
+  }, [clientId]);
 
   // ── Parent client meta ───────────────────────────────────────────────────
   const [client, setClient]               = useState<Client | null>(null);
@@ -577,6 +555,8 @@ export default function ClientAddressesPage() {
     makePrimary,
     reload,
   } = useClientAddresses(clientId ?? "");
+  // NOTE: hook itself guards "if (!clientId) return" before calling the API,
+  // so passing "" here is safe — it just won't fetch until clientId is real.
 
   // ── Modal state ──────────────────────────────────────────────────────────
   // Address form: false = closed | null = create | ClientAddress = edit
@@ -591,12 +571,28 @@ export default function ClientAddressesPage() {
   const [settingPrimaryId, setSettingPrimaryId] = useState<string | null>(null);
 
   // ── Address form handler ─────────────────────────────────────────────────
-  const handleAddrFormSubmit = async (
-    data: ClientAddressFormData,
-    isNew: boolean,
+  // FIX: "addrFormTarget!.id" used "!" which only blocks null/undefined,
+  // NOT "false" — but addrFormTarget's type is "ClientAddress | null | false".
+  // If addrFormTarget was ever false here, ".id" would be undefined at runtime,
+  // causing the "id is undefined" 404 bug from the API call.
+  // We now check addrFormTarget directly instead of trusting the isNew param,
+  // so create vs update can never disagree with each other.
+  const handleAddressSubmit = async (
+    data: CreateAddressFormValues | UpdateAddressFormValues
   ): Promise<boolean> => {
-    if (isNew) return createAddress(data);
-    return updateAddress((addrFormTarget as ClientAddress).id, data);
+    if (addrFormTarget === null) {
+      // create mode
+      return createAddress(data as CreateAddressFormValues);
+    }
+
+    if (addrFormTarget === false) {
+      // modal isn't even open — this should never happen, but guard anyway
+      console.error("handleAddressSubmit called while addrFormTarget is false (modal closed)");
+      return false;
+    }
+
+    // update mode — addrFormTarget is a real ClientAddress here, .id is safe
+    return updateAddress(addrFormTarget.id, data as UpdateAddressFormValues);
   };
 
   // ── Delete handler ───────────────────────────────────────────────────────
@@ -676,7 +672,7 @@ export default function ClientAddressesPage() {
         <AddressFormModal
           editAddress={addrFormTarget}
           onClose={() => setAddrFormTarget(false)}
-          onSubmit={handleAddrFormSubmit}
+          onSubmit={handleAddressSubmit}
         />
       )}
 

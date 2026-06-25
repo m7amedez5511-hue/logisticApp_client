@@ -1,7 +1,4 @@
-// app/api/auth/set-cookie/route.ts
-// Receives the JWT from the client immediately after login and stores it
-// in an HttpOnly, Secure, SameSite=Strict cookie.
-// The client never stores the raw token — it passes through this endpoint once.
+
 
 import { NextRequest, NextResponse } from "next/server";
 

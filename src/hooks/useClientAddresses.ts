@@ -5,11 +5,10 @@ import { useCallback, useEffect, useReducer, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { clientAddressService } from "@/src/services/clientAddress.service";
 import type {
-  ClientAddress,
-  ClientAddressFormData,
-  AddressTableAction,
-  AddressTableState,
-} from "@/src/types/client";
+  CreateAddressFormValues,
+  UpdateAddressFormValues,
+} from "@/src/validations/client_address.validator";
+import { AddressTableAction, AddressTableState } from "../types/client";
 
 // ── Notification ───────────────────────────────────────────────────────────
 export interface Notification {
@@ -90,7 +89,7 @@ export function useClientAddresses(clientId: string) {
 
   // ── CREATE ───────────────────────────────────────────────────────────────
   const createAddress = useCallback(
-    async (data: ClientAddressFormData): Promise<boolean> => {
+    async (data: CreateAddressFormValues): Promise<boolean> => {
       try {
         const token = getStoredToken();
         const res = await clientAddressService.create(clientId, data, token);
@@ -110,7 +109,7 @@ export function useClientAddresses(clientId: string) {
 
   // ── UPDATE ───────────────────────────────────────────────────────────────
   const updateAddress = useCallback(
-    async (id: string, data: ClientAddressFormData): Promise<boolean> => {
+    async (id: string, data: UpdateAddressFormValues): Promise<boolean> => {
       try {
         const token = getStoredToken();
         const res = await clientAddressService.update(clientId, id, data, token);
