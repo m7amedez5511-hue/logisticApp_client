@@ -1,15 +1,5 @@
 "use client";
 
-/**
- * ClientTable — Enhanced version
- *
- * Changes from original:
- * 1. Clicking a row now opens an inline ClientDetailPanel (slide-down) showing full client info.
- * 2. "Addresses" link inside the detail panel navigates to /dashboard/clients/[clientId]/addresses.
- * 3. The row-level onClick still calls onManageAddresses (kept for backwards-compatibility),
- *    but the primary UX is now the expandable detail panel.
- * 4. Active row is highlighted with a brand-tinted left border.
- */
 
 import { useState } from "react";
 import { Spinner } from "../UI";

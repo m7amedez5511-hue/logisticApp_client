@@ -10,7 +10,9 @@ import {
   type CreateAddressFormValues,
   type UpdateAddressFormValues,
 } from "@/src/validations/client_address.validator";
-import type { ClientAddress } from "@/src/types/client";
+// FIX: was "@/src/types/client" — ClientAddress now lives in the dedicated
+// address types file.
+import type { ClientAddress } from "@/src/types/client_adresses";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 const S = {
@@ -259,7 +261,6 @@ export function AddressFormModal({ editAddress, onClose, onSubmit }: AddressForm
                 alignItems: "end",
               }}
             >
-              {/* FIX 3: Replaced <select> with a free-text <input> */}
               <label style={S.label}>
                 نوع العنوان
                 <input

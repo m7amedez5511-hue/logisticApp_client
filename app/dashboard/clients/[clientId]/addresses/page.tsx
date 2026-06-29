@@ -14,12 +14,14 @@ import { clientService }      from "@/src/services/client.service";
 import { getStoredToken }     from "@/src/lib/auth";
 
 // ── Types ──────────────────────────────────────────────────────────────────
+// FIX: address-specific types moved out of "@/src/types/client" into the
+// dedicated "@/src/types/client_addresses" file. Client / ClientFormData
+// stay in client.ts since they aren't address-specific.
+import type { Client, ClientFormData } from "@/src/types/client";
 import type {
-  Client,
   ClientAddress,
   ClientAddressFormData,
-  ClientFormData,
-} from "@/src/types/client";
+} from "@/src/types/client_adresses";
 
 // ── Client-specific modals ─────────────────────────────────────────────────
 import { AddressFormModal,DeleteConfirmModal ,ClientFormModal }   from "@/src/Components/Client";

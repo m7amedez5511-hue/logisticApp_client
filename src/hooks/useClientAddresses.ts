@@ -8,12 +8,27 @@ import type {
   CreateAddressFormValues,
   UpdateAddressFormValues,
 } from "@/src/validations/client_address.validator";
-import { AddressTableAction, AddressTableState } from "../types/client";
+
+import type {
+  AddressTableAction,
+  AddressTableState,
+  ClientAddress,
+} from "../types/client_adresses";
 
 // ── Notification ───────────────────────────────────────────────────────────
 export interface Notification {
   type: "success" | "error";
   message: string;
+}
+function normalizeAddress(raw: any): ClientAddress {
+  return {
+    ...raw,
+    id: raw.id ?? raw._id,
+  };
+}
+
+function normalizeAddresses(rawList: any[]): ClientAddress[] {
+  return rawList.map(normalizeAddress);
 }
 
 // ── Reducer ────────────────────────────────────────────────────────────────
@@ -38,6 +53,14 @@ function reducer(s: AddressTableState, a: AddressTableAction): AddressTableState
       return {
         ...s,
         addresses: s.addresses.filter((a2) => a2.id !== a.id),
+      };
+    case "SET_PRIMARY_LOCAL":
+      return {
+        ...s,
+        addresses: s.addresses.map((a2) => ({
+          ...a2,
+          isPrimary: a2.id === a.id,
+        })),
       };
     case "CLEAR_ERR":
       return { ...s, error: null };
@@ -71,9 +94,10 @@ export function useClientAddresses(clientId: string) {
       const token = getStoredToken();
       const res = await clientAddressService.getAll(clientId, token);
       const payload = (res as any).data ?? res;
+      const rawList = Array.isArray(payload) ? payload : (payload.data ?? []);
       dispatch({
         type: "LOAD_OK",
-        addresses: Array.isArray(payload) ? payload : (payload.data ?? []),
+        addresses: normalizeAddresses(rawList),
       });
     } catch {
       dispatch({
@@ -93,7 +117,7 @@ export function useClientAddresses(clientId: string) {
       try {
         const token = getStoredToken();
         const res = await clientAddressService.create(clientId, data, token);
-        dispatch({ type: "ADD", address: res.data });
+        dispatch({ type: "ADD", address: normalizeAddress(res.data) });
         notify({ type: "success", message: "تم إضافة العنوان بنجاح." });
         return true;
       } catch (err) {
@@ -113,7 +137,7 @@ export function useClientAddresses(clientId: string) {
       try {
         const token = getStoredToken();
         const res = await clientAddressService.update(clientId, id, data, token);
-        dispatch({ type: "UPDATE", address: res.data });
+        dispatch({ type: "UPDATE", address: normalizeAddress(res.data) });
         notify({ type: "success", message: "تم تحديث العنوان." });
         return true;
       } catch (err) {
@@ -146,28 +170,16 @@ export function useClientAddresses(clientId: string) {
     },
     [clientId, notify],
   );
-
-  // ── SET PRIMARY ──────────────────────────────────────────────────────────
   const makePrimary = useCallback(
     async (id: string): Promise<boolean> => {
-      try {
-        const token = getStoredToken();
-        const res = await clientAddressService.setPrimary(clientId, id, token);
-        // Backend demotes all others — reload to sync
-        dispatch({ type: "UPDATE", address: res.data });
-        // Reload to reflect the backend's cascade demotions
-        await loadAddresses();
-        notify({ type: "success", message: "تم تعيين العنوان الرئيسي." });
-        return true;
-      } catch (err) {
-        notify({
-          type: "error",
-          message: err instanceof Error ? err.message : "تعذّر تعيين العنوان الرئيسي.",
-        });
-        return false;
-      }
+      dispatch({ type: "SET_PRIMARY_LOCAL", id });
+      notify({
+        type: "success",
+        message: "تم تعيين العنوان الرئيسي (محلياً فقط — لم تتم الحفظ في الخادم بعد).",
+      });
+      return true;
     },
-    [clientId, notify, loadAddresses],
+    [notify],
   );
 
   return {
