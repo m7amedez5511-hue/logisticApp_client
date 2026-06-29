@@ -3,19 +3,15 @@
 export interface ClientAddress {
   id: string;
   clientId: string;
-  label: string; // e.g. "Billing", "Shipping", "HQ"
+  label: string;
 
-  // needed because the form reads editAddress?.branchName
   branchName: string | null;
 
-  // needed because the form reads editAddress?.contactPerson?.name/phone
   contactPerson?: {
     name?: string;
     phone?: string;
   };
 
-  // nested under "details" to match details.city, details.street, etc.
-  // used in the form and validator
   details: {
     country: string;
     city: string;
@@ -29,13 +25,12 @@ export interface ClientAddress {
     apartment?: string;
   };
 
-  // needed because the form reads editAddress?.location?.coordinates
   location: {
-    coordinates: [number, number]; // [longitude, latitude]
+    coordinates: [number, number];
   };
 
   isPrimary: boolean;
-  isValidated?: boolean; // backend-only flag used by updateAddressSchema
+  isValidated?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,7 +43,7 @@ export type CreateClientAddressPayload = Omit<
 >;
 export type UpdateClientAddressPayload = Partial<CreateClientAddressPayload>;
 
-// ─── Legacy flat form shape (kept for any code still using it) ────────────
+// ─── Legacy flat form shape ────────────────────────────────────────────────
 
 export interface ClientAddressFormData {
   label: string;
@@ -69,7 +64,7 @@ export interface ClientAddressFormErrors {
   country?: string;
 }
 
-// ─── Table State / Reducer (mirrors client.ts ClientTableState pattern) ───
+// ─── Table State / Reducer ────────────────────────────────────────────────
 
 export type AddressTableState = {
   addresses: ClientAddress[];
@@ -77,6 +72,7 @@ export type AddressTableState = {
   error: string | null;
 };
 
+// SET_PRIMARY_LOCAL removed — primary is now a backend-only concept
 export type AddressTableAction =
   | { type: "LOAD_START" }
   | { type: "LOAD_OK"; addresses: ClientAddress[] }

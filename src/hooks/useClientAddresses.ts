@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { clientAddressService } from "@/src/services/clientAddress.service";
@@ -20,6 +19,7 @@ export interface Notification {
   type: "success" | "error";
   message: string;
 }
+
 function normalizeAddress(raw: any): ClientAddress {
   return {
     ...raw,
@@ -54,14 +54,6 @@ function reducer(s: AddressTableState, a: AddressTableAction): AddressTableState
         ...s,
         addresses: s.addresses.filter((a2) => a2.id !== a.id),
       };
-    case "SET_PRIMARY_LOCAL":
-      return {
-        ...s,
-        addresses: s.addresses.map((a2) => ({
-          ...a2,
-          isPrimary: a2.id === a.id,
-        })),
-      };
     case "CLEAR_ERR":
       return { ...s, error: null };
     default:
@@ -80,13 +72,12 @@ export function useClientAddresses(clientId: string) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [notification, setNotification] = useState<Notification | null>(null);
 
-  /** Show a toast for 4 seconds then auto-dismiss. */
   const notify = useCallback((n: Notification) => {
     setNotification(n);
     setTimeout(() => setNotification(null), 4000);
   }, []);
 
-  // ── Fetch addresses ──────────────────────────────────────────────────────
+  // ── Fetch ────────────────────────────────────────────────────────────────
   const loadAddresses = useCallback(async () => {
     if (!clientId) return;
     dispatch({ type: "LOAD_START" });
@@ -170,17 +161,6 @@ export function useClientAddresses(clientId: string) {
     },
     [clientId, notify],
   );
-  const makePrimary = useCallback(
-    async (id: string): Promise<boolean> => {
-      dispatch({ type: "SET_PRIMARY_LOCAL", id });
-      notify({
-        type: "success",
-        message: "تم تعيين العنوان الرئيسي (محلياً فقط — لم تتم الحفظ في الخادم بعد).",
-      });
-      return true;
-    },
-    [notify],
-  );
 
   return {
     ...state,
@@ -189,7 +169,6 @@ export function useClientAddresses(clientId: string) {
     createAddress,
     updateAddress,
     deleteAddress,
-    makePrimary,
     reload: loadAddresses,
   };
 }
