@@ -1,3 +1,20 @@
+// app/dashboard/clients/[clientId]/addresses/page.tsx
+//
+// ── Refactor notes ──────────────────────────────────────────────────────────
+// • Address cards are no longer clickable / navigable. Removed the `onView`
+//   prop, the card's onClick handler, and the pointer cursor + hover styles
+//   that implied the card itself was a link.
+// • Each AddressCard now renders full address details inline (street, city,
+//   state, district, building/unit/additional no., zip code, country, and
+//   contact person), instead of a 3-line summary that deferred to the
+//   AddressDetail page.
+// • Removed all routing to the address detail route.
+// • Deleted as part of this refactor (no longer referenced anywhere):
+//     - app/dashboard/clients/[clientId]/addresses/[addressId]/page.tsx
+//     - app/dashboard/clients/[clientId]/addresses/[addressesId]/page.tsx
+//     - src/Components/Client_Adress/AddressDetails.tsx
+// ─────────────────────────────────────────────────────────────────────────
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -42,15 +59,24 @@ interface AddressCardProps {
   address:  ClientAddress;
   onEdit:   () => void;
   onDelete: () => void;
-  onView:   () => void;
 }
 
-function AddressCard({ address, onEdit, onDelete, onView }: AddressCardProps) {
-  const { street, city, state, country } = address.details;
+function AddressCard({ address, onEdit, onDelete }: AddressCardProps) {
+  const { details, contactPerson } = address;
+  const {
+    street,
+    city,
+    state,
+    district,
+    buildingNo,
+    unitNo,
+    additionalNo,
+    zipCode,
+    country,
+  } = details;
 
   return (
     <div
-      onClick={onView}
       style={{
         position: "relative",
         display: "flex",
@@ -61,17 +87,6 @@ function AddressCard({ address, onEdit, onDelete, onView }: AddressCardProps) {
         padding: "1.25rem",
         background: "var(--color-surface)",
         boxShadow: "var(--shadow-card)",
-        transition: "box-shadow 200ms, border-color 200ms",
-        cursor: "pointer",
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow =
-          "0 4px 12px rgba(37,99,235,.1), var(--shadow-card)";
-        (e.currentTarget as HTMLDivElement).style.borderColor = "#93C5FD";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "var(--shadow-card)";
-        (e.currentTarget as HTMLDivElement).style.borderColor = "var(--color-border)";
       }}
     >
       {/* Label row */}
@@ -103,9 +118,26 @@ function AddressCard({ address, onEdit, onDelete, onView }: AddressCardProps) {
             {address.branchName}
           </span>
         )}
+        {address.isPrimary && (
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "#1D4ED8",
+              background: "#EFF6FF",
+              border: "1px solid #BFDBFE",
+              borderRadius: "var(--radius-full)",
+              padding: "0.1rem 0.45rem",
+              flexShrink: 0,
+              marginInlineStart: "auto",
+            }}
+          >
+            أساسي
+          </span>
+        )}
       </div>
 
-      {/* Address lines — from details object */}
+      {/* Address details — rendered fully in-card */}
       <address
         dir="rtl"
         style={{
@@ -113,18 +145,60 @@ function AddressCard({ address, onEdit, onDelete, onView }: AddressCardProps) {
           fontSize: 13,
           color: "var(--color-text-secondary)",
           lineHeight: 1.7,
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
         }}
       >
-        <p style={{ margin: 0 }}>{street}</p>
-        <p style={{ margin: 0 }}>
-          {city}{state ? `، ${state}` : ""}
+        <p style={{ margin: 0, fontWeight: 600, color: "var(--color-text-primary)" }}>
+          {street}
         </p>
+
+        {district && <p style={{ margin: 0 }}>حي {district}</p>}
+
+        <p style={{ margin: 0 }}>
+          {city}
+          {state ? `، ${state}` : ""}
+          {zipCode ? ` ${zipCode}` : ""}
+        </p>
+
+        {(buildingNo || unitNo || additionalNo) && (
+          <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-muted)" }} dir="ltr">
+            {buildingNo && `مبنى ${buildingNo}`}
+            {unitNo && ` · وحدة ${unitNo}`}
+            {additionalNo && ` · رقم إضافي ${additionalNo}`}
+          </p>
+        )}
+
         <p style={{ margin: 0 }}>{country}</p>
       </address>
 
-      {/* Actions — stop propagation so they don't trigger card navigation */}
+      {/* Contact person — only when present */}
+      {(contactPerson?.name || contactPerson?.phone) && (
+        <div
+          dir="rtl"
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.5rem",
+            fontSize: 12,
+            color: "var(--color-text-secondary)",
+            paddingTop: 8,
+            borderTop: "1px solid var(--color-border)",
+          }}
+        >
+          <span style={{ fontWeight: 600 }}>👤</span>
+          {contactPerson?.name && <span>{contactPerson.name}</span>}
+          {contactPerson?.phone && (
+            <span dir="ltr" style={{ color: "var(--color-text-muted)" }}>
+              {contactPerson.phone}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Actions */}
       <div
-        onClick={(e) => e.stopPropagation()}
         style={{
           display: "flex",
           flexWrap: "wrap",
@@ -589,7 +663,6 @@ export default function ClientAddressesPage() {
                 address={addr}
                 onEdit={() => setAddrFormTarget(addr)}
                 onDelete={() => setDeleteTarget(addr)}
-                onView={() => router.push(`/dashboard/clients/${clientId}/addresses/${addr.id}`)}
               />
             ))}
           </div>

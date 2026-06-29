@@ -2,16 +2,16 @@
 
 import { useEffect } from "react";
 import { Spinner } from "../UI";
-import type { User } from "@/src/types/user";
+import type { Branch } from "@/src/types/branch";
 
 interface DeleteConfirmModalProps {
-  user:      User;
+  branch:    Branch;
   deleting:  boolean;
   onCancel:  () => void;
   onConfirm: () => void;
 }
 
-export function DeleteConfirmModal({ user, deleting, onCancel, onConfirm }: DeleteConfirmModalProps) {
+export function DeleteConfirmModal({ branch, deleting, onCancel, onConfirm }: DeleteConfirmModalProps) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
     window.addEventListener("keydown", handler);
@@ -20,7 +20,7 @@ export function DeleteConfirmModal({ user, deleting, onCancel, onConfirm }: Dele
 
   return (
     <div
-      role="alertdialog" aria-modal="true" aria-labelledby="del-title"
+      role="alertdialog" aria-modal="true" aria-labelledby="branch-del-title"
       onClick={e => { if (e.target === e.currentTarget) onCancel(); }}
       style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
     >
@@ -36,9 +36,9 @@ export function DeleteConfirmModal({ user, deleting, onCancel, onConfirm }: Dele
           </svg>
         </div>
         <div>
-          <h2 id="del-title" style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text-primary)", margin: 0 }}>حذف المستخدم</h2>
+          <h2 id="branch-del-title" style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text-primary)", margin: 0 }}>حذف الفرع</h2>
           <p style={{ marginTop: 8, fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.6 }}>
-            هل أنت متأكد من حذف <strong style={{ color: "var(--color-text-primary)" }}>{user.name}</strong>؟ لا يمكن التراجع عن هذا الإجراء.
+            هل أنت متأكد من حذف فرع <strong style={{ color: "var(--color-text-primary)" }}>{branch.name}</strong>؟ لا يمكن التراجع عن هذا الإجراء.
           </p>
         </div>
         <div style={{ display: "flex", gap: "0.5rem" }}>

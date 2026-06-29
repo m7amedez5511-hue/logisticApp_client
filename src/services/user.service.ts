@@ -1,35 +1,35 @@
-// خدمة المستخدمين — كل نداءات الـ API الخاصة بالمستخدمين تكون هنا فقط
+
 import { get, post, put, del } from "./api";
 import type { ApiListResponse, User, UserFormData } from "@/src/types/user";
 import type { Role } from "@/src/types/role";
 import type { Branch } from "@/src/types/branch";
 
-/** نوع الاستجابة لعملية واحدة على مستخدم */
+/** The type of response to a single operation on a user*/
 export interface UserResponse {
   data: User;
 }
 
-/** بناء query string لجلب المستخدمين مع البحث والصفحات */
+/**Building a query string to fetch users with search and pagination*/
 function buildUsersQuery(page: number, search: string): string {
   return `?page=${page}&limit=10${search ? `&search=${encodeURIComponent(search)}` : ""}`;
 }
 
 export const userService = {
-  /** جلب قائمة المستخدمين مع إمكانية البحث والتصفح بين الصفحات */
+  /** Fetching the user list with the ability to search and browse through pages*/
   getAll: (page: number, search: string, token: string | null) =>
     get<ApiListResponse<User>>(`users${buildUsersQuery(page, search)}`, token),
 
-  /** إنشاء مستخدم جديد */
+  /** create new account*/
   create: (
     data: Omit<UserFormData, "password"> & { password: string },
     token: string | null,
   ) => post<UserResponse>("users", buildPayload(data, true), token),
 
-  /** تعديل بيانات مستخدم موجود */
+  /**Edit existing user info*/
   update: (id: string, data: UserFormData, token: string | null) =>
     put<UserResponse>(`users/${id}`, buildPayload(data, false), token),
 
-  /** حذف مستخدم */
+  /** delete user*/
   delete: (id: string, token: string | null) => del<void>(`users/${id}`, token),
   //get role
   getRoles: (token: string | null) =>
@@ -53,7 +53,7 @@ export const userService = {
     }>(`users/${id}`, token),
 };
 
-/** تحويل بيانات النموذج إلى payload مناسب للـ API */
+/** Converting the form data into a payload suitable for the API */
 function buildPayload(
   data: UserFormData,
   isNew: boolean,
