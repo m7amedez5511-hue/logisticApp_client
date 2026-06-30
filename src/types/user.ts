@@ -9,7 +9,9 @@ export interface User {
   role?: { id?: string; name: string };
   branch?: { id?: string; name: string };
 }
-
+export interface UserResponse {
+  data: User;
+}
 export interface UserFormData {
   name: string;
   email: string;

@@ -1,12 +1,10 @@
 
 // Mirrors user.service.ts exactly: token parameter, buildPayload, buildQuery.
 import { get, post, put, del } from "./api";
-import type { ApiResponse, ApiListResponse, Client, ClientFormData } from "@/src/types/client";
+import type { ApiResponse, ApiListResponse, Client, ClientFormData, ClientResponse } from "@/src/types/client";
 
-/** نوع الاستجابة لعملية واحدة على عميل */
-export interface ClientResponse {
-  data: Client;
-}
+
+
 
 /** بناء query string لجلب العملاء مع البحث والصفحات */
 function buildClientsQuery(page: number, search: string): string {

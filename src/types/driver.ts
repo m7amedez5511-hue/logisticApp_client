@@ -125,3 +125,4 @@ export const DRIVER_CARD_TYPE_MAP: Record<DriverCardType, string> = {
   Annual:    "سنوية",
   Restricted: "مقيدة",
 };
+

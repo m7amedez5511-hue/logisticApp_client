@@ -12,7 +12,9 @@ export type {
 } from "./client_adresses";
 
 import type { ClientAddress } from "./client_adresses";
-
+export interface ClientResponse {
+  data: Client;
+}
 export interface Client {
   id: string;
   name: string;

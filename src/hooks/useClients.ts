@@ -9,12 +9,9 @@ import type {
   ClientTableAction,
   ClientTableState,
 } from "@/src/types/client";
+import { Notification } from "../types/notif";
 
-// ── Notification (mirrors useUsers Notification) ───────────────────────────
-export interface Notification {
-  type: "success" | "error";
-  message: string;
-}
+
 
 // ── Reducer ────────────────────────────────────────────────────────────────
 function reducer(s: ClientTableState, a: ClientTableAction): ClientTableState {

@@ -1,6 +1,4 @@
 "use client";
-// Components/Car/CarImageGallery.tsx
-// Full-screen gallery modal for viewing, uploading and deleting car images.
 
 import { useRef, useState } from "react";
 import { Spinner } from "../UI";

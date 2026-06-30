@@ -1,23 +1,5 @@
 "use client";
 
-/**
- * app/dashboard/clients/page.tsx — Enhanced
- *
- * Changes from original:
- * 1. Replaced `import { Toast } from "@/src/Components/Client/Toast"` with
- *    `import { Toast } from "@/src/Components/UI"` (the canonical, feature-rich version
- *    that supports an optional dismiss button and proper exit animation).
- * 2. The notification type is now `ToastNotification` from the UI barrel, matching
- *    the Toast's expected prop type.
- * 3. All other logic (CRUD, routing, modal management) is unchanged.
- *
- * HOW TO TEST:
- *   - Add a client → green toast "تم إضافة العميل بنجاح."
- *   - Edit a client → green toast "تم تحديث بيانات العميل."
- *   - Delete a client → green toast "تم حذف العميل بنجاح."
- *   - Click a table row → detail panel expands inline.
- *   - Click "العناوين" inside the panel → navigates to /dashboard/clients/[id]/addresses.
- */
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";

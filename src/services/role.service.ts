@@ -1,50 +1,12 @@
-import { requestJson } from "@/src/lib/api";
+import { ApiPaginatedResponse, PermissionsResponse, Role, RoleFormData, RoleResponse } from "../types/role";
 import { get, post, put, del, patch } from "./api";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
 
-export interface Permission {
-  id: string;
-  name: string;
-  slug: string;
-  module: string;
-}
 
-export interface Role {
-  id: string;
-  name: string;
-  description?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt?: string;
-  permissions?: Array<{
-    permission: Permission;
-  }>;
-}
 
-export interface RoleFormData {
-  name: string;
-  description: string;
-  permissionIds: string[];
-}
 
-export interface ApiPaginatedResponse<T> {
-  data: {
-    data: T[];
-    pagination?: { total: number; page: number; pages: number };
-    meta?: { total: number; pages: number };
-  };
-}
 
-export interface RoleResponse {
-  data: Role;
-}
 
-export interface PermissionsResponse {
-  data: {
-    premissions: Permission[];
-  };
-}
 
 /** Build query string for paginated role listing */
 function buildRolesQuery(page: number, search: string): string {
@@ -78,18 +40,5 @@ export const roleService = {
   getPermissions: (token: string | null) =>
     get<PermissionsResponse>("premission?limit=200", token),
 
-  /** Assign a single permission to a role */
-  assignPermission: (roleId: string, permissionId: string, token: string | null) =>
-    post<unknown>(`role/${roleId}/permissions`, { permissionId }, token),
-
-  /** Remove a permission from a role */
-  removePermission: (roleId: string, permissionId: string, token: string | null) =>
-    del<unknown>(`role/${roleId}/permissions/${permissionId}`, token),
-  /** Atomically replace all permissions assigned to a role */
-  setPermissions: (roleId: string, permissionIds: string[], token: string | null) =>
-    patch<{ data: Role }>(`role/${roleId}/permissions`, {
-      method: "PATCH",
-      body: JSON.stringify({ permissionIds }),
-    }, token),
   
 };

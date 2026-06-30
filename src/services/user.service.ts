@@ -1,13 +1,11 @@
 
 import { get, post, put, del } from "./api";
-import type { ApiListResponse, User, UserFormData } from "@/src/types/user";
+import type { ApiListResponse, User, UserFormData, UserResponse } from "@/src/types/user";
 import type { Role } from "@/src/types/role";
 import type { Branch } from "@/src/types/branch";
 
-/** The type of response to a single operation on a user*/
-export interface UserResponse {
-  data: User;
-}
+
+
 
 /**Building a query string to fetch users with search and pagination*/
 function buildUsersQuery(page: number, search: string): string {

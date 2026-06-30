@@ -153,4 +153,5 @@ export const TRIP_STATUS_MAP: Record<
   InProgress: { label: "جارية",  color: "#92400E", bg: "#FFFBEB", border: "#FDE68A", dot: "#D97706" },
   Completed:  { label: "مكتملة", color: "#166534", bg: "#DCFCE7", border: "#BBF7D0", dot: "#16A34A" },
   Cancelled:  { label: "ملغاة",  color: "#991B1B", bg: "#FEF2F2", border: "#FECACA", dot: "#DC2626" },
-};
+}; 
+

@@ -16,7 +16,9 @@ export interface Branch {
   isActive: boolean;
   createdAt: string;
 }
-
+export interface BranchResponse {
+  data: Branch;
+}
 export interface BranchFormData {
   name: string;
   email: string;

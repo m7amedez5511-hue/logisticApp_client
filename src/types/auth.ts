@@ -14,3 +14,7 @@ export interface LoginResponse {
   token: string;
   user: AuthUser;
 }
+export interface LoginPayload {
+  identity: string;
+  password: string;
+}

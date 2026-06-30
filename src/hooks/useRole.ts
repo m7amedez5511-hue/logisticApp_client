@@ -3,14 +3,12 @@
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { roleService } from "@/src/services/role.service";
-import type { Role, RoleFormData, Permission } from "@/src/services/role.service";
+import { Notification } from "../types/notif";
+import { Permission, Role, RoleFormData } from "../types/role";
 
-// ── Notification ──────────────────────────────────────────────────────────────
 
-export interface RoleNotification {
-  type: "success" | "error";
-  message: string;
-}
+
+
 
 // ── Table state / reducer ─────────────────────────────────────────────────────
 
@@ -76,11 +74,11 @@ export function useRoles() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [notification, setNotification] = useState<RoleNotification | null>(
+  const [notification, setNotification] = useState<Notification | null>(
     null,
   );
 
-  const notify = useCallback((n: RoleNotification) => {
+  const notify = useCallback((n: Notification) => {
     setNotification(n);
     setTimeout(() => setNotification(null), 4000);
   }, []);
@@ -144,15 +142,6 @@ export function useRoles() {
         const res = await roleService.create(data, token);
         const role = (res as unknown as { data: Role }).data;
 
-        // Assign permissions sequentially (backend handles individually)
-        for (const pid of data.permissionIds) {
-          try {
-            await roleService.assignPermission(role.id, pid, token);
-          } catch {
-            /* non-fatal: skip individual failures */
-          }
-        }
-
         // Re-fetch to get fresh data with permissions attached
         await loadRoles(page, search);
         notify({
@@ -190,25 +179,11 @@ export function useRoles() {
           (p) => !data.permissionIds.includes(p),
         );
 
-        for (const pid of toAdd) {
-          try {
-            await roleService.assignPermission(id, pid, token);
-          } catch {
-            /* skip */
-          }
-        }
-        for (const pid of toRemove) {
-          try {
-            await roleService.removePermission(id, pid, token);
-          } catch {
-            /* skip */
-          }
-        }
 
         await loadRoles(page, search);
         notify({
           type: "success",
-          message: "تم تحديث الدور والصلاحيات بنجاح.",
+          message: "تم تحديث الدور  بنجاح.",
         });
         return true;
       } catch (err) {
@@ -240,25 +215,6 @@ export function useRoles() {
     },
     [notify],
   );
-const updateRolePermissionsBulk = useCallback(
-  async (roleId: string, permissionIds: string[]): Promise<boolean> => {
-    try {
-      const token = getStoredToken();
-      const res = await roleService.setPermissions(roleId, permissionIds, token);
-      const updated = (res as unknown as { data: Role }).data;
-      dispatch({ type: "UPDATE", role: updated });
-      notify({ type: "success", message: "تم تحديث صلاحيات الدور بنجاح." });
-      return true;
-    } catch (err) {
-      notify({
-        type: "error",
-        message: err instanceof Error ? err.message : "تعذّر تحديث صلاحيات الدور.",
-      });
-      return false;
-    }
-  },
-  [notify],
-);
 
 
   const handleSearch = useCallback((q: string) => {
@@ -277,7 +233,6 @@ const updateRolePermissionsBulk = useCallback(
     createRole,
     updateRole,
     deleteRole,
-    updateRolePermissionsBulk,
     notification,
     
   };

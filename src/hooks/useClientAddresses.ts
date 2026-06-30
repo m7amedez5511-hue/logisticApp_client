@@ -13,12 +13,9 @@ import type {
   AddressTableState,
   ClientAddress,
 } from "../types/client_adresses";
+import { Notification } from "../types/notif";
 
-// ── Notification ───────────────────────────────────────────────────────────
-export interface Notification {
-  type: "success" | "error";
-  message: string;
-}
+
 
 function normalizeAddress(raw: any): ClientAddress {
   return {

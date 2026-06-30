@@ -23,7 +23,11 @@ export interface OrderAddress {
     coordinates?: [number, number]; // [longitude, latitude]
   };
 }
-
+export interface State {
+  orders:  Order[];
+  error:   string | null;
+  loading: boolean;
+}
 export interface Order {
   id: string;
   shipmentNumber: string;

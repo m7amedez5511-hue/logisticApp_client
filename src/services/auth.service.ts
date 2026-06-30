@@ -1,10 +1,7 @@
 import { post } from "./api";
-import type { LoginResponse } from "@/src/types/auth";
+import type { LoginPayload, LoginResponse } from "@/src/types/auth";
 
-export interface LoginPayload {
-  identity: string;
-  password: string;
-}
+
 
 export const authService = {
   /**

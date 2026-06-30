@@ -1,11 +1,9 @@
 
 import { get, post, patch, del } from "./api";
-import type { ApiListResponse, Branch, BranchDetail, BranchFormData } from "@/src/types/branch";
+import type { ApiListResponse, Branch, BranchDetail, BranchFormData, BranchResponse } from "@/src/types/branch";
 
-/** The type of response for a single operation on a branch*/
-export interface BranchResponse {
-  data: Branch;
-}
+
+
 
 /** Building a query string to fetch branches with search and pagination*/
 function buildBranchesQuery(page: number, search: string): string {
