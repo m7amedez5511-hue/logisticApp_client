@@ -3,12 +3,9 @@
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { roleService } from "@/src/services/role.service";
+import { parseApiError } from "@/src/lib/apiError";
 import { Notification } from "../types/notif";
 import { Permission, Role, RoleFormData } from "../types/role";
-
-
-
-
 
 // ── Table state / reducer ─────────────────────────────────────────────────────
 
@@ -119,7 +116,6 @@ export function useRoles() {
     roleService
       .getPermissions(token)
       .then((res) => {
-        //console.log("permissions response:", JSON.stringify(res, null, 2));
         const raw = (
           res as unknown as { data: { premissions: { data: Permission[] } } }
         ).data;
@@ -142,7 +138,13 @@ export function useRoles() {
         const res = await roleService.create(data, token);
         const role = (res as unknown as { data: Role }).data;
 
-        // Re-fetch to get fresh data with permissions attached
+        // Endpoint 2 (PATCH /role/{id}/permissions/bulk): attach selected
+        // permissions right after creation, since POST /role only accepts
+        // name/description.
+        if (data.permissionIds.length) {
+          await roleService.bulkAssignPermissions(role.id, data.permissionIds, token);
+        }
+
         await loadRoles(page, search);
         notify({
           type: "success",
@@ -152,7 +154,7 @@ export function useRoles() {
       } catch (err) {
         notify({
           type: "error",
-          message: err instanceof Error ? err.message : "تعذّر إنشاء الدور.",
+          message: parseApiError(err, "تعذّر إنشاء الدور."),
         });
         return false;
       }
@@ -164,32 +166,28 @@ export function useRoles() {
     async (
       id: string,
       data: RoleFormData,
-      currentPermIds: string[],
+      _currentPermIds: string[],
     ): Promise<boolean> => {
       try {
         const token = getStoredToken();
         // Update basic fields
         await roleService.update(id, data, token);
 
-        // Diff permissions: add new, remove removed
-        const toAdd = data.permissionIds.filter(
-          (p) => !currentPermIds.includes(p),
-        );
-        const toRemove = currentPermIds.filter(
-          (p) => !data.permissionIds.includes(p),
-        );
-
+        // Endpoint 2: replace the full permission set in one call rather
+        // than diffing add/remove client-side — the bulk endpoint already
+        // performs the replacement atomically on the backend.
+        await roleService.bulkAssignPermissions(id, data.permissionIds, token);
 
         await loadRoles(page, search);
         notify({
           type: "success",
-          message: "تم تحديث الدور  بنجاح.",
+          message: "تم تحديث الدور بنجاح.",
         });
         return true;
       } catch (err) {
         notify({
           type: "error",
-          message: err instanceof Error ? err.message : "تعذّر تحديث الدور.",
+          message: parseApiError(err, "تعذّر تحديث الدور."),
         });
         return false;
       }
@@ -208,7 +206,7 @@ export function useRoles() {
       } catch (err) {
         notify({
           type: "error",
-          message: err instanceof Error ? err.message : "تعذّر حذف الدور.",
+          message: parseApiError(err, "تعذّر حذف الدور."),
         });
         return false;
       }
@@ -216,6 +214,43 @@ export function useRoles() {
     [notify],
   );
 
+  // ── Endpoint 1: assign a single permission (used from the detail modal) ─────
+  const assignPermission = useCallback(
+    async (roleId: string, permissionId: string): Promise<boolean> => {
+      try {
+        const token = getStoredToken();
+        await roleService.assignPermission(roleId, permissionId, token);
+        notify({ type: "success", message: "تم إضافة الصلاحية للدور بنجاح." });
+        return true;
+      } catch (err) {
+        notify({
+          type: "error",
+          message: parseApiError(err, "تعذّر إضافة الصلاحية."),
+        });
+        return false;
+      }
+    },
+    [notify],
+  );
+
+  // ── Endpoint 3: remove a single permission (used from the detail modal) ─────
+  const removePermission = useCallback(
+    async (roleId: string, permissionId: string): Promise<boolean> => {
+      try {
+        const token = getStoredToken();
+        await roleService.removePermission(roleId, permissionId, token);
+        notify({ type: "success", message: "تم إزالة الصلاحية من الدور بنجاح." });
+        return true;
+      } catch (err) {
+        notify({
+          type: "error",
+          message: parseApiError(err, "تعذّر إزالة الصلاحية."),
+        });
+        return false;
+      }
+    },
+    [notify],
+  );
 
   const handleSearch = useCallback((q: string) => {
     setSearch(q);
@@ -233,7 +268,8 @@ export function useRoles() {
     createRole,
     updateRole,
     deleteRole,
+    assignPermission,
+    removePermission,
     notification,
-    
   };
 }

@@ -25,6 +25,7 @@ export default function RolesPage() {
     page, search,
     setPage, handleSearch, clearError,
     createRole, updateRole, deleteRole,
+    assignPermission, removePermission,
     notification,
   } = useRoles();
 
@@ -54,7 +55,10 @@ export default function RolesPage() {
       {viewRoleId && (
         <RoleDetailModal
           roleId={viewRoleId}
+          permissions={permissions}
           onClose={() => setViewRoleId(null)}
+          onAssign={assignPermission}
+          onRemove={removePermission}
         />
       )}
 

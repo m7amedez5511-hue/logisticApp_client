@@ -43,7 +43,7 @@ async function validate(data: RoleFormData, isNew: boolean): Promise<RoleFormErr
 }
 
 // ── Permission checkbox group ─────────────────────────────────────────────────
-/*function PermissionGroup({
+function PermissionGroup({
   module, perms, selected, onToggle,
 }: {
   module: string; perms: Permission[]; selected: string[]; onToggle: (id: string) => void;
@@ -77,7 +77,7 @@ async function validate(data: RoleFormData, isNew: boolean): Promise<RoleFormErr
       </div>
     </div>
   );
-}*/
+}
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface RoleFormModalProps {
@@ -225,7 +225,7 @@ export function RoleFormModal({ editRole, permissions, onClose, onSubmit }: Role
           </label>
 
           {/* Permissions */}
-          {/*{permissions.length > 0 && (
+          {permissions.length > 0 && (
             <div dir="rtl">
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)" }}>
@@ -258,7 +258,7 @@ export function RoleFormModal({ editRole, permissions, onClose, onSubmit }: Role
                 {form.permissionIds.length} صلاحية محددة من أصل {permissions.length}
               </p>
             </div>
-          )}*/}
+          )}
 
           {/* Actions */}
           <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", paddingTop: "0.5rem", flexShrink: 0 }}>

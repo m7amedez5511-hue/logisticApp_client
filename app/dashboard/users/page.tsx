@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Toast } from "@/src/Components/UI";   
+import { Alert, Toast, ArchiveButton } from "@/src/Components/UI";
 import { UserTable }          from "@/src/Components/User/UserTable";
 import { UserFormModal }      from "@/src/Components/User/UserFormModal";
 import { UserDetailModal }    from "@/src/Components/User/UserDetailModal";
 import { DeleteConfirmModal } from "@/src/Components/User/DeleteConfirmModal";
 import { useUsers }           from "@/src/hooks/useUser";
 import type { User, UserFormData } from "@/src/types/user";
+import { ArchivedUsersModal } from "@/src/Components/User/archive/Archivedusersmodal";
 
 export default function UsersPage() {
   // ── Modal state ─────────────────────────────────────────────────────────────
@@ -16,6 +17,8 @@ export default function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   // ID of user whose detail modal is open; null = closed
   const [viewUserId,   setViewUserId]   = useState<string | null>(null);
+  // Archive browser modal open/closed
+  const [archiveOpen,  setArchiveOpen]  = useState(false);
   // Local submitting flag shown in DeleteConfirmModal spinner
   const [deleting, setDeleting] = useState(false);
 
@@ -40,9 +43,9 @@ export default function UsersPage() {
   const handleDeleteConfirm = async () => {
     if (!deleteTarget || deleting) return;
     setDeleting(true);
-    
+
     const ok = await deleteUser(deleteTarget.id);
-    
+
     setDeleting(false);
     if (ok) setDeleteTarget(null);
   };
@@ -82,6 +85,11 @@ export default function UsersPage() {
           }}
           onConfirm={handleDeleteConfirm}
         />
+      )}
+
+      {/* Archive browser modal */}
+      {archiveOpen && (
+        <ArchivedUsersModal onClose={() => setArchiveOpen(false)} />
       )}
 
       <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -178,6 +186,9 @@ export default function UsersPage() {
           onPageChange={setPage}
         />
       </section>
+
+      {/* Floating button to open the archive browser */}
+      <ArchiveButton onClick={() => setArchiveOpen(true)} />
     </>
   );
 }

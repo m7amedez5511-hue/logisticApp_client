@@ -54,7 +54,6 @@ const navSections = [
       { href: "/dashboard/clients",         label: "Clients",            icon: "ti-users-group",    permission: "read-client"             },
       { href: "/dashboard/branches",        label: "Branches",           icon: "ti-building",       permission: "read-branch"             },
       { href: "/dashboard/roles",           label: "Roles",              icon: "ti-shield",         permission: "read-role"               },
-      { href: "/dashboard/role_permission", label: "Roles & Permission", icon: "ti-shield",         permission: "manage-role-permissions"  },
       { href: "/dashboard/audit",           label: "Audit",              icon: "ti-clipboard-list", permission: "read-audit"              },
     ],
   },
@@ -181,12 +180,12 @@ export function Sidebar() {
           padding: "20px 12px",
           zIndex: 50,
           overflowY: "auto",
-          /* transform بيخفي/يظهر الـ drawer على sm */
+        
           transform: open ? "translateX(0)" : "translateX(100%)",
           transition: "transform 280ms cubic-bezier(0.4,0,0.2,1)",
         }}
       >
-        {/* زرار الإغلاق */}
+        {/*close button */}
         <button
           type="button"
           onClick={() => setOpen(false)}

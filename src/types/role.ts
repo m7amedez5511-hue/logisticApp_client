@@ -33,11 +33,48 @@ export interface PermissionsResponse {
   };
 }
 
-
 //permissions
 export interface Permission {
   id: string;
   name: string;
   slug: string;
   module: string;
+}
+
+// ── Permission mutation responses ───────────────────────────────────────────
+
+export interface RolePermissionLink {
+  id: string;
+  roleId: string;
+  permissionId: string;
+}
+
+export interface AssignPermissionResponse {
+  success: true;
+  message: string;
+  responseAt: string;
+  data: RolePermissionLink;
+}
+
+export interface BulkAssignPermissionsResponse {
+  success: true;
+  message: string;
+  responseAt: string;
+  data: Role;
+}
+
+export interface ApiErrorDetail {
+  field: string;
+  code: string;
+}
+
+export interface ApiErrorResponse {
+  success: false;
+  message: string;
+  responseAt: string;
+  error: {
+    code: string;
+    path: string;
+    details: ApiErrorDetail[];
+  };
 }

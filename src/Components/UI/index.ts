@@ -22,3 +22,5 @@ export { ConfirmDialog } from "./ConfirmDialog";
 export { PageHeader } from "./PageHeader";
 export { EmptyState } from "./EmptyState";
 export { Badge } from "./Badge";
+
+export { ArchiveButton } from "./ArchiveButton"

@@ -66,3 +66,49 @@ export type TableAction =
   role: { id?: string; name: string; description?: string };
   branch: { id?: string; name: string };
 }
+
+// Archived user resource returned by the archive endpoints
+export interface ArchivedUser {
+  id: string;
+  name: string;
+  userName?: string;
+  email?: string;
+  phone: string;
+  photo: string | null;
+  isActive: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// GET /v1/users/archived/{id}
+export interface ArchivedUserResponse {
+  data: ArchivedUser;
+}
+
+// GET /v1/users/archived  (note: this endpoint uses `meta`, not `pagination`,
+// unlike the live users list — kept as a distinct shape rather than reusing
+// ApiListResponse<T> from user.ts)
+export interface ArchivedUserListResponse {
+  data: {
+    data: ArchivedUser[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+}
+
+// Shared API error shape (validation_failed etc.)
+export interface ApiErrorResponse {
+  success: false;
+  message: string;
+  responseAt: string;
+  error: {
+    code: string;
+    path: string;
+    details: { field: string; code: string }[];
+  };
+}

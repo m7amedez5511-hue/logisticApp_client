@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { Spinner } from "../UI";
 import { getStoredToken } from "@/src/lib/auth";
 import { roleService } from "@/src/services/role.service";
-import { Role } from "@/src/types/role";
-
+import { Permission, Role } from "@/src/types/role";
 
 interface RoleDetailModalProps {
-  roleId:  string;
-  onClose: () => void;
+  roleId:      string;
+  permissions: Permission[]; // full catalog, for the "add permission" select
+  onClose:     () => void;
+  onAssign:    (roleId: string, permissionId: string) => Promise<boolean>;
+  onRemove:    (roleId: string, permissionId: string) => Promise<boolean>;
 }
 
 function DetailRow({ label, value }: { label: string; value?: string | null }) {
@@ -44,16 +46,32 @@ function StatusBadge({ active }: { active: boolean }) {
   );
 }
 
-export function RoleDetailModal({ roleId, onClose }: RoleDetailModalProps) {
+export function RoleDetailModal({ roleId, permissions, onClose, onAssign, onRemove }: RoleDetailModalProps) {
   const [role,    setRole]    = useState<Role | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
+
+  // ── Inline permission mutation state ─────────────────────────────────────────
+  const [pendingPermId, setPendingPermId] = useState("");
+  const [mutating,       setMutating]     = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
+
+  const loadRole = async () => {
+    try {
+      const token = getStoredToken();
+      const res   = await roleService.getById(roleId, token);
+      setRole((res as unknown as { data: Role }).data);
+    } catch {
+      setError("تعذّر تحميل بيانات الدور. يرجى المحاولة لاحقاً.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -71,8 +89,33 @@ export function RoleDetailModal({ roleId, onClose }: RoleDetailModalProps) {
     return () => { cancelled = true; };
   }, [roleId]);
 
+  // Endpoint 1: POST /role/{id}/permissions
+  const handleAssign = async () => {
+    if (!pendingPermId || mutating) return;
+    setMutating(true);
+    const ok = await onAssign(roleId, pendingPermId);
+    if (ok) {
+      setPendingPermId("");
+      await loadRole();
+    }
+    setMutating(false);
+  };
+
+  // Endpoint 3: DELETE /role/{id}/permissions/{permissionId}
+  const handleRemove = async (permissionId: string) => {
+    if (mutating) return;
+    setMutating(true);
+    const ok = await onRemove(roleId, permissionId);
+    if (ok) await loadRole();
+    setMutating(false);
+  };
+
   const fmt = (iso?: string | null) =>
     iso ? new Date(iso).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" }) : null;
+
+  const assignablePermissions = permissions.filter(
+    (p) => !role?.permissions?.some((rp) => rp.permission.id === p.id),
+  );
 
   return (
     <div
@@ -155,31 +198,77 @@ export function RoleDetailModal({ roleId, onClose }: RoleDetailModalProps) {
               {role.updatedAt && <DetailRow label="آخر تحديث" value={fmt(role.updatedAt)} />}
 
               {/* Permissions list */}
-              {role.permissions && role.permissions.length > 0 && (
-                <div style={{ paddingTop: "0.75rem" }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--color-text-muted)", margin: "0 0 10px" }}>
-                    الصلاحيات ({role.permissions.length})
-                  </p>
+              <div style={{ paddingTop: "0.75rem" }}>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--color-text-muted)", margin: "0 0 10px" }}>
+                  الصلاحيات ({role.permissions?.length ?? 0})
+                </p>
+
+                {/* Assign new permission — Endpoint 1 */}
+                {assignablePermissions.length > 0 && (
+                  <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                    <select
+                      value={pendingPermId}
+                      onChange={(e) => setPendingPermId(e.target.value)}
+                      disabled={mutating}
+                      style={{
+                        flex: 1, height: 36, borderRadius: "var(--radius-md)",
+                        border: "1px solid var(--color-border)", fontSize: 12,
+                        padding: "0 0.5rem", fontFamily: "var(--font-sans)",
+                        color: "var(--color-text-primary)", background: "var(--color-surface)",
+                      }}
+                    >
+                      <option value="">اختر صلاحية لإضافتها…</option>
+                      {assignablePermissions.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button" onClick={handleAssign} disabled={!pendingPermId || mutating}
+                      style={{
+                        height: 36, padding: "0 0.875rem", borderRadius: "var(--radius-md)",
+                        border: "none", background: "var(--color-brand-600)", color: "#FFF",
+                        fontSize: 12, fontWeight: 700,
+                        cursor: pendingPermId && !mutating ? "pointer" : "not-allowed",
+                        opacity: !pendingPermId || mutating ? 0.6 : 1,
+                        fontFamily: "var(--font-sans)",
+                        display: "flex", alignItems: "center", gap: 6,
+                      }}
+                    >
+                      {mutating && <Spinner size="sm" className="text-white" />}
+                      إضافة
+                    </button>
+                  </div>
+                )}
+
+                {role.permissions && role.permissions.length > 0 ? (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
                     {role.permissions.map(({ permission }) => (
                       <span key={permission.id} style={{
-                        display: "inline-flex", alignItems: "center",
-                        padding: "0.25rem 0.6rem", borderRadius: "var(--radius-md)",
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        padding: "0.25rem 0.4rem 0.25rem 0.6rem", borderRadius: "var(--radius-md)",
                         background: "#EFF6FF", border: "1px solid #BFDBFE",
                         fontSize: 11, fontWeight: 600, color: "#1D4ED8",
                       }}>
                         {permission.name}
+                        {/* Endpoint 3: remove this permission */}
+                        <button
+                          type="button" onClick={() => handleRemove(permission.id)} disabled={mutating}
+                          aria-label={`إزالة ${permission.name}`}
+                          style={{
+                            background: "none", border: "none",
+                            cursor: mutating ? "not-allowed" : "pointer",
+                            color: "#1D4ED8", fontSize: 13, lineHeight: 1, padding: 0,
+                          }}
+                        >
+                          ×
+                        </button>
                       </span>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {(!role.permissions || role.permissions.length === 0) && (
-                <div style={{ paddingTop: "0.75rem" }}>
+                ) : (
                   <p style={{ fontSize: 13, color: "var(--color-text-hint)", fontStyle: "italic" }}>لا توجد صلاحيات مسندة لهذا الدور</p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>

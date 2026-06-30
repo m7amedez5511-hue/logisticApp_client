@@ -1,11 +1,12 @@
 "use client";
-// app/(dashboard)/cars/page.tsx
+
 
 import { useCallback, useState } from "react";
-import { Spinner, Alert } from "@/src/Components/UI";
-import { CarFormModal }   from "@/src/Components/car/CarFormModal";
-import { CarDetailPanel } from "@/src/Components/car/CarDetailPanel";
-import { CarDeleteModal } from "@/src/Components/car/CarDeleteModal";
+import { Spinner, Alert, ArchiveButton } from "@/src/Components/UI";
+import { CarFormModal }      from "@/src/Components/car/CarFormModal";
+import { CarDetailPanel }    from "@/src/Components/car/CarDetailPanel";
+import { CarDeleteModal }    from "@/src/Components/car/CarDeleteModal";
+import { ArchivedCarsModal } from "@/src/Components/car/archive/Archivedcarsmodal";
 import { useCars, useCarMutations, useToast } from "@/src/hooks/useCars";
 import { fmtDateShort, isExpiringSoon, STATUS_MAP, INS_MAP } from "@/src/types/car";
 import type { Car, CreateCarPayload, ToastMsg, UpdateCarPayload } from "@/src/types/car";
@@ -169,6 +170,7 @@ export default function CarsPage() {
   const [detailId,     setDetailId]     = useState<string | null>(null);
   const [formTarget,   setFormTarget]   = useState<Car | null | false>(false); // false = closed
   const [deleteTarget, setDeleteTarget] = useState<Car | null>(null);
+  const [archiveOpen,  setArchiveOpen]  = useState(false);
 
   const { toast, notify } = useToast();
 
@@ -224,6 +226,10 @@ export default function CarsPage() {
           onCancel={() => setDeleteTarget(null)}
           onConfirm={handleDelete}
         />
+      )}
+
+      {archiveOpen && (
+        <ArchivedCarsModal onClose={() => setArchiveOpen(false)} />
       )}
 
       <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }} dir="rtl">
@@ -400,6 +406,9 @@ export default function CarsPage() {
           </div>
         )}
       </section>
+
+      {/* Floating button to open the archive browser */}
+      <ArchiveButton onClick={() => setArchiveOpen(true)} />
     </>
   );
 }
