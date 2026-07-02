@@ -155,3 +155,21 @@ export const TRIP_STATUS_MAP: Record<
   Cancelled:  { label: "ملغاة",  color: "#991B1B", bg: "#FEF2F2", border: "#FECACA", dot: "#DC2626" },
 }; 
 
+// ── Archived Trip types (mirrors ArchivedUser pattern in types/user.ts) ─────
+// GET /trip/archived/{id}
+export interface ArchivedTripResponse {
+  data: Trip;
+}
+
+// GET /trip/archived — paginated list
+export interface ArchivedTripListResponse {
+  data: {
+    data: Trip[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+}

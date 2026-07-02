@@ -126,3 +126,61 @@ export const DRIVER_CARD_TYPE_MAP: Record<DriverCardType, string> = {
   Restricted: "مقيدة",
 };
 
+// ── Archived Driver ──────────────────────────────────────────────────────────
+// Resource returned by the /driver/archived endpoints. Kept as a distinct
+// shape (rather than reusing Driver) since the archive endpoints return a
+// flatter, slightly different set of fields — mirrors the ArchivedUser
+// pattern in src/types/user.ts.
+
+export interface ArchivedDriver {
+  id: string;
+  name: string;
+  userName?: string | null;
+  email?: string | null;
+  phone: string;
+  address?: string | null;
+  nationality?: string | null;
+  nationalId?: string | null;
+  nationalIdType?: NationalIdType | null;
+  gosiNumber?: string | null;
+  licenseNumber?: string | null;
+  licenseType?: string | null;
+  licenseExpiry?: string | null;
+  photo?: string | null;
+  photoUrl?: string | null;
+  nationalPhoto?: string | null;
+  nationalPhotoUrl?: string | null;
+  driverCardPhoto?: string | null;
+  driverCardPhotoUrl?: string | null;
+  driverCardNumber?: string | null;
+  driverCardType?: DriverCardType | null;
+  status: DriverStatus;
+  isActive: boolean;
+  isDeleted: boolean;
+  driverType?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// GET /driver/archived
+export interface ArchivedDriverListResponse {
+  data: {
+    data: ArchivedDriver[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+}
+
+// GET /driver/archived/{id}
+export interface ArchivedDriverResponse {
+  data: ArchivedDriver;
+}
+
+// GET /driver/archived/driverStatus/{id}
+export interface ArchivedDriverStatusHistoryResponse {
+  data: DriverStatusHistoryEntry[];
+}

@@ -107,3 +107,33 @@ export interface OrdersResponse {
     totalPages: number;
   };
 }
+// Archived order resource returned by /orders/archived.
+// NOTE: sample payload has no pagination meta — adjust if backend confirms otherwise.
+export interface ArchivedOrder {
+  id: string;
+  shipmentNumber: string;
+  recipientName: string;
+  recipientPhone: string;
+  clientId: string;
+  tripId?: string | null;
+  pickupAddressId?: string | null;
+  deliveryAddressId?: string | null;
+  currentStatus: OrderStatus;
+  quantity: number;
+  subTotal?: string | number | null;   
+  createdAt: string;
+  updatedAt: string;
+  statusHistory?: Array<{
+    id: string;
+    status: OrderStatus;
+    reason?: string | null;
+    createdAt: string;
+  }>;
+}
+
+export interface ArchivedOrderListResponse {
+  success: boolean;
+  message: string;
+  responseAt: string;
+  data: ArchivedOrder[];
+}

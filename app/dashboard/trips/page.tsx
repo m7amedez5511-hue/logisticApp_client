@@ -7,7 +7,8 @@ import { tripService } from "@/src/services/trip.service";
 import { getStoredToken } from "@/src/lib/auth";
 import { TripFormModal } from "@/src/Components/Trip/Tripformmodal";
 import { TripDeleteModal } from "@/src/Components/Trip/Tripdeletemodal";
-import { Spinner } from "@/src/Components/UI";
+import { ArchivedTripList } from "@/src/Components/Trip/archive/ArchivedTripList";
+import { Spinner, ArchiveButton } from "@/src/Components/UI";
 import { Toast, type ToastNotification } from "@/src/Components/UI/Toast";
 import type { Trip, TripStatus, CreateTripPayload, UpdateTripPayload } from "@/src/types/trip";
 import { TRIP_STATUS_MAP } from "@/src/types/trip";
@@ -48,6 +49,67 @@ function StatusBadge({ status }: { status: TripStatus }) {
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
       {s.label}
     </span>
+  );
+}
+
+// ── Archived trips modal ─────────────────────────────────────────────────────
+// Lightweight wrapper modal around <ArchivedTripList /> — mirrors the
+// ArchivedUsersModal pattern used on the users page.
+
+function ArchivedTripsModal({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+
+  // close on Escape
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog" aria-modal="true" aria-labelledby="archived-trips-title"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: "fixed", inset: 0, zIndex: 70,
+        background: "rgba(15,23,42,0.6)", backdropFilter: "blur(4px)",
+        display: "flex", alignItems: "flex-start", justifyContent: "center",
+        padding: "2rem 1rem", overflowY: "auto",
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: "100%", maxWidth: 920,
+          background: "var(--color-surface-sunken)",
+          borderRadius: "var(--radius-xl)",
+          border: "1px solid var(--color-border)",
+          boxShadow: "0 24px 64px rgba(0,0,0,.2)",
+          overflow: "hidden",
+        }}
+      >
+        {/* header */}
+        <div dir="rtl" style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "1.25rem 1.5rem",
+          borderBottom: "1px solid var(--color-border)",
+          background: "var(--color-surface)",
+        }}>
+          <h2 id="archived-trips-title" style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text-primary)", margin: 0 }}>
+            أرشيف الرحلات
+          </h2>
+          <button type="button" onClick={onClose} aria-label="إغلاق"
+            style={{ width: 34, height: 34, borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface)", cursor: "pointer", fontSize: 18, color: "var(--color-text-muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            ×
+          </button>
+        </div>
+
+        {/* body */}
+        <div style={{ padding: "1.5rem" }}>
+          <ArchivedTripList onView={trip => router.push(`/dashboard/trips/${trip.id}`)} />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -93,6 +155,8 @@ export default function TripsPage() {
   const [editTrip, setEditTrip]         = useState<Trip | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Trip | null>(null);
   const [deleting, setDeleting]         = useState(false);
+  // Archive browser modal open/closed
+  const [archiveOpen, setArchiveOpen]   = useState(false);
 
   // ── Create / update — calls tripService directly and notifies explicitly ──
   const handleSubmit = async (
@@ -146,22 +210,42 @@ export default function TripsPage() {
             إدارة جدولة الرحلات وتتبع حالتها
           </p>
         </div>
-        <button
-          onClick={() => { setEditTrip(null); setShowForm(true); }}
-          style={{
-            height: 40, padding: "0 1.25rem",
-            borderRadius: "var(--radius-md)", border: "none",
-            background: "var(--color-brand-600)", color: "#FFF",
-            fontSize: 13, fontWeight: 700, cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 8,
-            fontFamily: "var(--font-sans)",
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          إضافة رحلة
-        </button>
+        <div style={{ display: "flex", gap: "0.75rem" }}>
+          <button
+            onClick={() => setArchiveOpen(true)}
+            style={{
+              height: 40, padding: "0 1.25rem",
+              borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)",
+              background: "var(--color-surface)", color: "var(--color-text-secondary)",
+              fontSize: 13, fontWeight: 700, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 8,
+              fontFamily: "var(--font-sans)",
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="4" width="20" height="5" rx="1" />
+              <path d="M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9" />
+              <path d="M10 13h4" />
+            </svg>
+            أرشيف الرحلات
+          </button>
+          <button
+            onClick={() => { setEditTrip(null); setShowForm(true); }}
+            style={{
+              height: 40, padding: "0 1.25rem",
+              borderRadius: "var(--radius-md)", border: "none",
+              background: "var(--color-brand-600)", color: "#FFF",
+              fontSize: 13, fontWeight: 700, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 8,
+              fontFamily: "var(--font-sans)",
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            إضافة رحلة
+          </button>
+        </div>
       </div>
 
       {/* ── Filters ── */}
@@ -366,6 +450,9 @@ export default function TripsPage() {
           onCancel={() => setDeleteTarget(null)}
           onConfirm={handleDelete}
         />
+      )}
+      {archiveOpen && (
+        <ArchivedTripsModal onClose={() => setArchiveOpen(false)} />
       )}
 
       {/* ── Toast ── */}

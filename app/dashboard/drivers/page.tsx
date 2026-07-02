@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Alert, Spinner } from "@/src/Components/UI";
+import { Alert, Spinner, ArchiveButton } from "@/src/Components/UI";
 import { DriverFormModal } from "@/src/Components/Driver/DriverFormModal";
 import { DriverDeleteModal } from "@/src/Components/Driver/DriverDeleteModal";
+import { ArchivedDrivers } from "@/src/Components/Driver/archive/ArchivedDrivers";
 import { useDrivers } from "@/src/hooks/useDriver";
 import { CreateDriverPayload, Driver, DRIVER_STATUS_MAP, UpdateDriverPayload } from "@/src/types/driver";
 import { DriverDetailPanel } from "@/src/Components/Driver/DriverDetailPanel";
@@ -74,6 +75,8 @@ export default function DriversPage() {
   const [deleting, setDeleting]                 = useState(false);
   // Bumped after a successful edit to force the detail panel to re-fetch
   const [panelRefreshKey, setPanelRefreshKey]   = useState(0);
+  // Archive browser modal open/closed
+  const [archiveOpen, setArchiveOpen]           = useState(false);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleEdit = useCallback((driver: Driver) => {
@@ -418,6 +421,14 @@ export default function DriversPage() {
           onConfirm={handleConfirmDelete}
         />
       )}
+
+      {/* ── Archive browser modal ── */}
+      {archiveOpen && (
+        <ArchivedDrivers onClose={() => setArchiveOpen(false)} />
+      )}
+
+      {/* ── Floating button to open the archive browser ── */}
+      <ArchiveButton onClick={() => setArchiveOpen(true)} />
     </>
   );
 }

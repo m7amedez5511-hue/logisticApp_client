@@ -3,10 +3,11 @@
 
 
 import { useState, useCallback } from "react";
-import { Alert, Spinner, Toast } from "@/src/Components/UI";
-import { OrderFormModal } from "@/src/Components/Order/Orderformmodal";
-import { OrderDeleteModal } from "@/src/Components/Order/Orderdeletemodal";
+import { Alert, Spinner, Toast, ArchiveButton } from "@/src/Components/UI";
+import { OrderFormModal } from "@/src/Components/Order/OrderFormModal";
+import { OrderDeleteModal } from "@/src/Components/Order/OrderDeleteModal";
 import { OrderDetailPanel, ORDER_STATUS_MAP } from "@/src/Components/Order/OrderDetailBanel";
+import { ArchivedOrdersModal } from "@/src/Components/Order/archive/ArchivedOrdersModal";
 import { useOrders } from "@/src/hooks/useOrder";
 import type { CreateOrderPayload, Order, UpdateOrderPayload } from "@/src/types/order";
 
@@ -81,6 +82,8 @@ export default function OrderComponent() {
   // Bumped after a successful edit/status-change to force the detail panel
   // to re-fetch — same trick as DriversPage's panelRefreshKey.
   const [panelRefreshKey, setPanelRefreshKey] = useState(0);
+  // Archive browser modal open/closed
+  const [archiveOpen, setArchiveOpen] = useState(false);
 
   // ── Handlers ─────────────────────────────────────────────────────────
   const handleEdit = useCallback((order: Order) => {
@@ -447,12 +450,20 @@ export default function OrderComponent() {
         />
       )}
 
+      {/* ── Archive browser modal ── */}
+      {archiveOpen && (
+        <ArchivedOrdersModal onClose={() => setArchiveOpen(false)} />
+      )}
+
       {/* ── Toast: transient success/error feedback for create, update,
            delete, and status-change actions — sourced from useOrders()'
            `notification` state (see useOrders.ts notify()). This is the
            same toast used by the Driver pages via DriverDeleteModal's
            parent and useDriver.ts, kept consistent here. ── */}
       <Toast notification={notification} />
+
+      {/* Floating button to open the archive browser */}
+      <ArchiveButton onClick={() => setArchiveOpen(true)} />
     </>
   );
 }
