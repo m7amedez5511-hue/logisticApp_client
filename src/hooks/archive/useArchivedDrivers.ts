@@ -33,7 +33,7 @@ export function useArchivedDrivers() {
     }
   }, [page, search]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { queueMicrotask(load); }, [load]);
 
   /** Updates the search term and resets to page 1. */
   const handleSearch = (value: string) => {

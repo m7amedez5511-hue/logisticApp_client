@@ -1,23 +1,6 @@
-// app/dashboard/clients/[clientId]/addresses/page.tsx
-//
-// ── Refactor notes ──────────────────────────────────────────────────────────
-// • Address cards are no longer clickable / navigable. Removed the `onView`
-//   prop, the card's onClick handler, and the pointer cursor + hover styles
-//   that implied the card itself was a link.
-// • Each AddressCard now renders full address details inline (street, city,
-//   state, district, building/unit/additional no., zip code, country, and
-//   contact person), instead of a 3-line summary that deferred to the
-//   AddressDetail page.
-// • Removed all routing to the address detail route.
-// • Deleted as part of this refactor (no longer referenced anywhere):
-//     - app/dashboard/clients/[clientId]/addresses/[addressId]/page.tsx
-//     - app/dashboard/clients/[clientId]/addresses/[addressesId]/page.tsx
-//     - src/Components/Client_Adress/AddressDetails.tsx
-// ─────────────────────────────────────────────────────────────────────────
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { Alert, Toast } from "@/src/Components/UI";
@@ -336,15 +319,21 @@ export default function ClientAddressesPage() {
   const [client, setClient]               = useState<Client | null>(null);
   const [clientLoading, setClientLoading] = useState(true);
 
-  useEffect(() => {
+  const loadClient = useCallback(() => {
     if (!clientId) return;
-    setClientLoading(true);
-    clientService
-      .getById(clientId, getStoredToken())
-      .then((res) => setClient(res.data))
-      .catch(() => router.replace("/dashboard/clients"))
-      .finally(() => setClientLoading(false));
+    queueMicrotask(() => {
+      setClientLoading(true);
+      clientService
+        .getById(clientId, getStoredToken())
+        .then((res) => setClient(res.data))
+        .catch(() => router.replace("/dashboard/clients"))
+        .finally(() => setClientLoading(false));
+    });
   }, [clientId, router]);
+
+  useEffect(() => {
+    loadClient();
+  }, [loadClient]);
 
   // ── Address hook ─────────────────────────────────────────────────────────
   const {
@@ -356,7 +345,6 @@ export default function ClientAddressesPage() {
     createAddress,
     updateAddress,
     deleteAddress,
-    reload,
   } = useClientAddresses(clientId ?? "");
 
   // ── Modal state ──────────────────────────────────────────────────────────
@@ -386,7 +374,6 @@ export default function ClientAddressesPage() {
   // ── Client edit handler ──────────────────────────────────────────────────
   const handleClientEditSubmit = async (
     data: ClientFormData,
-    _isNew: boolean
   ): Promise<boolean> => {
     if (!client) return false;
     try {

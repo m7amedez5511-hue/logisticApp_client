@@ -17,14 +17,15 @@ import { Notification } from "../types/notif";
 
 
 
-function normalizeAddress(raw: any): ClientAddress {
+function normalizeAddress(raw: unknown): ClientAddress {
+  const data = raw as { id?: string; _id?: string; [key: string]: unknown };
   return {
-    ...raw,
-    id: raw.id ?? raw._id,
+    ...data,
+    id: data.id ?? data._id,
   };
 }
 
-function normalizeAddresses(rawList: any[]): ClientAddress[] {
+function normalizeAddresses(rawList: unknown[]): ClientAddress[] {
   return rawList.map(normalizeAddress);
 }
 
@@ -81,8 +82,8 @@ export function useClientAddresses(clientId: string) {
     try {
       const token = getStoredToken();
       const res = await clientAddressService.getAll(clientId, token);
-      const payload = (res as any).data ?? res;
-      const rawList = Array.isArray(payload) ? payload : (payload.data ?? []);
+      const payload = (res as unknown as { data?: unknown }).data ?? res;
+      const rawList = Array.isArray(payload) ? payload : ((payload as { data?: unknown }).data ?? []);
       dispatch({
         type: "LOAD_OK",
         addresses: normalizeAddresses(rawList),

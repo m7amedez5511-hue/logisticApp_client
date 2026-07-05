@@ -1,6 +1,6 @@
 "use client";
 
-import { Spinner, Alert, EmptyState, Badge } from "@/src/Components/UI";
+import { Spinner, Alert, EmptyState } from "@/src/Components/UI";
 import { useArchivedTrips } from "@/src/hooks/archive/useArchivedTrips";
 import { TRIP_STATUS_MAP } from "@/src/types/trip";
 import type { Trip } from "@/src/types/trip";

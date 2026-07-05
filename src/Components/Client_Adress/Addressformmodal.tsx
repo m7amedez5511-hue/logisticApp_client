@@ -106,9 +106,17 @@ export function AddressFormModal({ editAddress, onClose, onSubmit }: AddressForm
     },
   });
 
-  const detailsErr  = (errors as any)?.details      ?? {};
-  const contactErr  = (errors as any)?.contactPerson ?? {};
-  const locationErr = (errors as any)?.location      ?? {};
+  type AddressErrors = {
+    details?: Record<string, unknown>;
+    contactPerson?: Record<string, unknown>;
+    location?: Record<string, unknown>;
+  };
+
+  const {
+    details: detailsErr = {},
+    contactPerson: contactErr = {},
+    location: locationErr = {},
+  } = errors as AddressErrors;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };

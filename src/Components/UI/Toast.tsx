@@ -21,7 +21,7 @@ export function Toast({ notification, onDismiss }: ToastProps) {
   useEffect(() => {
     if (notification) {
       if (exitTimer.current) clearTimeout(exitTimer.current);
-      setVisible(true);
+      queueMicrotask(() => setVisible(true));
     } else {
       exitTimer.current = setTimeout(() => setVisible(false), 300);
     }

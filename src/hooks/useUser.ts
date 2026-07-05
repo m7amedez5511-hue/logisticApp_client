@@ -8,7 +8,6 @@ import type { Role } from "@/src/types/role";
 import type {
   TableAction,
   TableState,
-  User,
   UserFormData,
 } from "@/src/types/user";
 import type { ToastNotification } from "@/src/Components/UI"

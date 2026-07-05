@@ -28,7 +28,7 @@ export function useArchivedUsers() {
     }
   }, [page, search]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { queueMicrotask(load); }, [load]);
 
   const handleSearch = (value: string) => {
     setSearch(value);

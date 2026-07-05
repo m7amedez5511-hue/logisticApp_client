@@ -41,7 +41,7 @@ export function useCars(page: number, search: string) {
       .finally(() => setLoading(false));
   }, [page, search]);
 
-  useEffect(() => { loadCars(); }, [loadCars]);
+  useEffect(() => { queueMicrotask(loadCars); }, [loadCars]);
 
   // Optimistic removal after delete
   const removeCar = useCallback((id: string) => {
@@ -61,14 +61,16 @@ export function useCarDetail(carId: string) {
   const [error,   setError]   = useState<string | null>(null);
 
   useEffect(() => {
-    const token = getStoredToken();
-    setLoading(true);
-    setError(null);
-    carService
-      .getById(carId, token)
-      .then(res => setCar((res as unknown as { data: Car }).data))
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
+    queueMicrotask(() => {
+      const token = getStoredToken();
+      setLoading(true);
+      setError(null);
+      carService
+        .getById(carId, token)
+        .then(res => setCar((res as unknown as { data: Car }).data))
+        .catch((err: Error) => setError(err.message))
+        .finally(() => setLoading(false));
+    });
   }, [carId]);
 
   return { car, loading, error };
@@ -170,7 +172,7 @@ export function useCarImages(carId: string, sortBy: "asc" | "desc") {
     }
   }, [carId, sortBy]);
 
-  useEffect(() => { fetchImages(); }, [fetchImages]);
+  useEffect(() => { queueMicrotask(fetchImages); }, [fetchImages]);
 
   const uploadImages = useCallback(async (files: File[], stage: ImageStage) => {
     setUploading(true);

@@ -19,7 +19,7 @@ export function useArchivedCars() {
   const [page,    setPage]    = useState(1);
   const [search,  setSearch]  = useState("");
 
-  const load = () => {
+  const load = useCallback(() => {
     const token = getStoredToken();
     setLoading(true);
     setError(null);
@@ -31,9 +31,9 @@ export function useArchivedCars() {
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { queueMicrotask(load); }, [load]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return allCars;

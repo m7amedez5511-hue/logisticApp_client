@@ -141,8 +141,7 @@ function ArchivedTripsModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div style={{ padding: "1.5rem" }}>
-          // Was pointing at the normal trip page — send it to the archived
-          route instead
+          {/* Was pointing at the normal trip page — send it to the archived route instead */}
           <ArchivedTripList
             onView={(trip) =>
               router.push(`/dashboard/trips/archived/${trip.id}`)

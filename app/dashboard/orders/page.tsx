@@ -68,7 +68,7 @@ export default function OrderComponent() {
   const {
     orders, loading, error, total, pages, page,
     search, statusFilter, setPage, handleSearch, handleStatusFilter, clearError,
-    createOrder, updateOrder, updateStatus, deleteOrder,
+    createOrder, updateOrder, deleteOrder,
     notification, reload,
   } = useOrders();
 

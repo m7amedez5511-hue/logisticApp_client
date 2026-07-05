@@ -11,7 +11,7 @@ export function PhotoCard({
 
   // Reset error state when url changes so updated images get a fresh load attempt
   useEffect(() => {
-    setImgError(false);
+    queueMicrotask(() => setImgError(false));
   }, [url]);
 
   return (

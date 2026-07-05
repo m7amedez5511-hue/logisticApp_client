@@ -97,7 +97,7 @@ function PhotoCard({ url, label }: { url?: string | null; label: string }) {
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
-    setImgError(false);
+    queueMicrotask(() => setImgError(false));
   }, [url]);
 
   return (
@@ -196,7 +196,7 @@ export function DriverDetailPanel({
     }
   }, [driverId]);
 
-  useEffect(() => { loadDriver(); }, [loadDriver]);
+  useEffect(() => { queueMicrotask(loadDriver); }, [loadDriver]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };

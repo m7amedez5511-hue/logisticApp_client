@@ -221,14 +221,13 @@ export default function TripDetailPage() {
   }, [tripId]);
 
   useEffect(() => {
-    loadTrip();
+    queueMicrotask(loadTrip);
   }, [loadTrip]);
 
   // ── Edit submit ───────────────────────────────────────────────────────────
   const handleEditSubmit = useCallback(
     async (
       payload: CreateTripPayload | UpdateTripPayload,
-      _isNew: boolean,
     ): Promise<boolean> => {
       if (!trip) return false;
       try {

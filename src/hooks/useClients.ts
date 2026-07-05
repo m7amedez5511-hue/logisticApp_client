@@ -4,7 +4,6 @@ import { useCallback, useEffect, useReducer, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { clientService } from "@/src/services/client.service";
 import type {
-  Client,
   ClientFormData,
   ClientTableAction,
   ClientTableState,
@@ -62,8 +61,8 @@ export function useClients() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [notification, setNotification] = useState<Notification | null>(null);
-  const [roles, setRoles] = useState<[]>([]);     // placeholder — extend if needed
-  const [branches, setBranches] = useState<[]>([]); // placeholder — extend if needed
+  const [roles] = useState<[]>([]);     // placeholder — extend if needed
+  const [branches] = useState<[]>([]); // placeholder — extend if needed
 
   /** Show a toast for 4 seconds then auto-dismiss — identical to useUsers. */
   const notify = useCallback((n: Notification) => {
@@ -79,12 +78,18 @@ export function useClients() {
       const res = await clientService.getAll(p, q, token);
 
       // Normalise both pagination shapes the backend might return
-      const payload = (res as any).data ?? res;
+      const apiResponse = res as { data?: unknown };
+      const payload = apiResponse.data ?? res;
+      const response = payload as {
+        data?: Client[];
+        meta?: { total?: number; pages?: number };
+        pagination?: { total?: number; pages?: number };
+      };
       dispatch({
         type: "LOAD_OK",
-        clients: payload.data ?? [],
-        total: payload.meta?.total ?? payload.pagination?.total ?? 0,
-        pages: payload.meta?.pages ?? payload.pagination?.pages ?? 1,
+        clients: response.data ?? [],
+        total: response.meta?.total ?? response.pagination?.total ?? 0,
+        pages: response.meta?.pages ?? response.pagination?.pages ?? 1,
       });
     } catch {
       dispatch({

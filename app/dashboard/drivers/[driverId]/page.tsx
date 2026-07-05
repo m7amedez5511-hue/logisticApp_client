@@ -6,11 +6,11 @@ import { Spinner } from "@/src/Components/UI";
 import { DriverFormModal } from "@/src/Components/Driver/DriverFormModal";
 import { DriverDeleteModal } from "@/src/Components/Driver/DriverDeleteModal";
 import { DriverReportPanel } from "@/src/Components/Driver_Report/driverReport";
-import { driverService } from "@/services";
-import { getStoredToken } from "@/lib/auth";
 import type { Driver, CreateDriverPayload, UpdateDriverPayload } from "@/src/types/driver";
 import { DRIVER_STATUS_MAP, DRIVER_CARD_TYPE_MAP, NATIONAL_ID_TYPE_MAP } from "@/src/types/driver";
 import { PhotoCard } from "@/src/Components/Driver/DriverPhotos";
+import { driverService } from "@/src/services";
+import { getStoredToken } from "@/src/lib/auth";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -88,9 +88,7 @@ export default function DriverDetailPage() {
   const [avatarError, setAvatarError] = useState(false);
   // Reset avatar error when photo changes after an update
   useEffect(() => {
-    console.log(driver?.photoUrl);
-    
-    setAvatarError(false);
+    queueMicrotask(() => setAvatarError(false));
   }, [driver?.photoUrl]);
   // Toast shown after edit/delete actions on this page
   const [toast, setToast]             = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -120,11 +118,11 @@ export default function DriverDetailPage() {
     }
   }, [driverId]);
 
-  useEffect(() => { loadDriver(); }, [loadDriver]);
+  useEffect(() => { queueMicrotask(loadDriver); }, [loadDriver]);
 
   // ── Edit submit ───────────────────────────────────────────────────────────
   const handleEditSubmit = useCallback(
-    async (payload: CreateDriverPayload | UpdateDriverPayload, _isNew: boolean): Promise<boolean> => {
+    async (payload: CreateDriverPayload | UpdateDriverPayload): Promise<boolean> => {
       if (!driver) return false;
       try {
         const token = getStoredToken();

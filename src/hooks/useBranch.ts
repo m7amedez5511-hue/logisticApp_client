@@ -4,7 +4,6 @@ import { useCallback, useEffect, useReducer, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { branchService } from "@/src/services/branch.service";
 import type {
-  Branch,
   BranchFormData,
   TableAction,
   TableState,

@@ -15,9 +15,9 @@ export default function Navbar() {
   return (
     <nav dir="rtl" className="w-full border-b border-slate-200 bg-white text-slate-900 shadow-sm">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-6 lg:px-8">
-        <a href="/" className="flex items-center gap-3 text-right">
+        <Link href="/" className="flex items-center gap-3 text-right">
           <Logo />
-        </a>
+        </Link>
 
         <div className="hidden flex-1 items-center justify-center gap-6 md:flex">
           {navLinks.map((link) => (

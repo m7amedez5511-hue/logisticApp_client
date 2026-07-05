@@ -65,7 +65,7 @@ export default function DriversPage() {
     drivers, loading, error, total, pages, page,
     search, setPage, handleSearch, clearError,
     createDriver, updateDriver, deleteDriver,
-    notification, reload,
+    notification,
   } = useDrivers();
 
   // ── Panel / modal state ───────────────────────────────────────────────────

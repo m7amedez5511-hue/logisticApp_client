@@ -162,7 +162,7 @@ export function OrderDetailPanel({
     }
   }, [orderId]);
 
-  useEffect(() => { loadOrder(); }, [loadOrder]);
+  useEffect(() => { queueMicrotask(loadOrder); }, [loadOrder]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };

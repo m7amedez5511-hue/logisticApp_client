@@ -12,7 +12,6 @@ import {
   type UpdateClientFormValues,
 } from "@/src/validations/client.validator";
 import type { Client } from "@/src/types/client";
-import { Schema } from "yup";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 const S = {
@@ -71,7 +70,7 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
     setError,
     formState: { errors, isSubmitting },
   } = useForm<CreateClientFormValues | UpdateClientFormValues>({
-    resolver: yupResolver(Schema) as never, // FIX 1 applied here
+    resolver: yupResolver(schema) as never,
     defaultValues: {
       name:       editClient?.name       ?? "",
       email:      editClient?.email      ?? "",

@@ -218,16 +218,16 @@ export function OrderFormModal({
 
         // Fetch first 100 clients (enough for a practical dropdown)
         const clientRes = await clientService.getAll(1, "", token);
-        const clientPayload = (clientRes as any).data ?? clientRes;
-        const clientList: Client[] = clientPayload.data ?? [];
+        const clientPayload = (clientRes as unknown as { data?: { data?: Client[] } }).data ?? clientRes;
+        const clientList: Client[] = (clientPayload as { data?: Client[] }).data ?? [];
 
         // Fetch first 100 trips (active ones the order can be assigned to)
         const tripRes = await tripService.getAll(
           { page: 1, limit: 100 },
           token,
         );
-        const tripPayload = (tripRes as any).data ?? tripRes;
-        const tripList: Trip[] = tripPayload.data ?? [];
+        const tripPayload = (tripRes as unknown as { data?: { data?: Trip[] } }).data ?? tripRes;
+        const tripList: Trip[] = (tripPayload as { data?: Trip[] }).data ?? [];
 
         if (!cancelled) {
           setClients(clientList);

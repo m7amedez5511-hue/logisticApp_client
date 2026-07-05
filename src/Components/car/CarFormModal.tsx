@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as yup from "yup";
 import { Alert, Spinner } from "../UI";
 import { get } from "@/src/services/api";
@@ -101,9 +101,9 @@ export function CarFormModal({
 
   // ── Local branches (auto-fetched if prop is empty) ─────────────────────────
   const [branches, setBranches] = useState<Branch[]>(branchesProp);
-  useEffect(() => {
+  const loadBranches = useCallback(() => {
     if (branchesProp.length > 0) {
-      setBranches(branchesProp);
+      queueMicrotask(() => setBranches(branchesProp));
       return;
     }
     const token = getStoredToken();
@@ -111,13 +111,16 @@ export function CarFormModal({
       .then((res) => {
         const list =
           (res as unknown as { data: { data: Branch[] } }).data?.data ?? [];
-        setBranches(list);
+        queueMicrotask(() => setBranches(list));
       })
       .catch(() => {
         /* silently ignore */
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [branchesProp]);
+
+  useEffect(() => {
+    loadBranches();
+  }, [loadBranches]);
 
   // ── Form state ─────────────────────────────────────────────────────────────
   const [manufacturer, setManufacturer] = useState(editCar?.manufacturer ?? "");

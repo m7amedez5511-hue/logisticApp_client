@@ -29,7 +29,7 @@ export function useDashboardSummary(): State {
     const token = getStoredToken();
 
     if (!token) {
-      setState({ data: null, error: "Unauthenticated", loading: false });
+      queueMicrotask(() => setState({ data: null, error: "Unauthenticated", loading: false }));
       return;
     }
 

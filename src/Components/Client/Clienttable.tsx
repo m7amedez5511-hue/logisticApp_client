@@ -38,37 +38,6 @@ function AddressBadge({ count, onClick }: { count: number; onClick: () => void }
   );
 }
 
-// ── Status badge ───────────────────────────────────────────────────────────
-function StatusBadge({ active }: { active?: boolean }) {
-  const isActive = active !== false;
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        borderRadius: "var(--radius-full)",
-        border: isActive ? "1px solid #BBF7D0" : "1px solid #FECACA",
-        background: isActive ? "#DCFCE7" : "#FEF2F2",
-        padding: "0.2rem 0.625rem",
-        fontSize: 11,
-        fontWeight: 600,
-        color: isActive ? "#166534" : "#991B1B",
-      }}
-    >
-      <span
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: "50%",
-          background: isActive ? "#16A34A" : "#DC2626",
-        }}
-      />
-      {isActive ? "نشط" : "غير نشط"}
-    </span>
-  );
-}
-
 // ── Icon button ────────────────────────────────────────────────────────────
 function IconBtn({
   onClick,

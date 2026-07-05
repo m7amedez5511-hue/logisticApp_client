@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { loginUser } from "@/src/lib/auth";
 import Logo from "@/src/utils/logo";
 import { Button } from "@/src/Components/UI";
@@ -10,7 +9,6 @@ import { Input }  from "@/src/Components/UI";
 import { Alert }  from "@/src/Components/UI";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [identity, setIdentity] = useState("");
   const [password, setPassword] = useState("");
   const [error,    setError]    = useState<string | null>(null);

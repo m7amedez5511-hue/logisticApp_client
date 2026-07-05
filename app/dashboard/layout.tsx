@@ -17,10 +17,16 @@ function DashShell({ children }: { children: React.ReactNode }) {
       if (!el) return;
       const w = window.innerWidth;
       if (w >= 768 && w < 1024) {
-        
-        el.style.paddingInlineEnd = "72px";
+        // #sb-compact is `position: fixed; right: 0` (inline-start
+        // in RTL), so the content needs its reserved space on
+        // paddingInlineSTART — not End. End resolved to the wrong
+        // physical side (left) and let the fixed rail sit on top
+        // of the content on md screens. Using the CSS var instead
+        // of a hardcoded "72px" also keeps this in sync with
+        // --sidebar-width-compact if that token ever changes.
+        el.style.paddingInlineStart = "var(--sidebar-width-compact)";
       } else {
-        el.style.paddingInlineEnd = "0px";
+        el.style.paddingInlineStart = "0px";
       }
     }
 

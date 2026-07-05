@@ -16,6 +16,7 @@ import type {
   DriverStatus,
 } from "@/src/types/driver";
 import type { Branch } from "@/src/types/branch";
+import { FileInput } from "@/src/Components/Driver/DriverFormModalHelper";
 
 // ── Shared input style ───────────────────────────────────────────────────────
 
@@ -97,7 +98,7 @@ export function DriverFormModal({
   const [branches, setBranches] = useState<Branch[]>(branchesProp);
   useEffect(() => {
     if (branchesProp.length > 0) {
-      setBranches(branchesProp);
+      queueMicrotask(() => setBranches(branchesProp));
       return;
     }
     const token = getStoredToken();
@@ -108,8 +109,7 @@ export function DriverFormModal({
         setBranches(list);
       })
       .catch(() => { /* silently ignore */ });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [branchesProp]);
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [name, setName]               = useState(editDriver?.name ?? "");
@@ -172,7 +172,7 @@ export function DriverFormModal({
     setErrors((p) => ({ ...p, [field]: undefined }));
 
   // ── Submit with yup validation ────────────────────────────────────────────
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     // Build the raw object to validate
@@ -211,7 +211,6 @@ export function DriverFormModal({
       }
     }
 
-    // ── Build clean payload to send to backend ────────────────────────────
     const payload: Record<string, unknown> = { name, phone };
     if (email)            payload.email            = email;
     if (address)          payload.address          = address;
@@ -252,39 +251,6 @@ export function DriverFormModal({
       setSaving(false);
     }
   };
-
-  // ── File input helper ──────────────────────────────────────────────────────
-  function FileInput({
-    label: lbl,
-    current,
-    onChange,
-  }: {
-    label: string;
-    current: File | null;
-    onChange: (f: File | null) => void;
-  }) {
-    return (
-      <label style={labelStyle}>
-        {lbl}
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
-          style={{
-            ...inputBase,
-            padding: "0.35rem 0.75rem",
-            height: "auto",
-            cursor: "pointer",
-          }}
-        />
-        {current && (
-          <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-            {current.name}
-          </span>
-        )}
-      </label>
-    );
-  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -645,8 +611,8 @@ export function DriverFormModal({
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
-            <FileInput label="صورة السائق"  current={photo}          onChange={setPhoto} />
-            <FileInput label="صورة الهوية"  current={nationalPhoto}  onChange={setNationalPhoto} />
+            <FileInput label="صورة السائق" current={photo} onChange={setPhoto} />
+            <FileInput label="صورة الهوية" current={nationalPhoto} onChange={setNationalPhoto} />
             <FileInput label="صورة البطاقة" current={driverCardPhoto} onChange={setDriverCardPhoto} />
           </div>
 

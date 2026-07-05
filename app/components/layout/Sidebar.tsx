@@ -59,8 +59,8 @@ const navSections = [
       },
       {
         href: "/dashboard/cars_maintenance",
-        label: "الصيانة",
-        icon: "",
+        label: "صيانة السيارات",
+        icon: "ti-tool",
         permission: "read-maintenance",
       },
       {
@@ -106,7 +106,7 @@ const navSections = [
       },
       {
         href: "/dashboard/audit",
-        label: "المراجعة",
+        label: "سجل العمليات",
         icon: "ti-clipboard-list",
         permission: "read-audit",
       },
@@ -366,7 +366,8 @@ function SidebarContent({
               if (!allowed) return null;
               const active =
                 pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                (item.href !== "/dashboard" &&
+                  pathname.startsWith(item.href + "/"));
               return (
                 <Link
                   key={item.href}
