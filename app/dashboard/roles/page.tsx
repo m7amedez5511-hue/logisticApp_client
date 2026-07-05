@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Alert } from "@/src/Components/UI";
+import { Alert, ArchiveButton } from "@/src/Components/UI";
 import { RoleTable }       from "@/src/Components/role/RoleTable";
 import { RoleFormModal }   from "@/src/Components/role/RoleFormModal";
 import { RoleDetailModal } from "@/src/Components/role/RoleDetailModal";
@@ -9,6 +9,8 @@ import { DeleteRoleModal } from "@/src/Components/role/DeleteRoleModal";
 import { Toast }       from "@/src/Components/UI";
 import { useRoles }        from "@/src/hooks/useRole";
 import { Role, RoleFormData } from "@/src/types/role";
+import { ArchivedRolesModal } from "@/src/Components/role/archive/ArchivedRolesModal";
+
 
 export default function RolesPage() {
   // ── Modal state ──────────────────────────────────────────────────────────────
@@ -17,6 +19,8 @@ export default function RolesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
   const [viewRoleId,   setViewRoleId]   = useState<string | null>(null);
   const [deleting,     setDeleting]     = useState(false);
+  // Archive browser modal open/closed
+  const [archiveOpen,  setArchiveOpen]  = useState(false);
 
   // ── Data hook ────────────────────────────────────────────────────────────────
   const {
@@ -80,6 +84,11 @@ export default function RolesPage() {
           onCancel={() => { if (!deleting) setDeleteTarget(null); }}
           onConfirm={handleDeleteConfirm}
         />
+      )}
+
+      {/* Archive browser modal */}
+      {archiveOpen && (
+        <ArchivedRolesModal onClose={() => setArchiveOpen(false)} />
       )}
 
       <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -175,6 +184,9 @@ export default function RolesPage() {
           onPageChange={setPage}
         />
       </section>
+
+      {/* Floating button to open the archive browser */}
+      <ArchiveButton onClick={() => setArchiveOpen(true)} />
     </>
   );
 }

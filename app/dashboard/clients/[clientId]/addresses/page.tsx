@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import { Alert, Toast } from "@/src/Components/UI";
+import { Alert, Toast, ArchiveButton } from "@/src/Components/UI";
 
 import { useClientAddresses } from "@/src/hooks/useClientAddresses";
 import { clientService }      from "@/src/services/client.service";
@@ -13,6 +13,7 @@ import type { Client, ClientFormData } from "@/src/types/client";
 import type { ClientAddress }          from "@/src/types/client_adresses";
 
 import { AddressFormModal, DeleteConfirmModal, ClientFormModal } from "@/src/Components/Client";
+import { ArchivedClientsAddressesModal } from "@/src/Components/Client_Adress/archive/ArchivedClientsAddressesModal";
 import type {
   CreateAddressFormValues,
   UpdateAddressFormValues,
@@ -352,6 +353,8 @@ export default function ClientAddressesPage() {
   const [deleteTarget,   setDeleteTarget]   = useState<ClientAddress | null>(null);
   const [deleting,       setDeleting]       = useState(false);
   const [editingClient,  setEditingClient]  = useState(false);
+  // Archive browser modal open/closed — scoped to this client's addresses
+  const [archiveOpen,    setArchiveOpen]    = useState(false);
 
   // ── Address form handler ─────────────────────────────────────────────────
   const handleAddressSubmit = async (
@@ -442,6 +445,14 @@ export default function ClientAddressesPage() {
           client={client}
           onClose={() => setEditingClient(false)}
           onSubmit={handleClientEditSubmit}
+        />
+      )}
+
+      {/* Archived addresses browser — scoped to this client */}
+      {archiveOpen && (
+        <ArchivedClientsAddressesModal
+          clientId={clientId}
+          onClose={() => setArchiveOpen(false)}
         />
       )}
 
@@ -655,6 +666,9 @@ export default function ClientAddressesPage() {
           </div>
         )}
       </section>
+
+      {/* Floating button to open the address archive for this client */}
+      <ArchiveButton onClick={() => setArchiveOpen(true)} label="أرشيف العناوين" />
     </>
   );
 }

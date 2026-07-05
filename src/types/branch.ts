@@ -81,3 +81,43 @@ export interface BranchDetail extends Branch {
   isDeleted: boolean;
   deletedAt: string | null;
 }
+// Archived branch resource returned by the archive endpoints
+export interface ArchivedBranch {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  country: string;
+  city: string;
+  state?: string | null;
+  district?: string | null;
+  street: string;
+  buildingNo?: string | null;
+  unitNo?: string | null;
+  zipCode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  isActive: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// GET /branches/archived/{id}
+export interface ArchivedBranchResponse {
+  data: ArchivedBranch;
+}
+
+// GET /branches/archived  (uses `meta`, not `pagination` — same shape as
+// ArchivedUserListResponse, kept distinct rather than reused across domains)
+export interface ArchivedBranchListResponse {
+  data: {
+    data: ArchivedBranch[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+}

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
-import { archivedBranchService } from "@/src/services/archive/archivedBranch.service";
-import type { ArchivedBranch } from "@/src/types/branch";
+import { archivedClientService } from "@/src/services/archive/archivedClient.service";
+import type { ArchivedClient } from "@/src/types/client";
 
-export function useArchivedBranches() {
-  const [branches, setBranches] = useState<ArchivedBranch[]>([]);
+export function useArchivedClients() {
+  const [clients, setClients] = useState<ArchivedClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
@@ -16,13 +16,13 @@ export function useArchivedBranches() {
     setLoading(true);
     try {
       const token = getStoredToken();
-      const res = await archivedBranchService.getAll(page, search, token);
-      setBranches(res.data.data);
+      const res = await archivedClientService.getAll(page, search, token);
+      setClients(res.data.data);
       setTotal(res.data.meta.total);
       setPages(res.data.meta.totalPages);
       setError(null);
     } catch {
-      setError("تعذّر تحميل قائمة الفروع المؤرشفة. يرجى المحاولة لاحقاً.");
+      setError("تعذّر تحميل قائمة عملاء الأرشيف. يرجى المحاولة لاحقاً.");
     } finally {
       setLoading(false);
     }
@@ -36,7 +36,7 @@ export function useArchivedBranches() {
   };
 
   return {
-    branches, loading, total, pages, page, search, error,
+    clients, loading, total, pages, page, search, error,
     setPage, handleSearch, clearError: () => setError(null),
     refresh: load,
   };

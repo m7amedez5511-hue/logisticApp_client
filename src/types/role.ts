@@ -78,3 +78,25 @@ export interface ApiErrorResponse {
     details: ApiErrorDetail[];
   };
 }
+// Archived role resource returned by the archive endpoints
+export interface ArchivedRole {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// GET /role/archived/{id}
+export interface ArchivedRoleResponse {
+  data: ArchivedRole;
+}
+
+// GET /role/archived — NOTE: unlike users/branches archive endpoints,
+// this one returns a plain array with no pagination/meta wrapper.
+// Search & pagination are therefore handled client-side in the hook.
+export interface ArchivedRoleListResponse {
+  data: ArchivedRole[];
+}

@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Toast } from "@/src/Components/UI";
+import { Alert, Toast, ArchiveButton } from "@/src/Components/UI";
 import { BranchTable }         from "@/src/Components/Branch/BranchTable";
 import { BranchFormModal }     from "@/src/Components/Branch/BranchFormModal";
 import { BranchDetailModal }   from "@/src/Components/Branch/BranchDetailModal";
 import { DeleteConfirmModal }  from "@/src/Components/Branch/DeleteConfirmModal";
 import { useBranches }         from "@/src/hooks/useBranch";
 import type { Branch, BranchFormData } from "@/src/types/branch";
+import { ArchivedBranchesModal } from "@/src/Components/Branch/archive/ArchivedBranchesModal";
+
 
 export default function BranchesPage() {
   // ── Modal state ─────────────────────────────────────────────────────────────
@@ -16,6 +18,8 @@ export default function BranchesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Branch | null>(null);
   // ID of branch whose detail modal is open; null = closed
   const [viewBranchId, setViewBranchId] = useState<string | null>(null);
+  // Archive browser modal open/closed
+  const [archiveOpen,  setArchiveOpen]  = useState(false);
   // Local submitting flag shown in DeleteConfirmModal spinner
   const [deleting, setDeleting] = useState(false);
 
@@ -79,6 +83,11 @@ export default function BranchesPage() {
           }}
           onConfirm={handleDeleteConfirm}
         />
+      )}
+
+      {/* Archive browser modal */}
+      {archiveOpen && (
+        <ArchivedBranchesModal onClose={() => setArchiveOpen(false)} />
       )}
 
       <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -175,6 +184,9 @@ export default function BranchesPage() {
           onPageChange={setPage}
         />
       </section>
+
+      {/* Floating button to open the archive browser */}
+      <ArchiveButton onClick={() => setArchiveOpen(true)} />
     </>
   );
 }

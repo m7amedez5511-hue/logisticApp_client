@@ -166,6 +166,7 @@ export function useRoles() {
     async (
       id: string,
       data: RoleFormData,
+      currentPermIds: string[]
     ): Promise<boolean> => {
       try {
         const token = getStoredToken();

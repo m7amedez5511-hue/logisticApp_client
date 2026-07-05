@@ -88,3 +88,65 @@ export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;
 }
+// ─── Archive: Client ────────────────────────────────────────────────────────
+
+// Archived client resource returned by the archive endpoints
+export interface ArchivedClient {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  taxId?: string;
+  notes?: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+  addresses?: ClientAddress[];
+}
+
+// GET /client/archived/{id}
+export interface ArchivedClientResponse {
+  data: ArchivedClient;
+}
+
+// GET /client/archived — uses `meta`, not `pagination`, matching the
+// archived-users list shape rather than the live client list shape.
+export interface ArchivedClientListResponse {
+  data: {
+    data: ArchivedClient[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+}
+
+// ─── Archive: Client orders ─────────────────────────────────────────────────
+
+// Archived order belonging to a specific client
+export interface ArchivedClientOrder {
+  id: string;
+  orderNumber?: string;
+  status: string;
+  totalAmount?: number;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+}
+
+// GET /client/{id}/orders/archived
+export interface ArchivedClientOrdersResponse {
+  data: {
+    data: ArchivedClientOrder[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+}

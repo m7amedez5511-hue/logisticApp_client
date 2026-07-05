@@ -81,3 +81,50 @@ export type AddressTableAction =
   | { type: "UPDATE"; address: ClientAddress }
   | { type: "DELETE"; id: string }
   | { type: "CLEAR_ERR" };
+  // ─── Archive: Client Addresses ─────────────────────────────────────────────
+
+// Archived address resource returned by GET /addresses/archived.
+// Kept as its own type (not reusing ClientAddress) because the archive
+// endpoint uses `_id` instead of `id` and includes the raw GeoJSON `type`
+// field on `location` — mirrors how ArchivedUser is kept separate from User.
+export interface ArchivedClientAddress {
+  _id: string;
+  clientId: string;
+  branchName: string | null;
+  label: string;
+  contactPerson?: {
+    name?: string;
+    phone?: string;
+  };
+  details: {
+    country: string;
+    city: string;
+    state?: string;
+    district?: string;
+    street: string;
+    buildingNo?: string;
+    unitNo?: string;
+    additionalNo?: string;
+    zipCode?: string;
+    apartment?: string;
+  };
+  location: {
+    type: "Point";
+    coordinates: [number, number];
+  };
+  isValidated?: boolean;
+  isPrimary?: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+}
+
+// GET /addresses/archived — NOTE: flat array, no pagination meta,
+// unlike users/archived and client/archived. Wrapper mirrors the raw
+// API envelope (success/message/responseAt) rather than ApiListResponse<T>.
+export interface ArchivedClientAddressListResponse {
+  success: boolean;
+  message: string;
+  responseAt: string;
+  data: ArchivedClientAddress[];
+}

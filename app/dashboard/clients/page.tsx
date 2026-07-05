@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 // ── UI components ──────────────────────────────────────────────────────────
 // NOTE: Toast is now imported from the canonical UI barrel, NOT from Client/Toast.
-import { Alert, Toast } from "@/src/Components/UI";
+import { Alert, Toast, ArchiveButton } from "@/src/Components/UI";
 
 // ── Client-specific components ─────────────────────────────────────────────
 import { useClients }         from "@/src/hooks/useClients";
@@ -14,6 +14,8 @@ import type { Client, ClientFormData } from "@/src/types/client";
 import { ClientFormModal }    from "@/src/Components/Client/Clientformmodal";
 import { ClientTable }        from "@/src/Components/Client/Clienttable";
 import { DeleteConfirmModal } from "@/src/Components/Client/Deleteconfirmmodal";
+import { ArchivedClientsModal } from "@/src/Components/Client/archive/ArchivedClientsModal";
+
 
 export default function ClientsPage() {
   const router = useRouter();
@@ -23,6 +25,8 @@ export default function ClientsPage() {
   const [formTarget,   setFormTarget]   = useState<Client | null | false>(false);
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [deleting,     setDeleting]     = useState(false);
+  // Archive browser modal open/closed
+  const [archiveOpen,  setArchiveOpen]  = useState(false);
 
   // ── Data hook ────────────────────────────────────────────────────────────
   const {
@@ -85,6 +89,11 @@ export default function ClientsPage() {
           onCancel={() => { if (!deleting) setDeleteTarget(null); }}
           onConfirm={handleDeleteConfirm}
         />
+      )}
+
+      {/* Archive browser modal */}
+      {archiveOpen && (
+        <ArchivedClientsModal onClose={() => setArchiveOpen(false)} />
       )}
 
       <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -244,6 +253,9 @@ export default function ClientsPage() {
           onManageAddresses={handleManageAddresses}
         />
       </section>
+
+      {/* Floating button to open the archive browser */}
+      <ArchiveButton onClick={() => setArchiveOpen(true)} label="أرشيف العملاء" />
     </>
   );
 }
