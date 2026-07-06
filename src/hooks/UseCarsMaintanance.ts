@@ -28,8 +28,7 @@ export function useCarMaintenanceList(carId: string | null) {
     carMaintenanceService
       .getAll(carId, token)
       .then((res) => {
-        const payload = (res as unknown as { data: { data: CarMaintenance[] } }).data ?? res;
-        const list = (payload as { data: CarMaintenance[] }).data ?? [];
+        const list = (res as unknown as { data: CarMaintenance[] }).data ?? [];
         list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setRecords(list);
       })
@@ -89,8 +88,8 @@ export function useCarArchivedMaintenance(carId: string | null) {
     carMaintenanceService
       .getArchived(carId, token)
       .then((res) => {
-        const payload = (res as unknown as { data: { data: CarMaintenance[] } }).data ?? res;
-        setRecords((payload as { data: CarMaintenance[] }).data ?? []);
+        const list = (res as unknown as { data: CarMaintenance[] }).data ?? [];
+        setRecords(list);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
@@ -115,8 +114,8 @@ export function useGlobalArchivedMaintenance() {
     carMaintenanceService
       .getAllArchivedGlobal(token)
       .then((res) => {
-        const payload = (res as unknown as { data: { data: CarMaintenance[] } }).data ?? res;
-        setRecords((payload as { data: CarMaintenance[] }).data ?? []);
+        const list = (res as unknown as { data: CarMaintenance[] }).data ?? [];
+        setRecords(list);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));

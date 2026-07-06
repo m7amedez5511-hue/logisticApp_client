@@ -91,11 +91,7 @@ export type UpdateMaintenancePayload = Partial<CreateMaintenancePayload> & {
 // ── API Responses ─────────────────────────────────────────────────────────────
 
 export interface MaintenanceListResponse {
-  data: {
-    data: CarMaintenance[];
-    pagination?: { total: number; page: number; pages: number };
-    meta?: { total: number; pages: number };
-  };
+  data: CarMaintenance[];
 }
 
 export interface MaintenanceDetailResponse {

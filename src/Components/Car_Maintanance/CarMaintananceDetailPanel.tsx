@@ -23,7 +23,6 @@ import type {
 } from "@/src/types/carMaintanance";
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
-// Small floating message that confirms an action worked (or explains why it didn't).
 
 function MaintenanceToast({ notification }: { notification: { type: "success" | "error"; message: string } | null }) {
   if (!notification) return null;
@@ -127,11 +126,16 @@ interface CarMaintenanceDetailPanelProps {
   /** e.g. "تويوتا لاند كروزر — أ ب ج 1234", shown in the header. */
   carLabel?: string;
   onClose: () => void;
+  /** Called after any maintenance create/update/delete succeeds, since those
+   *  operations can also change the parent car's currentStatus on the backend.
+   *  The caller should use this to refetch the car it's displaying elsewhere
+   *  (e.g. in a CarDetailPanel shown alongside this one). */
+  onCarStatusChanged?: () => void;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function CarMaintenanceDetailPanel({ carId, carLabel, onClose }: CarMaintenanceDetailPanelProps) {
+export function CarMaintenanceDetailPanel({ carId, carLabel, onClose, onCarStatusChanged }: CarMaintenanceDetailPanelProps) {
   const { records, loading, error, loadRecords, removeRecord } = useCarMaintenanceList(carId);
   const { toast, notify } = useMaintenanceToast();
 
@@ -145,9 +149,9 @@ export function CarMaintenanceDetailPanel({ carId, carLabel, onClose }: CarMaint
 
   const { deleting, handleFormSubmit, handleDeleteConfirm } = useCarMaintenanceMutations({
     carId,
-    onSuccess: (msg) => { notify({ type: "success", message: msg }); loadRecords(); },
+    onSuccess: (msg) => { notify({ type: "success", message: msg }); loadRecords(); onCarStatusChanged?.(); },
     onError:   (msg) =>   notify({ type: "error", message: msg }),
-    onDeleted: (id) => { removeRecord(id); setDeleteTarget(null); },
+    onDeleted: (id) => { removeRecord(id); setDeleteTarget(null); onCarStatusChanged?.(); },
     getEditTarget,
   });
 

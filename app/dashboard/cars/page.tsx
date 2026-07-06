@@ -7,9 +7,12 @@ import { CarFormModal }      from "@/src/Components/car/CarFormModal";
 import { CarDetailPanel }    from "@/src/Components/car/CarDetailPanel";
 import { CarDeleteModal }    from "@/src/Components/car/CarDeleteModal";
 import { ArchivedCarsModal } from "@/src/Components/car/archive/Archivedcarsmodal";
+import { CarMaintenanceFormModal } from "@/src/Components/Car_Maintanance/CarMaintananceFormModal";
 import { useCars, useCarMutations, useToast } from "@/src/hooks/useCars";
+import { useCarMaintenanceMutations } from "@/src/hooks/UseCarsMaintanance";
 import { fmtDateShort, isExpiringSoon, STATUS_MAP, INS_MAP } from "@/src/types/car";
 import type { Car, CreateCarPayload, ToastMsg, UpdateCarPayload } from "@/src/types/car";
+import type { CreateMaintenancePayload, UpdateMaintenancePayload } from "@/src/types/carMaintanance";
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 
@@ -41,10 +44,29 @@ function CarToast({ notification }: { notification: ToastMsg | null }) {
 
 // ── CarCard ───────────────────────────────────────────────────────────────────
 
-function CarCard({ car, onClick }: { car: Car; onClick: () => void }) {
+function CarCard({
+  car,
+  onClick,
+  onSendToMaintenance,
+}: {
+  car: Car;
+  onClick: () => void;
+  onSendToMaintenance: (car: Car) => void;
+}) {
   const status = STATUS_MAP[car.currentStatus];
   const ins    = car.insuranceStatus ? INS_MAP[car.insuranceStatus] : null;
   const regWarn = isExpiringSoon(car.registrationExpiryDate);
+
+  // Maintenance status can ONLY be set via this button's flow (POST
+  // cars/:carId/maintenance flips it on the backend). Disable rather than
+  // hide it once the car is already in maintenance or inactive, and explain why.
+  const maintenanceDisabled = car.currentStatus === "InMaintenance" || car.currentStatus === "Inactive";
+  const maintenanceDisabledReason =
+    car.currentStatus === "InMaintenance"
+      ? "المركبة في الصيانة بالفعل"
+      : car.currentStatus === "Inactive"
+        ? "لا يمكن إرسال مركبة غير نشطة للصيانة"
+        : undefined;
 
   return (
     <article
@@ -151,8 +173,37 @@ function CarCard({ car, onClick }: { car: Car; onClick: () => void }) {
           </div>
         </div>
 
+        {/* Send to Maintenance quick action */}
+        <button
+          type="button"
+          title={maintenanceDisabledReason}
+          disabled={maintenanceDisabled}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSendToMaintenance(car);
+          }}
+          style={{
+            marginTop: "0.875rem",
+            width: "100%",
+            height: 34,
+            borderRadius: "var(--radius-md)",
+            border: `1px solid ${maintenanceDisabled ? "var(--color-border)" : "#FDE68A"}`,
+            background: maintenanceDisabled ? "var(--color-surface-muted)" : "#FFFBEB",
+            fontSize: 12, fontWeight: 700,
+            color: maintenanceDisabled ? "var(--color-text-hint)" : "#854D0E",
+            cursor: maintenanceDisabled ? "not-allowed" : "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            fontFamily: "var(--font-sans)",
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </svg>
+          إرسال للصيانة
+        </button>
+
         {/* Footer CTA hint */}
-        <p style={{ marginTop: "0.875rem", fontSize: 11, color: "var(--color-brand-600)", fontWeight: 600, textAlign: "left" }}>
+        <p style={{ marginTop: "0.75rem", fontSize: 11, color: "var(--color-brand-600)", fontWeight: 600, textAlign: "left" }}>
           اضغط لعرض التفاصيل ←
         </p>
       </div>
@@ -171,6 +222,7 @@ export default function CarsPage() {
   const [formTarget,   setFormTarget]   = useState<Car | null | false>(false); // false = closed
   const [deleteTarget, setDeleteTarget] = useState<Car | null>(null);
   const [archiveOpen,  setArchiveOpen]  = useState(false);
+  const [maintenanceTarget, setMaintenanceTarget] = useState<Car | null>(null);
 
   const { toast, notify } = useToast();
 
@@ -193,6 +245,18 @@ export default function CarsPage() {
     if (!deleteTarget) return;
     await handleDeleteConfirm(deleteTarget);
   };
+
+  // "Send to Maintenance" mutation — carId is bound to whichever car the
+  // person just clicked. Errors surface inline inside the modal's own
+  // apiError state (its default behavior), not through the outer toast —
+  // onError is intentionally a no-op here.
+  const { handleFormSubmit: handleMaintenanceSubmit } = useCarMaintenanceMutations({
+    carId: maintenanceTarget?.id ?? "",
+    onSuccess: (msg) => { notify({ type: "success", message: msg }); loadCars(); },
+    onError: () => {},
+    onDeleted: () => {},
+    getEditTarget: () => null,
+  });
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -225,6 +289,17 @@ export default function CarsPage() {
           deleting={deleting}
           onCancel={() => setDeleteTarget(null)}
           onConfirm={handleDelete}
+        />
+      )}
+
+      {maintenanceTarget && (
+        <CarMaintenanceFormModal
+          editRecord={null}
+          carLabel={`${maintenanceTarget.manufacturer} ${maintenanceTarget.model} — ${maintenanceTarget.plateLetters} ${maintenanceTarget.plateNumber}`}
+          onClose={() => setMaintenanceTarget(null)}
+          onSubmit={(payload: CreateMaintenancePayload | UpdateMaintenancePayload, isNew: boolean) =>
+            handleMaintenanceSubmit(payload, isNew)
+          }
         />
       )}
 
@@ -357,6 +432,7 @@ export default function CarsPage() {
                 key={car.id}
                 car={car}
                 onClick={() => setDetailId(car.id)}
+                onSendToMaintenance={(c) => setMaintenanceTarget(c)}
               />
             ))}
           </div>

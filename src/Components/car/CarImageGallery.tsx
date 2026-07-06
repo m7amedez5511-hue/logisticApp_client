@@ -19,6 +19,8 @@ export function CarImageGallery({ car, onClose }: CarImageGalleryProps) {
   const [stage,    setStage]    = useState<ImageStage>("GENERAL");
   const [sortBy,   setSortBy]   = useState<"asc" | "desc">("desc");
   const [lightbox, setLightbox] = useState<CarImage | null>(null);
+  const [lightboxLoaded, setLightboxLoaded] = useState(false);
+  const [loadedIds, setLoadedIds] = useState<Set<string>>(new Set());
   const fileRef                 = useRef<HTMLInputElement>(null);
 
   const {
@@ -46,6 +48,18 @@ export function CarImageGallery({ car, onClose }: CarImageGalleryProps) {
   };
 
   const imgSrc = (img: CarImage) => img.url ?? `/api/proxy/car-photos/${img.image}`;
+
+  const markLoaded = (id: string) =>
+    setLoadedIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+
+  const openLightbox = (img: CarImage) => {
+    setLightbox(img);
+    setLightboxLoaded(false);
+  };
 
   return (
     <div
@@ -141,6 +155,7 @@ export function CarImageGallery({ car, onClose }: CarImageGalleryProps) {
             {images.map(img => {
               const stageInfo = STAGE_MAP[img.stage ?? "GENERAL"] ?? STAGE_MAP.GENERAL;
               const isDeleting = deleting === img.id;
+              const isLoaded = loadedIds.has(img.id);
               return (
                 <div key={img.id} style={{
                   borderRadius: "var(--radius-xl)",
@@ -151,13 +166,27 @@ export function CarImageGallery({ car, onClose }: CarImageGalleryProps) {
                   opacity: isDeleting ? 0.5 : 1,
                   transition: "opacity 200ms",
                 }}>
-                  <div style={{ position: "relative", paddingBottom: "70%", cursor: "pointer" }} onClick={() => setLightbox(img)}>
+                  <div style={{ position: "relative", paddingBottom: "70%", cursor: "pointer", background: "var(--color-surface-muted)" }} onClick={() => openLightbox(img)}>
+                    {!isLoaded && (
+                      <div style={{
+                        position: "absolute", inset: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "var(--color-surface-muted)",
+                      }}>
+                        <Spinner size="sm" className="text-blue-600" />
+                      </div>
+                    )}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={imgSrc(img)}
                       alt={`صورة ${stageInfo.label}`}
-                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-                      onError={e => { (e.target as HTMLImageElement).src = "/file.svg"; }}
+                      style={{
+                        position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover",
+                        opacity: isLoaded ? 1 : 0,
+                        transition: "opacity 200ms",
+                      }}
+                      onLoad={() => markLoaded(img.id)}
+                      onError={e => { (e.target as HTMLImageElement).src = "/file.svg"; markLoaded(img.id); }}
                     />
                     <span style={{
                       position: "absolute", top: 8, right: 8,
@@ -196,13 +225,23 @@ export function CarImageGallery({ car, onClose }: CarImageGalleryProps) {
       {/* ── Lightbox ── */}
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(0,0,0,0.9)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          {!lightboxLoaded && (
+            <div style={{ position: "absolute", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Spinner size="lg" className="text-white" />
+            </div>
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={imgSrc(lightbox)}
             alt="عرض مكبَّر"
-            style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: "var(--radius-lg)", objectFit: "contain" }}
+            style={{
+              maxWidth: "90vw", maxHeight: "90vh", borderRadius: "var(--radius-lg)", objectFit: "contain",
+              opacity: lightboxLoaded ? 1 : 0,
+              transition: "opacity 200ms",
+            }}
             onClick={e => e.stopPropagation()}
-            onError={e => { (e.target as HTMLImageElement).src = "/file.svg"; }}
+            onLoad={() => setLightboxLoaded(true)}
+            onError={e => { (e.target as HTMLImageElement).src = "/file.svg"; setLightboxLoaded(true); }}
           />
           <button onClick={() => setLightbox(null)} style={{ position: "absolute", top: 24, right: 24, width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             ×

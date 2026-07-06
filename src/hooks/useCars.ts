@@ -53,27 +53,29 @@ export function useCars(page: number, search: string) {
 }
 
 // ── useCarDetail ──────────────────────────────────────────────────────────────
-// Fetches a single car by ID — used in CarDetailPanel.
+// Fetches a single car by ID — used in CarDetailPanel. Exposes `refetch` so
+// callers can re-sync the car (e.g. its currentStatus) after a maintenance
+// record is created/updated/deleted elsewhere in the tree.
 
 export function useCarDetail(carId: string) {
   const [car,     setCar]     = useState<Car | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      const token = getStoredToken();
-      setLoading(true);
-      setError(null);
-      carService
-        .getById(carId, token)
-        .then(res => setCar((res as unknown as { data: Car }).data))
-        .catch((err: Error) => setError(err.message))
-        .finally(() => setLoading(false));
-    });
+  const loadCar = useCallback(() => {
+    const token = getStoredToken();
+    setLoading(true);
+    setError(null);
+    carService
+      .getById(carId, token)
+      .then(res => setCar((res as unknown as { data: Car }).data))
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
   }, [carId]);
 
-  return { car, loading, error };
+  useEffect(() => { queueMicrotask(loadCar); }, [loadCar]);
+
+  return { car, loading, error, refetch: loadCar };
 }
 
 // ── useCarMutations ───────────────────────────────────────────────────────────

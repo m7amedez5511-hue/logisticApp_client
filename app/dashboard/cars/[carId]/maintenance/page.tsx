@@ -97,7 +97,7 @@ export default function CarMaintenancePage() {
   const { carId } = useParams<{ carId: string }>();
   const router = useRouter();
 
-  const { car } = useCarDetail(carId);
+  const { car, refetch: refetchCar } = useCarDetail(carId);
   const carLabel = car ? `${car.manufacturer} ${car.model} — ${car.plateLetters} ${car.plateNumber}` : undefined;
 
   const { records, loading, error, loadRecords, removeRecord, setError } = useCarMaintenanceList(carId);
@@ -114,9 +114,9 @@ export default function CarMaintenancePage() {
 
   const { deleting, handleFormSubmit, handleDeleteConfirm } = useCarMaintenanceMutations({
     carId,
-    onSuccess: (msg) => { notify({ type: "success", message: msg }); loadRecords(); },
+    onSuccess: (msg) => { notify({ type: "success", message: msg }); loadRecords(); refetchCar(); },
     onError:   (msg) =>   notify({ type: "error", message: msg }),
-    onDeleted: (id) => { removeRecord(id); setDeleteTarget(null); },
+    onDeleted: (id) => { removeRecord(id); setDeleteTarget(null); refetchCar(); },
     getEditTarget,
   });
 
