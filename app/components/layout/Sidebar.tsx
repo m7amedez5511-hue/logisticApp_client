@@ -58,12 +58,6 @@ const navSections = [
         permission: "read-car",
       },
       {
-        href: "/dashboard/cars_maintenance",
-        label: "صيانة السيارات",
-        icon: "ti-tool",
-        permission: "read-maintenance",
-      },
-      {
         href: "/dashboard/drivers",
         label: "السائقون",
         icon: "ti-steering-wheel",

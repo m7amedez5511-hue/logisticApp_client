@@ -35,6 +35,8 @@ export const carMaintenanceService = {
   /**
    * POST /cars/:carId/maintenance
    * Create a new maintenance record for a car.
+   * NOTE: this is the ONLY way a car's status can move to "InMaintenance" —
+   * there is no direct car-status edit anywhere in the frontend anymore.
    *
    * Example request body:
    * { "reason": "تغيير زيت", "cost": 150, "startAt": "2026-01-10T00:00:00.000Z" }
@@ -62,17 +64,26 @@ export const carMaintenanceService = {
   /**
    * DELETE /cars/:carId/maintenance/:maintenanceId
    * Soft-delete a maintenance record (returns 204 No Content).
+   * NOTE: backend reverts the car's status to "Active" and logs the
+   * transition in CarStatusHistory as a side effect of this call.
    */
   delete: (carId: string, maintenanceId: string, token: string | null) =>
     del<void>(`cars/${carId}/maintenance/${maintenanceId}`, token),
 
   /**
    * GET /cars/:carId/maintenance/archived
-   * Fetch soft-deleted maintenance records for a car — mirrors the car
-   * module's archive pattern in case the backend exposes the same route.
+   * Fetch soft-deleted maintenance records for a single car.
    */
   getArchived: (carId: string, token: string | null) =>
     get<MaintenanceListResponse>(`cars/${carId}/maintenance/archived`, token),
+
+  /**
+   * GET /maintenance/archived
+   * Fetch every soft-deleted maintenance record system-wide (not scoped to
+   * one car). Used by an admin/audit view rather than the per-car panel.
+   */
+  getAllArchivedGlobal: (token: string | null) =>
+    get<MaintenanceListResponse>("maintenance/archived", token),
 };
 
 // Re-exported so callers can build extra filters (day/month/year, search…)
