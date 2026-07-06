@@ -1,16 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { carService } from "@/src/services/car.service";
 import type { Car } from "@/src/types/car";
 
 const PAGE_SIZE = 12;
-
-// ── useArchivedCars ───────────────────────────────────────────────────────────
-// GET /cars/archived returns the full archived list at once (no page/search
-// params on the backend), so pagination + search are done client-side here —
-// mirrors the page/search/pages contract of useCars for a consistent UI.
 
 export function useArchivedCars() {
   const [allCars, setAllCars] = useState<Car[]>([]);
