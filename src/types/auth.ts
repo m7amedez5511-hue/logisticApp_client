@@ -1,4 +1,4 @@
-export interface AuthUser {
+export interface User {
   id?: string;
   name?: string;
   userName?: string;
@@ -10,11 +10,25 @@ export interface AuthUser {
   [key: string]: unknown;
 }
 
-export interface LoginResponse {
-  token: string;
-  user: AuthUser;
+export type AuthUser = User;
+
+export interface LoginRequest {
+  userName?: string;
+  email?: string;
+  phone?: string;
+  password: string;
 }
+
 export interface LoginPayload {
   identity: string;
   password: string;
+}
+
+export interface LoginResponse {
+  token?: string;
+  user?: User;
+  data?: {
+    token?: string;
+    user?: User;
+  };
 }

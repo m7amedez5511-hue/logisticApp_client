@@ -5,6 +5,42 @@ const AUTH_TOKEN_KEY    = "auth_token";
 const AUTH_USER_KEY     = "auth_user";
 const AUTH_TOKEN_COOKIE = "auth_token";
 
+function normalizeUser(user: AuthUser | null | undefined): AuthUser | null {
+  if (!user) return null;
+
+  const rawRole = (user as unknown as { role?: unknown }).role;
+  const roleName = typeof rawRole === "string"
+    ? rawRole
+    : typeof rawRole === "object" && rawRole !== null && "name" in rawRole && typeof (rawRole as { name?: unknown }).name === "string"
+      ? (rawRole as { name: string }).name
+      : undefined;
+
+  const rawPermissions = Array.isArray((user as unknown as { permissions?: unknown[] }).permissions)
+    ? (user as unknown as { permissions?: unknown[] }).permissions
+    : typeof rawRole === "object" && rawRole !== null && "permissions" in rawRole
+      ? ((rawRole as { permissions?: unknown[] }).permissions ?? [])
+      : [];
+
+  const permissions = Array.isArray(rawPermissions)
+    ? rawPermissions
+        .map((entry) => {
+          if (typeof entry === "string") return entry;
+          if (entry && typeof entry === "object") {
+            if ("slug" in entry && typeof (entry as { slug?: unknown }).slug === "string") {
+              return (entry as { slug: string }).slug;
+            }
+            if ("permission" in entry && entry.permission && typeof (entry.permission as { slug?: unknown }).slug === "string") {
+              return (entry.permission as { slug: string }).slug;
+            }
+          }
+          return null;
+        })
+        .filter((entry): entry is string => Boolean(entry))
+    : [];
+
+  return { ...user, role: roleName, permissions };
+}
+
 // ── Cookie helpers ─────────────────────────────────────────────────────────
 function setTokenCookie(token: string) {
   if (typeof document === "undefined") return;
@@ -27,13 +63,14 @@ export function getStoredUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(AUTH_USER_KEY);
   if (!raw) return null;
-  try { return JSON.parse(raw) as AuthUser; } catch { return null; }
+  try { return normalizeUser(JSON.parse(raw) as AuthUser); } catch { return null; }
 }
 
 export function saveAuth(token: string, user: AuthUser) {
   if (typeof window === "undefined") return;
+  const normalizedUser = normalizeUser(user);
   localStorage.setItem(AUTH_TOKEN_KEY, token);
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(normalizedUser));
   setTokenCookie(token);
 }
 
