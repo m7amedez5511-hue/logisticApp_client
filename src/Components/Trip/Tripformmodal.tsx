@@ -121,7 +121,7 @@ export function TripFormModal({
         ),
       )
       .catch(() => {});
-    get<{ data: { data: CarOption[] } }>("cars?limit=100&status=Active", token)
+    get<{ data: { data: CarOption[] } }>("cars?limit=100&currentStatus=Active", token)
       .then((res) =>
         setCars(
           (res as unknown as { data: { data: CarOption[] } }).data?.data ?? [],
@@ -137,7 +137,7 @@ export function TripFormModal({
       )
       .catch(() => {});
   }, []);
-
+  //console.log("cars", cars);
   // ── Form state ────────────────────────────────────────────────────────────
   const [title, setTitle] = useState(editTrip?.title ?? "");
   const [driverId, setDriverId] = useState(editTrip?.driverId ?? "");
@@ -338,7 +338,7 @@ export function TripFormModal({
             gap: "1rem",
           }}
         >
-          {/* ── Section: أساسيات الرحلة ── */}
+          {/* ── Section:trip management── */}
           <p style={sectionHeadingStyle}>أساسيات الرحلة</p>
 
           {/* Title */}

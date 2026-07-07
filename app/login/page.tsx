@@ -2,26 +2,35 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { loginUser } from "@/src/lib/auth";
+import { loginSchema, LoginFormData } from "@/src/validations/auth.validator";
 import Logo from "@/src/utils/logo";
 import { Button } from "@/src/Components/UI";
 import { Input }  from "@/src/Components/UI";
 import { Alert }  from "@/src/Components/UI";
 
 export default function LoginPage() {
-  const [identity, setIdentity] = useState("");
-  const [password, setPassword] = useState("");
   const [error,    setError]    = useState<string | null>(null);
   const [loading,  setLoading]  = useState(false);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: yupResolver(loginSchema),
+    mode: "onBlur",
+  });
+
+  async function onSubmit(data: LoginFormData) {
     setError(null);
     setLoading(true);
 
     try {
-      await loginUser(identity, password);
-    console.log("Login successful", { identity });
+      await loginUser(data.identity, data.password);
+      console.log("Login successful", { identity: data.identity });
       window.location.href = "/dashboard";
     } catch (err) {
       if (err instanceof Error) {
@@ -90,7 +99,7 @@ export default function LoginPage() {
         {/* ── Right panel ────────────────────────────────── */}
         <section className="flex items-center justify-center bg-slate-50 px-6 py-10 lg:px-8">
           <form
-            onSubmit={handleSubmit}
+            onSubmit={handleSubmit(onSubmit)}
             className="w-full max-w-[400px] rounded-[14px] border border-slate-200 bg-white p-8 shadow-sm"
             noValidate
           >
@@ -101,20 +110,18 @@ export default function LoginPage() {
               <Input
                 label="البريد الإلكتروني أو رقم الهاتف أو اسم المستخدم"
                 autoComplete="username"
-                value={identity}
-                onChange={(e) => setIdentity(e.target.value)}
                 placeholder="name@company.com / 05xxxxxxxx / username"
-                required
+                error={errors.identity?.message}
+                {...register("identity")}
               />
 
               <Input
                 label="كلمة المرور"
                 type="password"
                 autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                required
+                error={errors.password?.message}
+                {...register("password")}
               />
             </div>
 

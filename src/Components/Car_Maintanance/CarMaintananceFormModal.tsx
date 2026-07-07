@@ -44,6 +44,21 @@ const errorTextStyle: React.CSSProperties = {
   fontWeight: 500,
 };
 
+// ── Number coercion helper ────────────────────────────────────────────────────
+// The backend can return `cost` as a numeric string (common with Decimal
+// columns getting JSON-serialized as strings), even though our TS type says
+// `number`. If that untouched value round-trips back out on update without
+// ever passing through the `<input type="number">` onChange handler, it
+// stays a string and fails the backend's strict `z.number()` check. Coerce
+// defensively both when hydrating the form AND right before building the
+// submit payload, so this can never happen regardless of the source.
+
+function toNumberOrUndefined(v: unknown): number | undefined {
+  if (v === undefined || v === null || v === "") return undefined;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isNaN(n) ? undefined : n;
+}
+
 // ── yup validation ────────────────────────────────────────────────────────────
 // Checks the form values against the right schema and turns any problems
 // into a simple field -> message map the inputs below can read from.
@@ -103,7 +118,9 @@ export function CarMaintenanceFormModal({
 
   // ── Form state ─────────────────────────────────────────────────────────────
   const [reason, setReason]   = useState(editRecord?.reason ?? "");
-  const [cost, setCost]       = useState<number | undefined>(editRecord?.cost ?? undefined);
+  // Coerced defensively: editRecord.cost may arrive as a numeric string from
+  // the backend (e.g. a Decimal column serialized to JSON as "150").
+  const [cost, setCost]       = useState<number | undefined>(toNumberOrUndefined(editRecord?.cost));
   const [startAt, setStartAt] = useState(editRecord?.startAt?.slice(0, 10) ?? "");
   const [endAt, setEndAt]     = useState(editRecord?.endAt?.slice(0, 10) ?? "");
 
@@ -135,10 +152,15 @@ export function CarMaintenanceFormModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Belt-and-braces: re-coerce cost right before it's used, in case it
+    // somehow slipped back into a string (e.g. untouched value hydrated
+    // from a record whose `cost` came back as a numeric string).
+    const safeCost = toNumberOrUndefined(cost);
+
     // Build a snapshot for yup — include everything so optional rules also run.
     const formSnapshot: Partial<CreateMaintenancePayload> = {
       reason,
-      cost,
+      cost: safeCost,
       ...(startAt && { startAt }),
       ...(endAt && { endAt }),
     };
@@ -149,8 +171,9 @@ export function CarMaintenanceFormModal({
       return;
     }
 
-    // Build the final payload — dates go out as full ISO-8601 strings.
-    const raw: Record<string, unknown> = { reason, cost };
+    // Build the final payload — dates go out as full ISO-8601 strings, and
+    // cost always goes out as a real number, never a string.
+    const raw: Record<string, unknown> = { reason, cost: safeCost };
     if (startAt) raw.startAt = toIsoDateTime(startAt);
     if (endAt) raw.endAt = toIsoDateTime(endAt);
 

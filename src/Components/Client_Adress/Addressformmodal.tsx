@@ -106,10 +106,30 @@ export function AddressFormModal({ editAddress, onClose, onSubmit }: AddressForm
     },
   });
 
+  type AddressFieldError = {
+    message?: string;
+  };
+
   type AddressErrors = {
-    details?: Record<string, unknown>;
-    contactPerson?: Record<string, unknown>;
-    location?: Record<string, unknown>;
+    details?: {
+      street?: AddressFieldError;
+      city?: AddressFieldError;
+      state?: AddressFieldError;
+      district?: AddressFieldError;
+      buildingNo?: AddressFieldError;
+      unitNo?: AddressFieldError;
+      additionalNo?: AddressFieldError;
+      zipCode?: AddressFieldError;
+      country?: AddressFieldError;
+      apartment?: AddressFieldError;
+    };
+    contactPerson?: {
+      name?: AddressFieldError;
+      phone?: AddressFieldError;
+    };
+    location?: {
+      coordinates?: AddressFieldError;
+    };
   };
 
   const {

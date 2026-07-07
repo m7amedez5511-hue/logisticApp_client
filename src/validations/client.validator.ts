@@ -43,9 +43,25 @@ export const createClientSchema = yup.object({
     .optional()
     .transform((val) => (val === "" ? undefined : val)),
 
+  taxId: yup
+    .string()
+    .trim()
+    .optional()
+    .transform((val) => (val === "" ? undefined : val)),
+
+  notes: yup
+    .string()
+    .trim()
+    .optional()
+    .transform((val) => (val === "" ? undefined : val)),
+
   clientType: yup
     .mixed<ClientType>()
     .oneOf([...CLIENT_TYPES] as ClientType[], "نوع العميل غير صالح")
+    .optional(),
+
+  isActive: yup
+    .boolean()
     .optional(),
 }).required();
 

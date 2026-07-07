@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { Alert, PageHeader, Spinner } from "@/src/Components/UI";
-import { useCarMaintenanceDetail } from "@/src/hooks/UseCarsMaintanance";
+import { useCarMaintenanceList } from "@/src/hooks/UseCarsMaintanance";
 import {
   MAINTENANCE_STATUS_MAP,
   fmtDate,
@@ -29,7 +29,13 @@ export default function CarMaintenanceDetailPage() {
   const { carId, maintenanceId } = useParams<{ carId: string; maintenanceId: string }>();
   const router = useRouter();
 
-  const { record, loading, error } = useCarMaintenanceDetail(carId, maintenanceId);
+  // NOTE: GET /cars/:carId/maintenance/:maintenanceId isn't wired up on the
+  // backend yet (returns "Route not found"), so this page resolves the
+  // record from the already-loaded list instead of a dedicated single-record
+  // call. includeDeleted: true so an archived record still resolves to a
+  // real "مؤرشفة" status instead of silently disappearing.
+  const { records, loading, error } = useCarMaintenanceList(carId, { includeDeleted: true });
+  const record = records.find((r) => r.id === maintenanceId) ?? null;
 
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem", maxWidth: 720, margin: "0 auto" }} dir="rtl">
@@ -52,6 +58,12 @@ export default function CarMaintenanceDetailPage() {
         )}
 
         {error && <Alert type="error" message={error} />}
+
+        {!loading && !error && !record && (
+          <p style={{ fontSize: 13, color: "var(--color-text-muted)", textAlign: "center", padding: "2rem 0" }}>
+            لم يتم العثور على سجل الصيانة.
+          </p>
+        )}
 
         {!loading && !error && record && (() => {
           const status = MAINTENANCE_STATUS_MAP[getMaintenanceStatus(record)];

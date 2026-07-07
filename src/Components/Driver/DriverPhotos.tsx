@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Spinner } from "../UI";
 
 export function PhotoCard({
   url,
@@ -8,10 +9,14 @@ export function PhotoCard({
   label: string;
 }) {
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
-  // Reset error state when url changes so updated images get a fresh load attempt
+  // Reset error/loaded state when url changes so updated images get a fresh load attempt
   useEffect(() => {
-    queueMicrotask(() => setImgError(false));
+    queueMicrotask(() => {
+      setImgError(false);
+      setImgLoaded(false);
+    });
   }, [url]);
 
   return (
@@ -27,6 +32,7 @@ export function PhotoCard({
       </span>
       <div
         style={{
+          position: "relative",
           width: "100%",
           aspectRatio: "4/3",
           borderRadius: "var(--radius-md)",
@@ -39,16 +45,39 @@ export function PhotoCard({
         }}
       >
         {url && !imgError ? (
-          // key={url} forces a full remount whenever the URL changes,
-          // clearing any stale error state from a previous failed load.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={url}
-            src={url}
-            alt={label}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            onError={() => setImgError(true)}
-          />
+          <>
+            {!imgLoaded && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "var(--color-surface-muted)",
+                }}
+              >
+                <Spinner size="sm" className="text-blue-600" />
+              </div>
+            )}
+            {/* key={url} forces a full remount whenever the URL changes,
+                clearing any stale error/loaded state from a previous load. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              key={url}
+              src={url}
+              alt={label}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                opacity: imgLoaded ? 1 : 0,
+                transition: "opacity 200ms",
+              }}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgError(true)}
+            />
+          </>
         ) : (
           <svg
             width="32"

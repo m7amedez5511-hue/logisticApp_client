@@ -33,6 +33,11 @@ export async function request<T>(
 
   const url = `${resolveBase()}/${path.replace(/^\/+/, "")}`;
 
+  if (process.env.NODE_ENV !== "production") {
+    // eslint-disable-next-line no-console
+    console.debug("API request:", { url, method: init.method ?? "GET", body: init.body });
+  }
+
   const res = await fetch(url, {
     ...init,
     headers,
@@ -41,9 +46,17 @@ export async function request<T>(
   });
 
   if (!res.ok) {
-    const json = await res.json().catch(() => null);
-    const message: string =
-      json?.message ?? json?.error ?? `HTTP ${res.status}: ${res.statusText}`;
+    // Try to parse JSON body for a helpful message. In dev, log the
+    // full response body to make debugging backend validation errors
+    // easier (the browser Network tab also shows this).
+    const text = await res.text().catch(() => null);
+    let json: any = null;
+    try { json = text ? JSON.parse(text) : null; } catch { json = null; }
+    const message: string = json?.message ?? json?.error ?? `HTTP ${res.status}: ${res.statusText}`;
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.error("API request failed:", { url, status: res.status, body: json ?? text });
+    }
     throw new ApiError(res.status, message);
   }
 

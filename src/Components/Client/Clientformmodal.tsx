@@ -8,10 +8,8 @@ import {
   createClientSchema,
   updateClientSchema,
   CLIENT_TYPES,
-  type CreateClientFormValues,
-  type UpdateClientFormValues,
 } from "@/src/validations/client.validator";
-import type { Client } from "@/src/types/client";
+import type { Client, ClientFormData } from "@/src/types/client";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 const S = {
@@ -52,7 +50,7 @@ interface ClientFormModalProps {
   editClient: Client | null;
   onClose:   () => void;
   onSubmit:  (
-    data: CreateClientFormValues | UpdateClientFormValues,
+    data: ClientFormData,
     isNew: boolean
   ) => Promise<boolean>;
 }
@@ -62,20 +60,19 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
   const isNew = editClient === null;
 
   // FIX 1: was `Schema` (capital S) — now correctly `schema`
-  const schema = isNew ? createClientSchema : updateClientSchema;
-
   const {
     register,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<CreateClientFormValues | UpdateClientFormValues>({
-    resolver: yupResolver(schema) as never,
+  } = useForm<ClientFormData>({
+    resolver: yupResolver(isNew ? createClientSchema : updateClientSchema) as never,
     defaultValues: {
-      name:       editClient?.name       ?? "",
-      email:      editClient?.email      ?? "",
-      phone:      editClient?.phone      ?? "",
+      name: editClient?.name ?? "",
+      email: editClient?.email ?? "",
+      phone: editClient?.phone ?? "",
       clientType: editClient?.clientType ?? undefined,
+      isActive: editClient?.isActive ?? true,
     },
   });
 
@@ -85,7 +82,7 @@ export function ClientFormModal({ editClient, onClose, onSubmit }: ClientFormMod
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const submitHandler = async (data: CreateClientFormValues | UpdateClientFormValues) => {
+  const submitHandler = async (data: ClientFormData) => {
     const ok = await onSubmit(data, isNew);
     if (ok) {
       onClose();

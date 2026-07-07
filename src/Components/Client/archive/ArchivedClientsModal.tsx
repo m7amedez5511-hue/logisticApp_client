@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Alert } from "../../UI";
 import { ArchivedClientTable } from "./ArchivedClientTable";
-import { ArchivedClientDetailModal } from "./ArchivedclientdetailModal";
+import { ArchivedClientDetailModal } from "./ArchivedClientDetailModal";
 import { useArchivedClients } from "@/src/hooks/archive/useArchivedClients";
 
 interface ArchivedClientsModalProps {

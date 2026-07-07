@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { carMaintenanceService } from "@/src/services/carMaintanance.service";
 import type {
@@ -11,12 +11,24 @@ import type {
 } from "../types/carMaintanance";
 
 // ── useCarMaintenanceList ─────────────────────────────────────────────────────
-// Loads every maintenance record for one car — used in the detail panel.
+// Loads every maintenance record for one car — used in the detail panel/page
+// and (with includeDeleted: true) to look up a single record by id without
+// hitting the per-record backend endpoint.
+//
 // Always sorted newest-first by createdAt, per spec (defensive: sorts
 // client-side even if the API already returns it in this order).
+//
+// By default only non-deleted (isDeleted !== true) records are returned —
+// pass { includeDeleted: true } to get everything, e.g. so a detail view can
+// still resolve an archived record's data.
 
-export function useCarMaintenanceList(carId: string | null) {
-  const [records, setRecords] = useState<CarMaintenance[]>([]);
+export function useCarMaintenanceList(
+  carId: string | null,
+  options?: { includeDeleted?: boolean },
+) {
+  const includeDeleted = options?.includeDeleted ?? false;
+
+  const [allRecords, setAllRecords] = useState<CarMaintenance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
@@ -30,7 +42,7 @@ export function useCarMaintenanceList(carId: string | null) {
       .then((res) => {
         const list = (res as unknown as { data: CarMaintenance[] }).data ?? [];
         list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setRecords(list);
+        setAllRecords(list);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
@@ -38,9 +50,14 @@ export function useCarMaintenanceList(carId: string | null) {
 
   useEffect(() => { queueMicrotask(loadRecords); }, [loadRecords]);
 
+  const records = useMemo(
+    () => (includeDeleted ? allRecords : allRecords.filter((r) => !r.isDeleted)),
+    [allRecords, includeDeleted],
+  );
+
   // Remove a record from the list right away, instead of waiting on a refetch.
   const removeRecord = useCallback((id: string) => {
-    setRecords((prev) => prev.filter((r) => r.id !== id));
+    setAllRecords((prev) => prev.filter((r) => r.id !== id));
   }, []);
 
   return { records, loading, error, loadRecords, removeRecord, setError };
@@ -48,6 +65,10 @@ export function useCarMaintenanceList(carId: string | null) {
 
 // ── useCarMaintenanceDetail ───────────────────────────────────────────────────
 // Fetches a single maintenance record by id.
+// NOTE: relies on GET /cars/:carId/maintenance/:maintenanceId, which isn't
+// wired up on the backend yet (404s). Prefer useCarMaintenanceList with
+// includeDeleted: true + Array.find(id) until that route exists — see the
+// maintenance detail page for the pattern.
 
 export function useCarMaintenanceDetail(carId: string | null, maintenanceId: string | null) {
   const [record,  setRecord]  = useState<CarMaintenance | null>(null);
@@ -171,7 +192,6 @@ export function useCarMaintenanceMutations({
         }
         return true;
       } catch (err: unknown) {
-        // Show the backend's own message when it has one, otherwise a generic fallback.
         onError(err instanceof Error ? err.message : "فشلت العملية.");
         return false;
       } finally {

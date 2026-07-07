@@ -1,5 +1,5 @@
 import React, { useState, FormEvent } from "react";
-import { ClientAddress, CreateClientAddressPayload } from "@/src/types/client";
+import type { ClientAddress, CreateClientAddressPayload } from "@/src/types/client_adresses";
 import { Input, Select, Button } from "../UI";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -12,11 +12,18 @@ interface ClientAddressFormProps {
   submitLabel?: string;
 }
 
-type FormErrors = Partial<Record<keyof CreateClientAddressPayload, string>>;
+type FormErrors = Partial<{
+  label: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+}>;
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
-function validate(v: CreateClientAddressPayload): FormErrors {
+function validate(v: { label: string; street: string; city: string; state: string; postalCode: string; country: string }): FormErrors {
   const e: FormErrors = {};
   if (!v.label.trim())      e.label      = "Label is required.";
   if (!v.street.trim())     e.street     = "Street is required.";
@@ -39,21 +46,28 @@ export default function ClientAddressForm({
   onCancel,
   submitLabel = "Save address",
 }: ClientAddressFormProps) {
-  const [values, setValues] = useState<CreateClientAddressPayload>({
-    clientId,
-    label:      initialValues.label      ?? "",
-    street:     initialValues.street     ?? "",
-    city:       initialValues.city       ?? "",
-    state:      initialValues.state      ?? "",
-    postalCode: initialValues.postalCode ?? "",
-    country:    initialValues.country    ?? "",
-    isPrimary:  initialValues.isPrimary  ?? false,
+  const [values, setValues] = useState<{
+    label: string;
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    isPrimary: boolean;
+  }>({
+    label: initialValues.label ?? "",
+    street: initialValues.details?.street ?? "",
+    city: initialValues.details?.city ?? "",
+    state: initialValues.details?.state ?? "",
+    postalCode: initialValues.details?.zipCode ?? "",
+    country: initialValues.details?.country ?? "",
+    isPrimary: initialValues.isPrimary ?? false,
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
 
   const set =
-    (field: keyof Omit<CreateClientAddressPayload, "clientId" | "isPrimary">) =>
+    (field: "label" | "street" | "city" | "state" | "postalCode" | "country") =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setValues((v) => ({ ...v, [field]: e.target.value }));
       if (errors[field]) setErrors((er) => ({ ...er, [field]: undefined }));
@@ -68,7 +82,25 @@ export default function ClientAddressForm({
     }
     setSubmitting(true);
     try {
-      await onSubmit(values);
+      const payload: CreateClientAddressPayload = {
+        clientId,
+        label: values.label,
+        branchName: null,
+        contactPerson: undefined,
+        details: {
+          country: values.country,
+          city: values.city,
+          state: values.state,
+          street: values.street,
+          zipCode: values.postalCode,
+        },
+        location: {
+          coordinates: [0, 0],
+        },
+        isPrimary: values.isPrimary,
+        isValidated: false,
+      };
+      await onSubmit(payload);
     } catch {
       /* parent surfaces the error */
     } finally {

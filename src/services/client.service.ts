@@ -34,13 +34,16 @@ export const clientService = {
 };
 
 /** تحويل بيانات النموذج إلى payload مناسب للـ API */
-function buildPayload(data: ClientFormData): Record<string, string> {
-  const payload: Record<string, string> = {
-    name:  data.name.trim(),
-    email: data.email.trim(),
-    phone: data.phone.trim(),
-  };
+function buildPayload(data: ClientFormData): Record<string, string | boolean> {
+  const payload: Record<string, string | boolean> = {};
+
+  if (data.name?.trim()) payload.name = data.name.trim();
+  if (data.email?.trim()) payload.email = data.email.trim();
+  if (data.phone?.trim()) payload.phone = data.phone.trim();
   if (data.taxId?.trim()) payload.taxId = data.taxId.trim();
   if (data.notes?.trim()) payload.notes = data.notes.trim();
+  if (data.clientType) payload.clientType = data.clientType;
+  if (typeof data.isActive === "boolean") payload.isActive = data.isActive;
+
   return payload;
 }

@@ -20,6 +20,8 @@ export interface Client {
   name: string;
   email: string;
   phone: string;
+  clientType?: "Individual" | "Corporate";
+  isActive?: boolean;
   taxId?: string;
   notes?: string;
   createdAt: string;
@@ -35,11 +37,13 @@ export type UpdateClientPayload = Partial<CreateClientPayload>;
 // ─── Form & Validation ────────────────────────────────────────────────────────
 
 export interface ClientFormData {
-  name: string;
-  email: string;
-  phone: string;
+  name?: string;
+  email?: string;
+  phone?: string;
   taxId?: string;
   notes?: string;
+  clientType?: "Individual" | "Corporate";
+  isActive?: boolean;
 }
 
 export interface ClientFormErrors {
