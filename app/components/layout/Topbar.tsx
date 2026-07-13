@@ -28,7 +28,6 @@ export function Topbar() {
         justifyContent: "space-between",
       }}
     >
-      {/* عنوان الصفحة */}
       <div>
         <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text-primary)", margin: 0, textAlign: "start" }}>
           لوحة التحكم
@@ -38,15 +37,21 @@ export function Topbar() {
         </p>
       </div>
 
-      {/* أكشنز */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-
-        {/* زرار المنيو — sm فقط، globals.css بتتحكم في الـ display */}
         <div id="topbar-menu-btn">
           <BrandIconButton onClick={() => setOpen(true)} />
         </div>
 
-        {/* الدور */}
+        {/* زرار "حسابي" — بيروح لصفحة البروفايل، مع hover بيغير اللون ويعمل scale بسيط */}
+        <button
+          type="button"
+          onClick={() => router.push("/dashboard/profile")}
+          className="group flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-[5px] text-xs font-medium text-slate-600 transition-all duration-150 hover:scale-105 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+        >
+          <i className="ti ti-user text-[14px]" aria-hidden="true" />
+          حسابي
+        </button>
+
         <div
           suppressHydrationWarning
           style={{
@@ -61,7 +66,6 @@ export function Topbar() {
           {user?.role ?? "—"}
         </div>
 
-        {/* خروج */}
         <button
           type="button"
           onClick={handleLogout}

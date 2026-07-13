@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Slash.sa — منصة إدارة الأسطول واللوجستيات
 
-## Getting Started
+منصة ويب متكاملة لإدارة عمليات الأسطول واللوجستيات، مبنية بلغة عربية أولًا (Arabic-first)
+باتجاه RTL كامل، وموجهة للسوق السعودي. تشمل المنصة إدارة المركبات والسائقين والفروع
+والطلبات والرحلات وسجل الصيانة، مع لوحات تحكم منفصلة حسب دور المستخدم (مشرف / عميل / مستخدم ميداني).
 
-First, run the development server:
+## المتطلبات الأساسية
+
+- Node.js 20.9 أو أحدث
+- npm (أو أي package manager متوافق)
+
+## التقنيات المستخدمة
+
+| الطبقة              | التقنية                                   |
+| -------------------- | ------------------------------------------ |
+| الإطار               | Next.js 16 (App Router)                    |
+| اللغة                | TypeScript                                 |
+| التنسيق              | Tailwind CSS v4                            |
+| النماذج والتحقق      | react-hook-form + yup                      |
+| الأيقونات            | lucide-react (صفحات التسويق) / Tabler Icons Webfont (لوحة التحكم) |
+| المصادقة             | JWT + HttpOnly cookie + middleware للحماية |
+
+## هيكل المشروع (مختصر)
+app/
+├── (صفحات تسويقية)      home, features/app, how_work, prices, frequently_asked_questions
+├── dashboard/            لوحة التحكم (محمية بواسطة middleware)
+│   ├── cars, drivers, orders, trips, clients, branches, roles, audit, users
+├── login, register       صفحات المصادقة
+├── api/proxy/[...path]   بروكسي موحّد لكل طلبات الـ backend
+└── components/layout     Navbar, Sidebar, Topbar (تُستخدم عبر الصفحات يدويًا)
+src/
+├── Components/           مكوّنات لوحة التحكم (مقسّمة حسب الوحدة: Car, Driver, Order...)
+├── hooks/                منطق جلب البيانات والطفرات (Create/Update/Delete) لكل وحدة
+├── services/              طبقة استدعاء الـ API (كل وحدة لها service منفصل)
+├── types/                تعريفات TypeScript لكل نموذج بيانات
+├── validations/          مخططات yup للتحقق من صحة النماذج
+└── lib/                  دوال مساعدة (auth, session, formatters, order-status)
+## التشغيل محليًا
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+افتح [http://localhost:3000](http://localhost:3000) في المتصفح.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## الأوامر المتاحة
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| الأمر            | الوصف                                  |
+| ---------------- | --------------------------------------- |
+| `npm run dev`    | تشغيل بيئة التطوير (Webpack)            |
+| `npm run build`  | بناء نسخة الإنتاج                      |
+| `npm run start`  | تشغيل نسخة الإنتاج المبنية              |
+| `npm run lint`   | فحص الكود بواسطة ESLint                |
 
-## Learn More
+## ملاحظات النشر (Deployment)
 
-To learn more about Next.js, take a look at the following resources:
+- المنصة مبنية على Next.js App Router وتعمل على أي بيئة تدعم Node.js 20.9+ (مثل Vercel).
+- كل طلبات الـ backend تمر عبر `app/api/proxy/[...path]/route.ts`، فتأكد من ضبط الـ backend base URL بشكل صحيح قبل النشر.
+- التوثيق (Authentication) يعتمد على HttpOnly cookie تُضبط عبر `app/api/auth/set-cookie`، وتُمسح عبر `app/api/clear-cookie` — تأكد من تفعيل `Secure` في بيئة الإنتاج (يتم تلقائيًا حسب `NODE_ENV`).
+- الحماية على مستوى الراوت تتم عبر `middleware.ts` — راجع الـ `matcher` فيه عند إضافة مسارات محمية جديدة.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## المساهمة (Contributing)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. أنشئ فرعًا جديدًا من `main` باسم واضح للتغيير (مثال: `feature/car-maintenance-filters`).
+2. اتبع نفس أسلوب الكود الموجود: RTL-first، CSS custom property tokens بدل الألوان الثابتة، وهيكلة hooks/services/types/validations لكل وحدة جديدة.
+3. شغّل `npm run lint` قبل فتح Pull Request.
+4. اكتب وصفًا واضحًا للتغيير وربطه بأي تذكرة (issue) ذات صلة.
 
-## Deploy on Vercel
+## الترخيص
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+جميع الحقوق محفوظة © 2026 Slash.sa

@@ -4,7 +4,15 @@ import type { ApiListResponse, User, UserFormData, UserResponse } from "@/src/ty
 import type { Role } from "@/src/types/role";
 import type { Branch } from "@/src/types/branch";
 
-
+export interface MeApiResponse {
+  success: boolean;
+  message: string;
+  responseAt: string;
+  data: {
+    data: User[] | User;
+    meta?: { total: number; page: number; limit: number; totalPages: number };
+  };
+}
 
 
 /**Building a query string to fetch users with search and pagination*/
@@ -49,7 +57,14 @@ export const userService = {
         branch: { name: string };
       };
     }>(`users/${id}`, token),
+    getMe: (token: string | null) =>
+    get<MeApiResponse>("users/me", token),
 };
+export function extractMeUser(res: MeApiResponse): User | null {
+  const d = res.data?.data;
+  if (Array.isArray(d)) return d[0] ?? null;
+  return d ?? null;
+}
 
 /** Converting the form data into a payload suitable for the API */
 function buildPayload(

@@ -176,6 +176,7 @@ export function Sidebar() {
           flexShrink: 0,
           minHeight: "100vh",
           padding: "20px 12px",
+          
         }}
       >
         <SidebarContent

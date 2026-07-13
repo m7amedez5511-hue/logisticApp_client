@@ -112,3 +112,9 @@ export interface ApiErrorResponse {
     details: { field: string; code: string }[];
   };
 }
+
+export interface UserMe extends User {
+  photo: string | null;
+  isDeleted: boolean;
+  updatedAt: string;
+}
