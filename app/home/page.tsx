@@ -8,8 +8,7 @@ import {
   MapPin,
   PackageCheck,
 } from "lucide-react";
-import Navbar from "@/app/components/layout/Navbar";
-import Logo from "@/src/utils/logo";
+
 
 const stats = [
   { label: "الطلبات النشطة", value: "48", color: "text-blue-600" },

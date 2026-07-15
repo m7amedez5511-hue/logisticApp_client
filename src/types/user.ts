@@ -6,8 +6,8 @@ export interface User {
   phone: string;
   isActive: boolean;
   createdAt: string;
-  role?: { id?: string; name: string };
-  branch?: { id?: string; name: string };
+  role?: { id?: string; name: string } | null;
+  branch?: { id?: string; name: string } | null;
 }
 export interface UserResponse {
   data: User;
@@ -113,8 +113,28 @@ export interface ApiErrorResponse {
   };
 }
 
+export interface Permission {
+  name: string;
+  slug: string;
+  module: string;
+}
+
+export interface RolePermissionEntry {
+  permission: Permission;
+}
+
+export interface UserRoleDetail {
+  name: string;
+  description?: string;
+  permissions?: RolePermissionEntry[];
+  isActive?: boolean;
+  isDeleted?: boolean;
+}
+
 export interface UserMe extends User {
   photo: string | null;
   isDeleted: boolean;
   updatedAt: string;
+  role?: UserRoleDetail | null;
+  branch?: { id?: string; name: string } | null;
 }

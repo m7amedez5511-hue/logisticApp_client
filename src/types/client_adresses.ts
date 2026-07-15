@@ -80,7 +80,9 @@ export type AddressTableAction =
   | { type: "ADD"; address: ClientAddress }
   | { type: "UPDATE"; address: ClientAddress }
   | { type: "DELETE"; id: string }
-  | { type: "CLEAR_ERR" };
+  | { type: "CLEAR_ERR" }
+  // ADDED: Set primary address — flips isPrimary across the whole list in one dispatch
+  | { type: "SET_PRIMARY"; id: string };
   // ─── Archive: Client Addresses ─────────────────────────────────────────────
 
 // Archived address resource returned by GET /addresses/archived.

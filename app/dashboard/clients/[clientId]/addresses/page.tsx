@@ -40,12 +40,14 @@ function labelIcon(label: string): string {
 // ─── AddressCard ───────────────────────────────────────────────────────────
 
 interface AddressCardProps {
-  address:  ClientAddress;
-  onEdit:   () => void;
-  onDelete: () => void;
+  address:        ClientAddress;
+  onEdit:         () => void;
+  onDelete:       () => void;
+  onSetPrimary:   () => void;
+  settingPrimary: boolean; // true only while THIS card's request is in flight
 }
 
-function AddressCard({ address, onEdit, onDelete }: AddressCardProps) {
+function AddressCard({ address, onEdit, onDelete, onSetPrimary, settingPrimary }: AddressCardProps) {
   const { details, contactPerson } = address;
   const {
     street,
@@ -195,6 +197,19 @@ function AddressCard({ address, onEdit, onDelete }: AddressCardProps) {
         <ActionBtn onClick={onEdit} color="#1D4ED8" bg="#EFF6FF" border="#BFDBFE">
           تعديل
         </ActionBtn>
+
+        {!address.isPrimary && (
+          <ActionBtn
+            onClick={onSetPrimary}
+            disabled={settingPrimary}
+            color="#B45309"
+            bg="#FFFBEB"
+            border="#FDE68A"
+          >
+            {settingPrimary ? "جارٍ التعيين…" : "تعيين كأساسي"}
+          </ActionBtn>
+        )}
+
         <ActionBtn
           onClick={onDelete}
           color="#DC2626"
@@ -346,6 +361,8 @@ export default function ClientAddressesPage() {
     createAddress,
     updateAddress,
     deleteAddress,
+    setPrimaryAddress,
+    settingPrimaryId,
   } = useClientAddresses(clientId ?? "");
 
   // ── Modal state ──────────────────────────────────────────────────────────
@@ -372,6 +389,11 @@ export default function ClientAddressesPage() {
     const ok = await deleteAddress(deleteTarget.id);
     setDeleting(false);
     if (ok) setDeleteTarget(null);
+  };
+
+  // ── Set primary handler ──────────────────────────────────────────────────
+  const handleSetPrimary = async (address: ClientAddress) => {
+    await setPrimaryAddress(address.id);
   };
 
   // ── Client edit handler ──────────────────────────────────────────────────
@@ -661,6 +683,8 @@ export default function ClientAddressesPage() {
                 address={addr}
                 onEdit={() => setAddrFormTarget(addr)}
                 onDelete={() => setDeleteTarget(addr)}
+                onSetPrimary={() => handleSetPrimary(addr)}
+                settingPrimary={settingPrimaryId === addr.id}
               />
             ))}
           </div>

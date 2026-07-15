@@ -16,7 +16,10 @@ export function useCurrentUser() {
     try {
       const token = getStoredToken();
       const res = await userService.getMe(token);
-      const u = extractMeUser(res.data ?? res);
+      // ملاحظة: مبقاش بنعمل res.data ?? res هنا قبل التمرير.
+      // extractMeUser هي المسؤولة الوحيدة عن تفكيك شكل الـ response،
+      // فبنبعتلها الـ res زي ما هو عشان نتجنب تفكيك مزدوج.
+      const u = extractMeUser(res);
       if (!u) throw new Error("لا توجد بيانات");
       setUser(u as UserMe);
     } catch {

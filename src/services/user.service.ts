@@ -1,17 +1,16 @@
-
 import { get, post, put, del } from "./api";
-import type { ApiListResponse, User, UserFormData, UserResponse } from "@/src/types/user";
+import type { ApiListResponse, User, UserFormData, UserResponse, UserMe } from "@/src/types/user";
 import type { Role } from "@/src/types/role";
 import type { Branch } from "@/src/types/branch";
 
+// الشكل الحقيقي لاستجابة /users/me:
+// { success, message, responseAt, data: <UserMe> }
+// أي "data" هنا هي بيانات اليوزر مباشرة، مفيش data.data متداخلة.
 export interface MeApiResponse {
   success: boolean;
   message: string;
   responseAt: string;
-  data: {
-    data: User[] | User;
-    meta?: { total: number; page: number; limit: number; totalPages: number };
-  };
+  data: UserMe;
 }
 
 
@@ -60,10 +59,25 @@ export const userService = {
     getMe: (token: string | null) =>
     get<MeApiResponse>("users/me", token),
 };
-export function extractMeUser(res: MeApiResponse): User | null {
-  const d = res.data?.data;
-  if (Array.isArray(d)) return d[0] ?? null;
-  return d ?? null;
+
+/**
+ * بتفكك استجابة /users/me لأي شكل ييجي بيه من السيرفر:
+ * - سواء الـ get() بيرجع الـ body مباشرة: { success, data: <user> }
+ * - أو بيرجع wrapper شكله axios-like: { data: { success, data: <user> } }
+ * فبناخد أول data موجودة (لو فيها success/message نبقى في المكان الصح)،
+ * وبعدين ناخد الـ data اللي جواها (بيانات اليوزر الفعلية).
+ * ملحوظة: مفيش تفكيك مزدوج بره الدالة دي، وأي حد بينادي عليها
+ * لازم يبعتلها الـ response زي ما هو من غير ما يعمل res.data قبلها.
+ */
+export function extractMeUser(res: MeApiResponse | { data: MeApiResponse }): UserMe | null {
+  const body: MeApiResponse = (res as { data: MeApiResponse })?.data?.data
+    ? (res as { data: MeApiResponse }).data
+    : (res as MeApiResponse);
+
+  const d = body?.data;
+  if (!d) return null;
+  if (Array.isArray(d)) return (d[0] as UserMe) ?? null;
+  return d as UserMe;
 }
 
 /** Converting the form data into a payload suitable for the API */

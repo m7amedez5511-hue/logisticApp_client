@@ -19,10 +19,14 @@ import { Notification } from "../types/notif";
 
 function normalizeAddress(raw: unknown): ClientAddress {
   const data = raw as { id?: string; _id?: string; [key: string]: unknown };
+
+  // FIXED: fallback to "" so the type is always `string`, never `string | undefined`
+  const id = data.id ?? data._id ?? "";
+
   return {
     ...data,
-    id: data.id ?? data._id,
-  };
+    id,
+  } as ClientAddress;
 }
 
 function normalizeAddresses(rawList: unknown[]): ClientAddress[] {
@@ -54,6 +58,14 @@ function reducer(s: AddressTableState, a: AddressTableAction): AddressTableState
       };
     case "CLEAR_ERR":
       return { ...s, error: null };
+    case "SET_PRIMARY":
+      return {
+        ...s,
+        addresses: s.addresses.map((addr) => ({
+          ...addr,
+          isPrimary: addr.id === a.id,
+        })),
+      };
     default:
       return s;
   }
@@ -69,6 +81,9 @@ const initialState: AddressTableState = {
 export function useClientAddresses(clientId: string) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [notification, setNotification] = useState<Notification | null>(null);
+  // Tracks which address is mid-request so its button can disable itself
+  // and duplicate clicks are ignored while a request is in flight.
+  const [settingPrimaryId, setSettingPrimaryId] = useState<string | null>(null);
 
   const notify = useCallback((n: Notification) => {
     setNotification(n);
@@ -76,25 +91,33 @@ export function useClientAddresses(clientId: string) {
   }, []);
 
   // ── Fetch ────────────────────────────────────────────────────────────────
-  const loadAddresses = useCallback(async () => {
-    if (!clientId) return;
-    dispatch({ type: "LOAD_START" });
-    try {
-      const token = getStoredToken();
-      const res = await clientAddressService.getAll(clientId, token);
-      const payload = (res as unknown as { data?: unknown }).data ?? res;
-      const rawList = Array.isArray(payload) ? payload : ((payload as { data?: unknown }).data ?? []);
-      dispatch({
-        type: "LOAD_OK",
-        addresses: normalizeAddresses(rawList),
-      });
-    } catch {
-      dispatch({
-        type: "LOAD_ERR",
-        error: "تعذّر تحميل العناوين. يرجى المحاولة مجدداً.",
-      });
-    }
-  }, [clientId]);
+ const loadAddresses = useCallback(async () => {
+  if (!clientId) return;
+  dispatch({ type: "LOAD_START" });
+  try {
+    const token = getStoredToken();
+    const res = await clientAddressService.getAll(clientId, token);
+    const payload = (res as unknown as { data?: unknown }).data ?? res;
+
+    // FIXED: explicit Array.isArray checks instead of relying on
+    // TS to narrow the ternary's return type on its own.
+    const rawList: unknown[] = Array.isArray(payload)
+      ? payload
+      : Array.isArray((payload as { data?: unknown })?.data)
+        ? ((payload as { data?: unknown }).data as unknown[])
+        : [];
+
+    dispatch({
+      type: "LOAD_OK",
+      addresses: normalizeAddresses(rawList),
+    });
+  } catch {
+    dispatch({
+      type: "LOAD_ERR",
+      error: "تعذّر تحميل العناوين. يرجى المحاولة مجدداً.",
+    });
+  }
+}, [clientId]);
 
   useEffect(() => {
     loadAddresses();
@@ -160,6 +183,33 @@ export function useClientAddresses(clientId: string) {
     [clientId, notify],
   );
 
+  // ── SET PRIMARY ──────────────────────────────────────────────────────────
+  const setPrimaryAddress = useCallback(
+    async (id: string): Promise<boolean> => {
+      if (settingPrimaryId) return false; // guard against overlapping requests
+      setSettingPrimaryId(id);
+      try {
+        const token = getStoredToken();
+        await clientAddressService.setPrimary(id, token);
+        // We already know the shape of the change (target -> true, everyone
+        // else -> false), so we update local state directly instead of
+        // refetching the whole list.
+        dispatch({ type: "SET_PRIMARY", id });
+        notify({ type: "success", message: "تم تعيين العنوان كعنوان أساسي." });
+        return true;
+      } catch (err) {
+        notify({
+          type: "error",
+          message: err instanceof Error ? err.message : "تعذّر تعيين العنوان كأساسي.",
+        });
+        return false;
+      } finally {
+        setSettingPrimaryId(null);
+      }
+    },
+    [notify, settingPrimaryId],
+  );
+
   return {
     ...state,
     notification,
@@ -167,6 +217,8 @@ export function useClientAddresses(clientId: string) {
     createAddress,
     updateAddress,
     deleteAddress,
+    setPrimaryAddress,
+    settingPrimaryId,
     reload: loadAddresses,
   };
 }

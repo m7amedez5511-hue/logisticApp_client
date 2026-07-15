@@ -65,7 +65,14 @@ export const clientAddressService = {
   delete: (clientId: string, addressId: string, token: string | null) =>
     del<void>(addressBase(addressId), token),
 
-  
+  /**
+   * Set an address as primary for its client.
+   * PATCH /v1/addresses/:id/primary — no request body.
+   * Backend unsets isPrimary on all sibling addresses automatically.
+   */
+  setPrimary: (addressId: string, token: string | null) =>
+    patch<ApiResponse<ClientAddress>>(`${addressBase(addressId)}/primary`, {}, token),
+
 };
 
 

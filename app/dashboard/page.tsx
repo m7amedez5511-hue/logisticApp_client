@@ -29,7 +29,7 @@ export default function DashboardPage() {
       { label: "العملاء",  value: stats?.clients ?? 0,                         accent: "#06B6D4" },
       { label: "الطلبات",  value: stats?.orders ?? 0,                          accent: "#A78BFA" },
       { label: "الرحلات",  value: stats?.trips ?? 0,                           accent: "#34D399" },
-      { label: "المركبات", value: (stats?.cars ?? 0) + (stats?.drivers ?? 0),  accent: "#FBBF24" },
+      { label: "المركبات و السائقين ", value: (stats?.cars ?? 0) + (stats?.drivers ?? 0),  accent: "#FBBF24" },
     ],
     [stats],
   );
@@ -60,24 +60,7 @@ export default function DashboardPage() {
               عرض واضح لطلبات الأسطول وتنبيهات السلامة وتقدم الرحلات.
             </p>
           </div>
-          <Link
-            href="/"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              borderRadius: "var(--radius-full)",
-              border: "1px solid rgba(103,232,249,0.30)",
-              background: "rgba(103,232,249,0.08)",
-              padding: "0.5rem 1rem",
-              fontSize: 13,
-              color: "#CFFAFE",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-              transition: "var(--transition-base)",
-            }}
-          >
-            العودة إلى بوابة العميل
-          </Link>
+         
         </div>
       </header>
 
@@ -134,7 +117,7 @@ export default function DashboardPage() {
                   <p style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: "#67E8F9", textAlign: "start" }}>الرحلات النشطة</p>
                   <h2 style={{ fontSize: "1.25rem", fontWeight: 600, color: "var(--color-text-dark-primary)", marginTop: "0.5rem", textAlign: "start" }}>تقدم الرحلات</h2>
                 </div>
-                <span style={{ borderRadius: "var(--radius-full)", background: "rgba(52,211,153,0.10)", padding: "0.25rem 0.75rem", fontSize: 11, color: "#A7F3D0" }}>
+                <span style={{ borderRadius: "var(--radius-full)", background: "rgba(52,211,153,0.10)", padding: "0.25rem 0.75rem", fontSize: 11, color: "#008000" }}>
                   مباشر
                 </span>
               </div>
