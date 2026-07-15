@@ -1,10 +1,9 @@
+// src/lib/api.ts
 import { authService } from "@/src/services/auth.service";
 import type { AuthUser, LoginRequest } from "@/src/types/auth";
 import { detectIdentityField } from "@/src/validations/auth.validator";
 
-const AUTH_TOKEN_KEY    = "auth_token";
-const AUTH_USER_KEY     = "auth_user";
-const AUTH_TOKEN_COOKIE = "auth_token";
+const AUTH_USER_KEY = "auth_user";
 
 function normalizeUser(user: AuthUser | null | undefined): AuthUser | null {
   if (!user) return null;
@@ -42,22 +41,19 @@ function normalizeUser(user: AuthUser | null | undefined): AuthUser | null {
   return { ...user, role: roleName, permissions };
 }
 
-// ── Cookie helpers ─────────────────────────────────────────────────────────
-function setTokenCookie(token: string) {
-  if (typeof document === "undefined") return;
-  const exp = new Date(Date.now() + 7 * 864e5).toUTCString();
-  document.cookie = `${AUTH_TOKEN_COOKIE}=${encodeURIComponent(token)}; expires=${exp}; path=/; SameSite=Lax`;
-}
-
-function deleteTokenCookie() {
-  if (typeof document === "undefined") return;
-  document.cookie = `${AUTH_TOKEN_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
-}
-
 // ── Storage ────────────────────────────────────────────────────────────────
+// Option A: the HttpOnly `auth_token` cookie (set server-side via
+// /api/auth/set-cookie, read by middleware.ts and the API proxy route) is
+// now the single source of truth for the auth token. It is never written
+// to localStorage or to a JS-readable cookie from here anymore.
+
+/**
+ * No-op kept for call-site compatibility. The token now lives only in the
+ * HttpOnly cookie, which client-side JS cannot read by design — every
+ * caller of this function will receive `null` going forward.
+ */
 export function getStoredToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(AUTH_TOKEN_KEY);
+  return null;
 }
 
 export function getStoredUser(): AuthUser | null {
@@ -67,23 +63,25 @@ export function getStoredUser(): AuthUser | null {
   try { return normalizeUser(JSON.parse(raw) as AuthUser); } catch { return null; }
 }
 
+/**
+ * Persists only the normalized user for UI display. The token itself is no
+ * longer stored client-side — it is set as an HttpOnly cookie separately by
+ * the caller (see loginUser below), which is the sole source of truth now.
+ */
 export function saveAuth(token: string, user: AuthUser) {
   if (typeof window === "undefined") return;
   const normalizedUser = normalizeUser(user);
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
   localStorage.setItem(AUTH_USER_KEY, JSON.stringify(normalizedUser));
-  setTokenCookie(token);
 }
 
 /**
- * Clear auth state: removes localStorage keys, calls /api/clear-cookie to
- * remove the HttpOnly cookie (only the server can delete an HttpOnly cookie).
+ * Clear auth state: removes the locally-stored user, and calls
+ * /api/clear-cookie to remove the HttpOnly cookie (only the server can
+ * delete an HttpOnly cookie).
  */
 export async function clearAuth(): Promise<void> {
   if (typeof window !== "undefined") {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
-    deleteTokenCookie();
   }
   try {
     await fetch("/api/clear-cookie", { method: "POST", cache: "no-store" });
@@ -152,7 +150,9 @@ export async function loginUser(identity: string, password: string) {
         .filter((s): s is string => Boolean(s))
     : [];
 
-  // Store HttpOnly cookie via server endpoint (only the server can set HttpOnly)
+  // Store HttpOnly cookie via server endpoint (only the server can set
+  // HttpOnly). This is now the only place the raw token is persisted
+  // anywhere — there is no JS-readable fallback cookie left.
   try {
     await fetch("/api/auth/set-cookie", {
       method: "POST",
@@ -160,9 +160,10 @@ export async function loginUser(identity: string, password: string) {
       body: JSON.stringify({ token }),
     });
   } catch {
-    // Non-fatal for the JS-visible session (saveAuth() below still sets a
-    // readable cookie middleware can fall back to), but the HttpOnly cookie
-    // that middleware normally prefers won't be set — log it so it's visible.
+    // Non-fatal for the JS-visible session (saveAuth() below still persists
+    // the user for UI purposes), but the HttpOnly auth cookie won't be set
+    // — log it so it's visible, since middleware/proxy calls will fail
+    // silently as "unauthenticated" until the person logs in again.
     console.warn("loginUser: failed to persist HttpOnly auth cookie.");
   }
 

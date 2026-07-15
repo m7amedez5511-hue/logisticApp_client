@@ -1,4 +1,4 @@
-// hooks/useDashboardSummary.ts
+// src/hooks/useDashboardSummary.ts
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,7 +14,10 @@ interface State {
 
 /**
  * Fetches the admin dashboard summary.
- * Redirects to /login if no token is present (handled by the caller).
+ * Auth is now enforced by the HttpOnly cookie (read server-side by the
+ * proxy route) — there is no client-readable token to gate on anymore,
+ * so we always attempt the request and let a 401 from the backend
+ * surface as a normal error instead of short-circuiting here.
  *
  * @example
  * const { data, loading, error } = useDashboardSummary();
@@ -26,15 +29,10 @@ export function useDashboardSummary(): State {
 
   useEffect(() => {
     let cancelled = false;
-    const token = getStoredToken();
-
-    if (!token) {
-      queueMicrotask(() => setState({ data: null, error: "Unauthenticated", loading: false }));
-      return;
-    }
+    const token = getStoredToken(); // always null now — kept for the service signature
 
     dashboardService
-      .getSummary(token)
+      .getSummary(token as unknown as string)
       .then(res => {
         if (!cancelled) setState({ data: res.data, error: null, loading: false });
       })

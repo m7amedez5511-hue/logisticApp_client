@@ -1,9 +1,9 @@
+// src/lib/auth.ts
 import { authService } from "@/src/services/auth.service";
-import type { AuthUser } from "@/src/types/auth";
+import type { AuthUser, LoginRequest } from "@/src/types/auth";
+import { detectIdentityField } from "@/src/validations/auth.validator";
 
-const AUTH_TOKEN_KEY    = "auth_token";
-const AUTH_USER_KEY     = "auth_user";
-const AUTH_TOKEN_COOKIE = "auth_token";
+const AUTH_USER_KEY = "auth_user";
 
 function normalizeUser(user: AuthUser | null | undefined): AuthUser | null {
   if (!user) return null;
@@ -41,22 +41,19 @@ function normalizeUser(user: AuthUser | null | undefined): AuthUser | null {
   return { ...user, role: roleName, permissions };
 }
 
-// ── Cookie helpers ─────────────────────────────────────────────────────────
-function setTokenCookie(token: string) {
-  if (typeof document === "undefined") return;
-  const exp = new Date(Date.now() + 7 * 864e5).toUTCString();
-  document.cookie = `${AUTH_TOKEN_COOKIE}=${encodeURIComponent(token)}; expires=${exp}; path=/; SameSite=Lax`;
-}
-
-function deleteTokenCookie() {
-  if (typeof document === "undefined") return;
-  document.cookie = `${AUTH_TOKEN_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
-}
-
 // ── Storage ────────────────────────────────────────────────────────────────
+// Option A: the HttpOnly `auth_token` cookie (set server-side via
+// /api/auth/set-cookie, read by middleware.ts and the API proxy route) is
+// now the single source of truth for the auth token. It is never written
+// to localStorage or to a JS-readable cookie from here anymore.
+
+/**
+ * No-op kept for call-site compatibility. The token now lives only in the
+ * HttpOnly cookie, which client-side JS cannot read by design — every
+ * caller of this function will receive `null` going forward.
+ */
 export function getStoredToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(AUTH_TOKEN_KEY);
+  return null;
 }
 
 export function getStoredUser(): AuthUser | null {
@@ -66,23 +63,25 @@ export function getStoredUser(): AuthUser | null {
   try { return normalizeUser(JSON.parse(raw) as AuthUser); } catch { return null; }
 }
 
+/**
+ * Persists only the normalized user for UI display. The token itself is no
+ * longer stored client-side — it is set as an HttpOnly cookie separately by
+ * the caller (see loginUser below), which is the sole source of truth now.
+ */
 export function saveAuth(token: string, user: AuthUser) {
   if (typeof window === "undefined") return;
   const normalizedUser = normalizeUser(user);
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
   localStorage.setItem(AUTH_USER_KEY, JSON.stringify(normalizedUser));
-  setTokenCookie(token);
 }
 
 /**
- * Clear auth state: removes localStorage keys, calls /api/clear-cookie to
- * remove the HttpOnly cookie (only the server can delete an HttpOnly cookie).
+ * Clear auth state: removes the locally-stored user, and calls
+ * /api/clear-cookie to remove the HttpOnly cookie (only the server can
+ * delete an HttpOnly cookie).
  */
 export async function clearAuth(): Promise<void> {
   if (typeof window !== "undefined") {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
-    deleteTokenCookie();
   }
   try {
     await fetch("/api/clear-cookie", { method: "POST", cache: "no-store" });
@@ -98,9 +97,30 @@ const BLOCKED_ROLES = ["driver", "سائق"] as const;
 type RawRole = { name?: string; permissions?: Array<{ permission?: { slug?: string } }> } | string;
 
 export async function loginUser(identity: string, password: string) {
-  const payload = await authService.login({ identity, password });
+  // FIX: LoginRequest has no generic `identity` field — it expects one
+  // specific typed field (email | phone | userName) plus password. Detect
+  // which one `identity` actually is, same as src/lib/api.ts's loginUser
+  // and useAuth.ts already do, so all three call sites agree on one
+  // contract instead of sending a shape the type (and backend) don't accept.
+  const field = detectIdentityField(identity);
+  if (!field) {
+    throw new Error(
+      "يجب إدخال بريد إلكتروني صحيح أو رقم هاتف سعودي صحيح أو اسم مستخدم لا يقل عن حرفين.",
+    );
+  }
 
-  const { token, user } = payload.data || {};
+  const payload: LoginRequest = { password };
+  payload[field] = identity;
+
+  const response = await authService.login(payload);
+
+  // Response may arrive already-unwrapped or nested under `data`, depending
+  // on the fetch wrapper — normalize both shapes, same as useAuth.ts / api.ts.
+  const envelope = (response as { data?: { data?: { token?: string; user?: AuthUser }; token?: string; user?: AuthUser } }).data ?? response;
+  const body = (envelope as { data?: { token?: string; user?: AuthUser }; token?: string; user?: AuthUser }).data ?? envelope;
+  const token = body?.token;
+  const user  = body?.user;
+
   if (!token || !user) {
     throw new Error("اسم المستخدم أو كلمة المرور غير صحيحة.");
   }
@@ -127,7 +147,8 @@ export async function loginUser(identity: string, password: string) {
         .filter((s): s is string => Boolean(s))
     : [];
 
-  // Store HttpOnly cookie via server endpoint
+  // Store HttpOnly cookie via server endpoint — this is now the only place
+  // the raw token is persisted anywhere.
   try {
     await fetch("/api/auth/set-cookie", {
       method: "POST",
