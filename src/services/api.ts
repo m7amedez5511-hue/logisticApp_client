@@ -16,7 +16,44 @@ export class ApiError extends Error {
   }
 }
 
-// ── Core request helper ────────────────────────────────
+// ── Sensitive-field redaction ─────────────────────────────────────────
+// Keys matched case-insensitively; extend this list as new sensitive
+// fields are introduced (e.g. new auth flows, payment fields, etc).
+const SENSITIVE_KEYS = ["password", "token", "secret", "authorization", "refreshtoken"];
+
+function redactSensitiveFields(value: unknown): unknown {
+  if (value instanceof FormData) return "[FormData]";
+
+  let parsed: unknown = value;
+  if (typeof value === "string") {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return value; // not JSON — nothing structured to redact
+    }
+  }
+
+  if (Array.isArray(parsed)) {
+    return parsed.map((item) => redactSensitiveFields(JSON.stringify(item)));
+  }
+
+  if (parsed && typeof parsed === "object") {
+    const redacted: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(parsed as Record<string, unknown>)) {
+      if (SENSITIVE_KEYS.includes(key.toLowerCase())) {
+        redacted[key] = "[REDACTED]";
+      } else if (val && typeof val === "object") {
+        redacted[key] = redactSensitiveFields(JSON.stringify(val));
+      } else {
+        redacted[key] = val;
+      }
+    }
+    return redacted;
+  }
+
+  return parsed;
+}
+
 export async function request<T>(
   path: string,
   init: RequestInit = {},
@@ -35,8 +72,13 @@ export async function request<T>(
 
   if (process.env.NODE_ENV !== "production") {
     // eslint-disable-next-line no-console
-    console.debug("API request:", { url, method: init.method ?? "GET", body: init.body });
+    console.debug("API request:", {
+      url,
+      method: init.method ?? "GET",
+      body: redactSensitiveFields(init.body),
+    });
   }
+  
 
   const res = await fetch(url, {
     ...init,

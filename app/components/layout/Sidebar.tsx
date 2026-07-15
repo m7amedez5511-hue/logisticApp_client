@@ -147,9 +147,7 @@ const GRAD = "linear-gradient(175deg, #1E3A8A 0%, #1D4ED8 60%, #1565C0 100%)";
 export function Sidebar() {
   const pathname = usePathname();
   const user = getStoredUser();
-  const permissions =
-    user?.permissions ??
-    navSections.flatMap((s) => s.items.map((i) => i.permission));
+  const permissions = user?.permissions ?? [];
   const { open, setOpen } = useSidebarDrawer();
 
   useEffect(() => {

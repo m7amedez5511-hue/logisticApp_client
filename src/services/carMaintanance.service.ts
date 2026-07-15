@@ -18,12 +18,23 @@ export const carMaintenanceService = {
   /**
    * GET /cars/:carId/maintenance
    * Fetch every maintenance record that belongs to one car.
+   * NOTE: backend does NOT support pagination on this endpoint — confirmed
+   * against a live response, which returns the full array under `data`
+   * with no `pagination`/`meta` block. Capped client-side to avoid
+   * rendering/sorting an unbounded list in the UI.
    *
    * Example response:
-   * { "data": { "data": [ { "id": "...", "reason": "تغيير زيت", "cost": 150, ... } ] } }
+   * { "success": true, "message": "...", "responseAt": "...",
+   *   "data": [ { "id": "...", "reason": "تشحيم", "cost": "30", ... } ] }
    */
-  getAll: (carId: string, token: string | null) =>
-    get<MaintenanceListResponse>(`cars/${carId}/maintenance`, token),
+  getAll: async (carId: string, token: string | null): Promise<MaintenanceListResponse> => {
+    const MAX_RECORDS = 100;
+    const res = await get<MaintenanceListResponse>(`cars/${carId}/maintenance`, token);
+    if (res.data.length > MAX_RECORDS) {
+      return { ...res, data: res.data.slice(0, MAX_RECORDS) };
+    }
+    return res;
+  },
 
   /**
    * GET /cars/:carId/maintenance/:maintenanceId

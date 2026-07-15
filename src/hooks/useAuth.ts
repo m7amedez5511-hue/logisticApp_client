@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { saveAuth } from "@/src/lib/auth";
-import { authService } from "@/src/service/auth.service";
+import { authService } from "@/src/services/auth.service";
 import type { AuthUser, LoginRequest, User } from "@/src/types/auth";
 import { detectIdentityField } from "@/src/validations/auth.validator";
 

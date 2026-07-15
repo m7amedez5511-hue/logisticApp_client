@@ -328,7 +328,6 @@ export function OrderFormModal({
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("her");
 
     e.preventDefault();
 
@@ -1152,7 +1151,7 @@ export function OrderFormModal({
             <button
               type="submit"
               disabled={saving}
-              onClick={() => console.log("BUTTON CLICKED DIRECTLY")}
+              
               style={{
                 height: 40,
                 padding: "0 1.5rem",
