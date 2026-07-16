@@ -1,3 +1,6 @@
+// src/Components/UI/ModalProps.tsx
+// CHANGE: added optional `role` prop (default "dialog") so callers like
+// ConfirmDialog can request role="alertdialog" semantics without a new component.
 import { useEffect } from "react";
 import { cn } from "@/src/lib/utils";
 
@@ -11,6 +14,8 @@ interface ModalProps {
   size?: "sm" | "md" | "lg";
   /** Subtitle or badge shown below the title */
   subtitle?: string;
+  /** ARIA role for the dialog panel — "alertdialog" for destructive/confirm flows */
+  role?: "dialog" | "alertdialog";
 }
 
 const MODAL_SIZES: Record<NonNullable<ModalProps["size"]>, string> = {
@@ -27,6 +32,7 @@ export function Modal({
   footer,
   size = "md",
   subtitle,
+  role = "dialog",
 }: ModalProps) {
   // Escape key to close
   useEffect(() => {
@@ -51,7 +57,7 @@ export function Modal({
 
       {/* Panel */}
       <div
-        role="dialog"
+        role={role}
         aria-modal="true"
         aria-labelledby="modal-title"
         className={cn(

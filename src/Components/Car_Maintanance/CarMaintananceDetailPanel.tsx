@@ -1,9 +1,12 @@
+// src/Components/Car_Maintanance/CarMaintananceDetailPanel.tsx
+// CHANGE: replaced CarMaintenanceDeleteModal with ConfirmDialog per Issue 1.
+// Description string rebuilt inline using fmtCost, matching the original
+// modal's wording exactly (see Issue 1 edge-case note on preserving fmtCost formatting).
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Spinner } from "../UI";
+import { Spinner, ConfirmDialog } from "../UI";
 import { CarMaintenanceFormModal } from "./CarMaintananceFormModal";
-import { CarMaintenanceDeleteModal } from "./CarMaintananceDeleteModal";
 import {
   useCarMaintenanceList,
   useCarMaintenanceMutations,
@@ -269,14 +272,23 @@ export function CarMaintenanceDetailPanel({ carId, carLabel, onClose, onCarStatu
         />
       )}
 
-      {deleteTarget && (
-        <CarMaintenanceDeleteModal
-          record={deleteTarget}
-          deleting={deleting}
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={() => handleDeleteConfirm(deleteTarget)}
-        />
-      )}
+      {/* CHANGE: CarMaintenanceDeleteModal -> ConfirmDialog (Issue 1).
+          `open` is now explicit since ConfirmDialog is not conditionally
+          mounted the way the old modal was. Description text ported
+          verbatim from the deleted CarMaintananceDeleteModal.tsx,
+          including fmtCost() formatting for the cost figure. */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="حذف سجل الصيانة"
+        description={
+          deleteTarget
+            ? `هل أنت متأكد من حذف سجل ${deleteTarget.reason} (${fmtCost(deleteTarget.cost)})؟ لا يمكن التراجع عن هذا الإجراء.`
+            : ""
+        }
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && handleDeleteConfirm(deleteTarget)}
+      />
     </>
   );
 }

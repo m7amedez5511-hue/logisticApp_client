@@ -1,3 +1,6 @@
+// src/Components/UI/ConfirmDialog.tsx
+// CHANGE: added optional `role` prop (default "alertdialog" — matches the 9
+// legacy modals being replaced), forwarded into Modal.
 import { Button } from "./Button";
 import { Modal } from "./ModalProps";
 
@@ -12,6 +15,9 @@ interface ConfirmDialogProps {
   loading?: boolean;
   /** Subtitle shown in modal header */
   subtitle?: string;
+  /** ARIA role — defaults to "alertdialog" to match the destructive-action
+   *  semantics of the delete-confirmation modals this component replaces. */
+  role?: "dialog" | "alertdialog";
 }
 
 export function ConfirmDialog({
@@ -24,6 +30,7 @@ export function ConfirmDialog({
   onCancel,
   loading = false,
   subtitle,
+  role = "alertdialog",
 }: ConfirmDialogProps) {
   return (
     <Modal
@@ -32,6 +39,7 @@ export function ConfirmDialog({
       subtitle={subtitle}
       onClose={onCancel}
       size="sm"
+      role={role}
       footer={
         <>
           <Button variant="secondary" onClick={onCancel} disabled={loading}>
