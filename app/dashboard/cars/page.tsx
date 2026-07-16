@@ -2,10 +2,8 @@
 
 
 import { useCallback, useState } from "react";
-import { Spinner, Alert, ArchiveButton } from "@/src/Components/UI";
-import { CarFormModal }      from "@/src/Components/car/CarFormModal";
-import { CarDetailPanel }    from "@/src/Components/car/CarDetailPanel";
-import { CarDeleteModal }    from "@/src/Components/car/CarDeleteModal";
+import { Spinner, Alert, ArchiveButton, ConfirmDialog } from "@/src/Components/UI";
+import { CarFormModal,CarDetailPanel }      from "@/src/Components/car";
 import { ArchivedCarsModal } from "@/src/Components/car/archive/Archivedcarsmodal";
 import { CarMaintenanceFormModal } from "@/src/Components/Car_Maintanance/CarMaintananceFormModal";
 import { useCars, useCarMutations, useToast } from "@/src/hooks/useCars";
@@ -283,14 +281,14 @@ export default function CarsPage() {
         />
       )}
 
-      {deleteTarget && (
-        <CarDeleteModal
-          car={deleteTarget}
-          deleting={deleting}
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={handleDelete}
-        />
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="حذف المركبة"
+        description={`هل أنت متأكد من حذف ${deleteTarget?.manufacturer ?? ""} ${deleteTarget?.model ?? ""} (${deleteTarget?.plateLetters ?? ""} ${deleteTarget?.plateNumber ?? ""})؟ لا يمكن التراجع عن هذا الإجراء.`}
+      />
 
       {maintenanceTarget && (
         <CarMaintenanceFormModal

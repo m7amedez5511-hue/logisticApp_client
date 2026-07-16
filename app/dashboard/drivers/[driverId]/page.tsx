@@ -2,13 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Spinner } from "@/src/Components/UI";
-import { DriverFormModal } from "@/src/Components/Driver/DriverFormModal";
-import { DriverDeleteModal } from "@/src/Components/Driver/DriverDeleteModal";
+import { ConfirmDialog, Spinner } from "@/src/Components/UI";
+import { DriverFormModal , PhotoCard } from "@/src/Components/Driver";
 import { DriverReportPanel } from "@/src/Components/Driver_Report/driverReport";
 import type { Driver, CreateDriverPayload, UpdateDriverPayload } from "@/src/types/driver";
 import { DRIVER_STATUS_MAP, DRIVER_CARD_TYPE_MAP, NATIONAL_ID_TYPE_MAP } from "@/src/types/driver";
-import { PhotoCard } from "@/src/Components/Driver/DriverPhotos";
 import { driverService } from "@/src/services";
 import { getStoredToken } from "@/src/lib/auth";
 
@@ -380,14 +378,14 @@ export default function DriverDetailPage() {
         />
       )}
 
-      {deleteOpen && (
-        <DriverDeleteModal
-          driver={driver}
-          deleting={deleting}
-          onCancel={() => setDeleteOpen(false)}
-          onConfirm={handleConfirmDelete}
-        />
-      )}
+      <ConfirmDialog
+        open={deleteOpen}
+        loading={deleting}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="حذف السائق"
+        description={`هل أنت متأكد من حذف ${driver.name} (${driver.phone})؟ لا يمكن التراجع عن هذا الإجراء.`}
+      />
     </>
   );
 }

@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, ArchiveButton } from "@/src/Components/UI";
+import { Alert, ArchiveButton, ConfirmDialog,Toast } from "@/src/Components/UI";
 import { RoleTable }       from "@/src/Components/role/RoleTable";
-import { RoleFormModal }   from "@/src/Components/role/RoleFormModal";
-import { RoleDetailModal } from "@/src/Components/role/RoleDetailModal";
-import { DeleteRoleModal } from "@/src/Components/role/DeleteRoleModal";
-import { Toast }       from "@/src/Components/UI";
+import { RoleFormModal,RoleDetailModal }   from "@/src/Components/role";
 import { useRoles }        from "@/src/hooks/useRole";
 import { Role, RoleFormData } from "@/src/types/role";
 import { ArchivedRolesModal } from "@/src/Components/role/archive/ArchivedRolesModal";
@@ -77,14 +74,14 @@ export default function RolesPage() {
       )}
 
       {/* Delete confirmation */}
-      {deleteTarget && (
-        <DeleteRoleModal
-          role={deleteTarget}
-          deleting={deleting}
-          onCancel={() => { if (!deleting) setDeleteTarget(null); }}
-          onConfirm={handleDeleteConfirm}
-        />
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        loading={deleting}
+        onCancel={() => { if (!deleting) setDeleteTarget(null); }}
+        onConfirm={handleDeleteConfirm}
+        title="حذف الدور"
+        description={`هل أنت متأكد من حذف دور ${deleteTarget?.name ?? ""}؟ لا يمكن التراجع عن هذا الإجراء.`}
+      />
 
       {/* Archive browser modal */}
       {archiveOpen && (

@@ -2,9 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Alert, ArchiveButton, PageHeader, Spinner, Toast } from "@/src/Components/UI";
+import { Alert, ArchiveButton, ConfirmDialog, PageHeader, Spinner, Toast } from "@/src/Components/UI";
 import { CarMaintenanceFormModal } from "@/src/Components/Car_Maintanance/CarMaintananceFormModal";
-import { CarMaintenanceDeleteModal } from "@/src/Components/Car_Maintanance/CarMaintananceDeleteModal";
 import { ArchivedCarsMaintenanceModal } from "@/src/Components/Car_Maintanance/archive/ArchivedCarsMaintananceModal";
 import {
   useCarMaintenanceList,
@@ -135,14 +134,14 @@ export default function CarMaintenancePage() {
         />
       )}
 
-      {deleteTarget && (
-        <CarMaintenanceDeleteModal
-          record={deleteTarget}
-          deleting={deleting}
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={() => handleDeleteConfirm(deleteTarget)}
-        />
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && handleDeleteConfirm(deleteTarget)}
+        title="حذف سجل الصيانة"
+        description={`هل أنت متأكد من حذف سجل ${deleteTarget?.reason ?? ""} (${deleteTarget ? fmtCost(deleteTarget.cost) : ""})؟ لا يمكن التراجع عن هذا الإجراء.`}
+      />
 
       {archiveOpen && (
         <ArchivedCarsMaintenanceModal

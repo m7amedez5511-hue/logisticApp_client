@@ -1,23 +1,28 @@
+// app/components/layout/Topbar.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
-import { clearAuth, getStoredUser } from "@/src/lib/auth";
+import { clearAuth } from "@/src/lib/auth";
+import { useStoredUser } from "@/src/hooks/useStoredUser";
+import { Spinner } from "@/src/Components/UI/Spinner";
 import { useSidebarDrawer, BrandIconButton } from "./Sidebar";
 
 export function Topbar() {
   const router = useRouter();
   const { setOpen } = useSidebarDrawer();
 
+  // كان بيتقرأ بشكل sync عن طريق getStoredUser() جوه الرندر — استبدلناه بالـ hook
+  // عشان يبقى SSR-safe ومايعملش hydration mismatch، وكمان يعمل subscribe
+  // لأي تغيير في الـ storage (تسجيل دخول/خروج من تاب تاني).
+  const { user, loading } = useStoredUser();
+
   async function handleLogout() {
     await clearAuth();
     router.replace("/login");
   }
 
-  const user = getStoredUser();
-
   return (
     <header
-      suppressHydrationWarning
       style={{
         height: "var(--topbar-height)",
         background: "#FFFFFF",
@@ -52,18 +57,33 @@ export function Topbar() {
           حسابي
         </button>
 
+        {/*
+          Loading guard: InlineLoader is meant for card/section-level loading
+          (py-4 + message text) and doesn't fit a small inline pill here, so
+          we use the same underlying <Spinner size="sm" /> the project already
+          ships, just placed inside the existing badge shell.
+        */}
         <div
-          suppressHydrationWarning
+          role="status"
+          aria-label={loading ? "جارِ التحميل" : undefined}
           style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             fontSize: 12,
             color: "var(--color-text-secondary)",
             background: "var(--color-surface-muted)",
             border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-full)",
-            padding: "4px 12px",
+            padding: loading ? "4px 10px" : "4px 12px",
+            minWidth: 40,
           }}
         >
-          {user?.role ?? "—"}
+          {loading ? (
+            <Spinner size="sm" className="text-[var(--color-text-muted)]" />
+          ) : (
+            user?.role ?? "—"
+          )}
         </div>
 
         <button

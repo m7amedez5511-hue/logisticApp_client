@@ -1,13 +1,11 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Alert, Spinner, ArchiveButton } from "@/src/Components/UI";
-import { DriverFormModal } from "@/src/Components/Driver/DriverFormModal";
-import { DriverDeleteModal } from "@/src/Components/Driver/DriverDeleteModal";
+import { Alert, Spinner, ArchiveButton, ConfirmDialog } from "@/src/Components/UI";
 import { ArchivedDrivers } from "@/src/Components/Driver/archive/ArchivedDrivers";
 import { useDrivers } from "@/src/hooks/useDriver";
 import { CreateDriverPayload, Driver, DRIVER_STATUS_MAP, UpdateDriverPayload } from "@/src/types/driver";
-import { DriverDetailPanel } from "@/src/Components/Driver/DriverDetailPanel";
+import { DriverDetailPanel, DriverFormModal , } from "@/src/Components/Driver";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -413,14 +411,14 @@ export default function DriversPage() {
       )}
 
       {/* ── Delete modal ── */}
-      {deleteTarget && (
-        <DriverDeleteModal
-          driver={deleteTarget}
-          deleting={deleting}
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={handleConfirmDelete}
-        />
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="حذف السائق"
+        description={`هل أنت متأكد من حذف ${deleteTarget?.name ?? ""} (${deleteTarget?.phone ?? ""})؟ لا يمكن التراجع عن هذا الإجراء.`}
+      />
 
       {/* ── Archive browser modal ── */}
       {archiveOpen && (

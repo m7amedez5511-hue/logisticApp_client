@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import { Alert, Toast, ArchiveButton } from "@/src/Components/UI";
+import { Alert, ConfirmDialog, Toast, ArchiveButton } from "@/src/Components/UI";
 
 import { useClientAddresses } from "@/src/hooks/useClientAddresses";
 import { clientService }      from "@/src/services/client.service";
@@ -12,7 +12,7 @@ import { getStoredToken }     from "@/src/lib/auth";
 import type { Client, ClientFormData } from "@/src/types/client";
 import type { ClientAddress }          from "@/src/types/client_adresses";
 
-import { AddressFormModal, DeleteConfirmModal, ClientFormModal } from "@/src/Components/Client";
+import { AddressFormModal, ClientFormModal } from "@/src/Components/Client";
 import { ArchivedClientsAddressesModal } from "@/src/Components/Client_Adress/archive/ArchivedClientsAddressesModal";
 import type {
   CreateAddressFormValues,
@@ -443,23 +443,14 @@ export default function ClientAddressesPage() {
       )}
 
       {/* Delete confirmation */}
-      {deleteTarget && (
-        <DeleteConfirmModal
-          client={
-            {
-              ...deleteTarget,
-              name: deleteTarget.label,
-              email: "",
-              phone: "",
-              createdAt: deleteTarget.createdAt,
-              updatedAt: deleteTarget.updatedAt,
-            } as Client
-          }
-          deleting={deleting}
-          onCancel={() => { if (!deleting) setDeleteTarget(null); }}
-          onConfirm={handleDeleteConfirm}
-        />
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        loading={deleting}
+        onCancel={() => { if (!deleting) setDeleteTarget(null); }}
+        onConfirm={handleDeleteConfirm}
+        title="حذف العميل"
+        description={`هل أنت متأكد من حذف ${deleteTarget?.label ?? ""}؟ سيتم حذف جميع عناوينه أيضاً. لا يمكن التراجع عن هذا الإجراء.`}
+      />
 
       {/* Client edit modal */}
       {editingClient && client && (

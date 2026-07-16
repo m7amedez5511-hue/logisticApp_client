@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Spinner } from "@/src/Components/UI";
+import { ConfirmDialog, Spinner } from "@/src/Components/UI";
 import { TripFormModal } from "@/src/Components/Trip/Tripformmodal";
-import { TripDeleteModal } from "@/src/Components/Trip/Tripdeletemodal";
 import { TripReportPanel } from "@/src/Components/Trip_Report/Tripreportpanel";
 import { tripService } from "@/src/services/trip.service";
 import { getStoredToken } from "@/src/lib/auth";
@@ -558,14 +557,14 @@ export default function TripDetailPage() {
       )}
 
       {/* ── Delete modal ── */}
-      {deleteOpen && (
-        <TripDeleteModal
-          trip={trip}
-          deleting={deleting}
-          onCancel={() => setDeleteOpen(false)}
-          onConfirm={handleConfirmDelete}
-        />
-      )}
+      <ConfirmDialog
+        open={deleteOpen}
+        loading={deleting}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="حذف الرحلة"
+        description={`هل أنت متأكد من حذف رحلة ${trip.title} (${trip.tripNumber})؟ لا يمكن التراجع عن هذا الإجراء.`}
+      />
     </>
   );
 }

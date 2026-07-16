@@ -1,11 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Toast, ArchiveButton } from "@/src/Components/UI";
-import { BranchTable }         from "@/src/Components/Branch/BranchTable";
-import { BranchFormModal }     from "@/src/Components/Branch/BranchFormModal";
-import { BranchDetailModal }   from "@/src/Components/Branch/BranchDetailModal";
-import { DeleteConfirmModal }  from "@/src/Components/Branch/DeleteConfirmModal";
+import { Alert, Toast, ArchiveButton ,ConfirmDialog } from "@/src/Components/UI";
+import { BranchDetailModal, BranchTable ,BranchFormModal }   from "@/src/Components/Branch";
 import { useBranches }         from "@/src/hooks/useBranch";
 import type { Branch, BranchFormData } from "@/src/types/branch";
 import { ArchivedBranchesModal } from "@/src/Components/Branch/archive/ArchivedBranchesModal";
@@ -74,16 +71,14 @@ export default function BranchesPage() {
       )}
 
       {/* Delete confirmation dialog */}
-      {deleteTarget && (
-        <DeleteConfirmModal
-          branch={deleteTarget}
-          deleting={deleting}
-          onCancel={() => {
-            if (!deleting) setDeleteTarget(null);
-          }}
-          onConfirm={handleDeleteConfirm}
-        />
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="حذف الفرع"
+        description={`هل أنت متأكد من حذف الفرع ${deleteTarget?.name ?? ""}؟ لا يمكن التراجع عن هذا الإجراء.`}
+      />
 
       {/* Archive browser modal */}
       {archiveOpen && (

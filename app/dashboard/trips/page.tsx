@@ -4,10 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTrips } from "@/src/hooks/useTrip";
 import { TripFormModal } from "@/src/Components/Trip/Tripformmodal";
-import { TripDeleteModal } from "@/src/Components/Trip/Tripdeletemodal";
 import { ArchivedTripList } from "@/src/Components/Trip/archive/ArchivedTripList";
-import { Alert, Spinner, ArchiveButton } from "@/src/Components/UI";
-import { Toast } from "@/src/Components/UI/Toast";
+import { Alert, Spinner, ArchiveButton, ConfirmDialog , Toast } from "@/src/Components/UI";
 import type {
   Trip,
   TripStatus,
@@ -748,14 +746,14 @@ export default function TripsPage() {
       )}
 
       {/* ── Delete modal ── */}
-      {deleteTarget && (
-        <TripDeleteModal
-          trip={deleteTarget}
-          deleting={deleting}
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={handleConfirmDelete}
-        />
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="حذف الرحلة"
+        description={`هل أنت متأكد من حذف رحلة ${deleteTarget?.title ?? ""} (${deleteTarget?.tripNumber ?? ""})؟ لا يمكن التراجع عن هذا الإجراء.`}
+      />
 
       {/* ── Archive browser modal ── */}
       {archiveOpen && (

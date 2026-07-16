@@ -3,13 +3,12 @@
 
 
 import { useState, useCallback } from "react";
-import { Alert, Spinner, Toast, ArchiveButton } from "@/src/Components/UI";
-import { OrderFormModal } from "@/src/Components/Order/OrderFormModal";
-import { OrderDeleteModal } from "@/src/Components/Order/OrderDeleteModal";
-import { OrderDetailPanel, ORDER_STATUS_MAP } from "@/src/Components/Order/OrderDetailBanel";
+import { Alert, Spinner, Toast, ArchiveButton, ConfirmDialog } from "@/src/Components/UI";
+import {  ORDER_STATUS_MAP } from "@/src/Components/Order/OrderDetailBanel";
 import { ArchivedOrdersModal } from "@/src/Components/Order/archive/ArchivedOrdersModal";
 import { useOrders } from "@/src/hooks/useOrder";
 import type { CreateOrderPayload, Order, UpdateOrderPayload } from "@/src/types/order";
+import { OrderFormModal ,  OrderDetailPanel} from "@/src/Components/Order";
 
 // ── Helpers — copied verbatim from app/dashboard/drivers/page.tsx ───────
 
@@ -441,14 +440,14 @@ export default function OrderComponent() {
       )}
 
       {/* ── Delete modal ── */}
-      {deleteTarget && (
-        <OrderDeleteModal
-          order={deleteTarget}
-          deleting={deleting}
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={handleConfirmDelete}
-        />
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="حذف الطلب"
+        description={`هل أنت متأكد من حذف الطلب ${deleteTarget?.shipmentNumber ?? ""} الخاص بـ ${deleteTarget?.recipientName ?? ""}؟ لا يمكن التراجع عن هذا الإجراء.`}
+      />
 
       {/* ── Archive browser modal ── */}
       {archiveOpen && (

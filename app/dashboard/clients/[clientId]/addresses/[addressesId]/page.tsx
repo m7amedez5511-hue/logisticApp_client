@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import { Alert, Toast }                        from "@/src/Components/UI";
-import { AddressFormModal, DeleteConfirmModal } from "@/src/Components/Client";
+import { Alert, ConfirmDialog, Toast }         from "@/src/Components/UI";
+import { AddressFormModal }                    from "@/src/Components/Client";
 import { AddressDetails }                      from "@/src/Components/Client_Adress/AddressDetails";
 import { clientAddressService }                from "@/src/services/clientAddress.service";
 import { clientService }                       from "@/src/services/client.service";
@@ -173,21 +173,14 @@ export default function AddressDetailPage() {
       )}
 
       {/* Delete confirmation */}
-      {deleteOpen && (
-        <DeleteConfirmModal
-          client={
-            {
-              ...address,
-              name: address.label,
-              email: "",
-              phone: "",
-            } as Client
-          }
-          deleting={deleting}
-          onCancel={() => { if (!deleting) setDeleteOpen(false); }}
-          onConfirm={handleDeleteConfirm}
-        />
-      )}
+      <ConfirmDialog
+        open={deleteOpen}
+        loading={deleting}
+        onCancel={() => { if (!deleting) setDeleteOpen(false); }}
+        onConfirm={handleDeleteConfirm}
+        title="حذف العميل"
+        description={`هل أنت متأكد من حذف ${address.label}؟ سيتم حذف جميع عناوينه أيضاً. لا يمكن التراجع عن هذا الإجراء.`}
+      />
 
       <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 

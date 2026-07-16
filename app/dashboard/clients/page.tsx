@@ -6,14 +6,12 @@ import { useRouter } from "next/navigation";
 
 // ── UI components ──────────────────────────────────────────────────────────
 // NOTE: Toast is now imported from the canonical UI barrel, NOT from Client/Toast.
-import { Alert, Toast, ArchiveButton } from "@/src/Components/UI";
+import { Alert, Toast, ArchiveButton, ConfirmDialog } from "@/src/Components/UI";
 
 // ── Client-specific components ─────────────────────────────────────────────
 import { useClients }         from "@/src/hooks/useClients";
 import type { Client, ClientFormData } from "@/src/types/client";
-import { ClientFormModal }    from "@/src/Components/Client/Clientformmodal";
-import { ClientTable }        from "@/src/Components/Client/Clienttable";
-import { DeleteConfirmModal } from "@/src/Components/Client/Deleteconfirmmodal";
+import { ClientFormModal , ClientTable }    from "@/src/Components/Client";
 import { ArchivedClientsModal } from "@/src/Components/Client/archive/ArchivedClientsModal";
 
 
@@ -82,14 +80,14 @@ export default function ClientsPage() {
       )}
 
       {/* Delete confirmation dialog */}
-      {deleteTarget && (
-        <DeleteConfirmModal
-          client={deleteTarget}
-          deleting={deleting}
-          onCancel={() => { if (!deleting) setDeleteTarget(null); }}
-          onConfirm={handleDeleteConfirm}
-        />
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        loading={deleting}
+        onCancel={() => { if (!deleting) setDeleteTarget(null); }}
+        onConfirm={handleDeleteConfirm}
+        title="حذف العميل"
+        description={`هل أنت متأكد من حذف ${deleteTarget?.name ?? ""}؟ سيتم حذف جميع عناوينه أيضاً. لا يمكن التراجع عن هذا الإجراء.`}
+      />
 
       {/* Archive browser modal */}
       {archiveOpen && (

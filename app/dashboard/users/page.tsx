@@ -1,11 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Toast, ArchiveButton } from "@/src/Components/UI";
-import { UserTable }          from "@/src/Components/User/UserTable";
-import { UserFormModal }      from "@/src/Components/User/UserFormModal";
-import { UserDetailModal }    from "@/src/Components/User/UserDetailModal";
-import { DeleteConfirmModal } from "@/src/Components/User/DeleteConfirmModal";
+import { Alert, Toast, ArchiveButton, ConfirmDialog } from "@/src/Components/UI";
+import { UserFormModal,UserDetailModal,UserTable }      from "@/src/Components/User";
 import { useUsers }           from "@/src/hooks/useUser";
 import type { User, UserFormData } from "@/src/types/user";
 import { ArchivedUsersModal } from "@/src/Components/User/archive/Archivedusersmodal";
@@ -76,16 +73,14 @@ export default function UsersPage() {
       )}
 
       {/* Delete confirmation dialog */}
-      {deleteTarget && (
-        <DeleteConfirmModal
-          user={deleteTarget}
-          deleting={deleting}
-          onCancel={() => {
-            if (!deleting) setDeleteTarget(null);
-          }}
-          onConfirm={handleDeleteConfirm}
-        />
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        loading={deleting}
+        onCancel={() => { if (!deleting) setDeleteTarget(null); }}
+        onConfirm={handleDeleteConfirm}
+        title="حذف المستخدم"
+        description={`هل أنت متأكد من حذف ${deleteTarget?.name ?? ""}؟ لا يمكن التراجع عن هذا الإجراء.`}
+      />
 
       {/* Archive browser modal */}
       {archiveOpen && (
