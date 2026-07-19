@@ -135,5 +135,14 @@ export interface ArchivedOrderListResponse {
   success: boolean;
   message: string;
   responseAt: string;
-  data: ArchivedOrder[];
+  data: {
+    data: ArchivedOrder[];
+    meta?: { total: number; page: number; limit: number; totalPages: number };
+  };
+}
+
+export interface OrderListResult {
+  items: Order[];
+  total: number;
+  pages: number;
 }

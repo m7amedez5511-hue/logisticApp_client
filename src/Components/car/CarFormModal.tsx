@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as yup from "yup";
 import { Alert, Spinner } from "../UI";
-import { get } from "@/src/services/api";
 import { getStoredToken } from "@/src/lib/auth";
-import { createCarSchema, updateCarSchema } from "@/src/validations/car.validator";
+import {
+  createCarSchema,
+  updateCarSchema,
+} from "@/src/validations/car.validator";
 import type {
   Car,
   CarFormErrors,
@@ -14,6 +16,8 @@ import type {
   UpdateCarPayload,
 } from "@/src/types/car";
 import type { Branch } from "@/src/types/branch";
+import { branchService } from "@/src/services/branch.service";
+
 
 // ── Shared input style ────────────────────────────────────────────────────────
 
@@ -100,23 +104,22 @@ export function CarFormModal({
   const isNew = editCar === null;
 
   // ── Local branches (auto-fetched if prop is empty) ─────────────────────────
-  const [branches, setBranches] = useState<Branch[]>(branchesProp);
-  const loadBranches = useCallback(() => {
-    if (branchesProp.length > 0) {
-      queueMicrotask(() => setBranches(branchesProp));
-      return;
-    }
-    const token = getStoredToken();
-    get<{ data: { data: Branch[] } }>("branches?limit=100", token)
-      .then((res) => {
-        const list =
-          (res as unknown as { data: { data: Branch[] } }).data?.data ?? [];
-        queueMicrotask(() => setBranches(list));
-      })
-      .catch(() => {
-        /* silently ignore */
-      });
-  }, [branchesProp]);
+ const [branches, setBranches] = useState<Branch[]>(branchesProp);
+const loadBranches = useCallback(() => {
+  if (branchesProp.length > 0) {
+    queueMicrotask(() => setBranches(branchesProp));
+    return;
+  }
+  const token = getStoredToken();
+  branchService
+    .getOptions(token)
+    .then((list) => {
+      queueMicrotask(() => setBranches(list as unknown as Branch[]));
+    })
+    .catch(() => {
+      /* silently ignore */
+    });
+}, [branchesProp]);
 
   useEffect(() => {
     loadBranches();

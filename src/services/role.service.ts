@@ -1,53 +1,58 @@
 import {
-  ApiPaginatedResponse,
-  AssignPermissionResponse,
-  BulkAssignPermissionsResponse,
-  PermissionsResponse,
-  Role,
-  RoleFormData,
-  RoleResponse,
+  ApiPaginatedResponse, AssignPermissionResponse, BulkAssignPermissionsResponse,
+  PermissionsResponse, Permission, Role, RoleFormData, RoleResponse, RoleListResult,
 } from "../types/role";
 import { get, post, put, del, patch } from "./api";
 
-/** Build query string for paginated role listing */
 function buildRolesQuery(page: number, search: string): string {
   return `?page=${page}&limit=10${search ? `&search=${encodeURIComponent(search)}` : ""}`;
 }
 
 export const roleService = {
-  /** Fetch paginated roles list */
-  getAll: (page: number, search: string, token: string | null) =>
-    get<ApiPaginatedResponse<Role>>(`role${buildRolesQuery(page, search)}`, token),
+  getAll: async (page: number, search: string, token: string | null): Promise<RoleListResult> => {
+    const res: ApiPaginatedResponse<Role> = await get<ApiPaginatedResponse<Role>>(
+      `role${buildRolesQuery(page, search)}`,
+      token,
+    );
+    return {
+      items: res.data.data,
+      total: res.data.meta?.total ?? res.data.pagination?.total ?? 0,
+      pages: res.data.meta?.pages ?? res.data.pagination?.pages ?? 1,
+    };
+  },
 
-  /** Fetch a single role by ID (includes permissions) */
-  getById: (id: string, token: string | null) =>
-    get<{ data: Role }>(`role/${id}`, token),
+  getById: async (id: string, token: string | null): Promise<Role> => {
+    const res = await get<{ data: Role }>(`role/${id}`, token);
+    return res.data;
+  },
 
-  /** Create a new role */
-  create: (data: RoleFormData, token: string | null) =>
-    post<RoleResponse>("role", { name: data.name, description: data.description }, token),
+  create: async (data: RoleFormData, token: string | null): Promise<Role> => {
+    const res: RoleResponse = await post<RoleResponse>(
+      "role", { name: data.name, description: data.description }, token,
+    );
+    return res.data;
+  },
 
-  /** Update role name/description */
-  update: (id: string, data: Partial<RoleFormData>, token: string | null) =>
-    put<RoleResponse>(`role/${id}`, { name: data.name, description: data.description }, token),
+  update: async (id: string, data: Partial<RoleFormData>, token: string | null): Promise<Role> => {
+    const res: RoleResponse = await put<RoleResponse>(
+      `role/${id}`, { name: data.name, description: data.description }, token,
+    );
+    return res.data;
+  },
 
-  /** Soft-delete a role */
-  delete: (id: string, token: string | null) =>
-    del<void>(`role/${id}`, token),
+  delete: (id: string, token: string | null) => del<void>(`role/${id}`, token),
 
-  /** Fetch all available permissions for checkbox list */
-  getPermissions: (token: string | null) =>
-    get<PermissionsResponse>("premission?limit=200", token),
+  getPermissions: async (token: string | null): Promise<Permission[]> => {
+    const res: PermissionsResponse = await get<PermissionsResponse>("premission?limit=200", token);
+    return  res.data?.premissions?.data ?? [];
+  },
 
-  /** POST /role/{id}/permissions — assign a single permission to a role */
   assignPermission: (roleId: string, permissionId: string, token: string | null) =>
     post<AssignPermissionResponse>(`role-permissions/${roleId}/permissions`, { permissionId }, token),
 
-  /** PATCH /role/{id}/permissions/bulk — replace all permissions for a role */
   bulkAssignPermissions: (roleId: string, permissionIds: string[], token: string | null) =>
     patch<BulkAssignPermissionsResponse>(`role-permissions/${roleId}/permissions`, { permissionIds }, token),
 
-  /** DELETE /role/{id}/permissions/{permissionId} — remove a single permission */
   removePermission: (roleId: string, permissionId: string, token: string | null) =>
     del<void>(`role-permissions/${roleId}/permissions/${permissionId}`, token),
 };

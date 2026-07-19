@@ -19,23 +19,22 @@ import type {
 // Manages the paginated car list for the main page.
 
 export function useCars(page: number, search: string) {
-  const [cars,    setCars]    = useState<Car[]>([]);
+  const [cars, setCars] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
-  const [total,   setTotal]   = useState(0);
-  const [pages,   setPages]   = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
 
   const loadCars = useCallback(() => {
     const token = getStoredToken();
     setLoading(true);
     setError(null);
-    const query = `?page=${page}&limit=12${search ? `&search=${encodeURIComponent(search)}` : ""}`;
-    get<CarListResponse>(`cars${query}`, token)
-      .then((res) => {
-        const payload = (res as unknown as { data: CarListResponse["data"] }).data ?? res;
-        setCars((payload as CarListResponse["data"]).data ?? []);
-        setTotal((payload as CarListResponse["data"]).meta?.total ?? 0);
-        setPages((payload as CarListResponse["data"]).meta?.pages ?? 1);
+    carService
+      .getAll(page, search, token)
+      .then(({ items, total, pages }) => {
+        setCars(items);
+        setTotal(total);
+        setPages(pages);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
@@ -43,10 +42,9 @@ export function useCars(page: number, search: string) {
 
   useEffect(() => { queueMicrotask(loadCars); }, [loadCars]);
 
-  // Optimistic removal after delete
   const removeCar = useCallback((id: string) => {
-    setCars(prev => prev.filter(c => c.id !== id));
-    setTotal(prev => Math.max(0, prev - 1));
+    setCars((prev) => prev.filter((c) => c.id !== id));
+    setTotal((prev) => Math.max(0, prev - 1));
   }, []);
 
   return { cars, loading, error, total, pages, loadCars, removeCar, setError };
@@ -58,9 +56,9 @@ export function useCars(page: number, search: string) {
 // record is created/updated/deleted elsewhere in the tree.
 
 export function useCarDetail(carId: string) {
-  const [car,     setCar]     = useState<Car | null>(null);
+  const [car, setCar] = useState<Car | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const loadCar = useCallback(() => {
     const token = getStoredToken();
@@ -68,15 +66,15 @@ export function useCarDetail(carId: string) {
     setError(null);
     carService
       .getById(carId, token)
-      .then(res => setCar((res as unknown as { data: Car }).data))
+      .then(setCar)
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   }, [carId]);
 
   useEffect(() => { queueMicrotask(loadCar); }, [loadCar]);
-
   return { car, loading, error, refetch: loadCar };
 }
+
 
 // ── useCarMutations ───────────────────────────────────────────────────────────
 // Create, update, and delete operations — used in the main page.
@@ -165,8 +163,8 @@ export function useCarImages(carId: string, sortBy: "asc" | "desc") {
     try {
       const token = getStoredToken();
       const res = await carService.getImages(carId, token, { sortBy });
-      const raw = (res as unknown as { data: CarImage[] }).data ?? [];
-      setImages(raw);
+      // The response shape: { data: CarImage[] }
+      setImages(res);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "تعذّر تحميل الصور");
     } finally {

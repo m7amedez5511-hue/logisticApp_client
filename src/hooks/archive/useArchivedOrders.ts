@@ -26,7 +26,7 @@ function reducer(s: TableState, a: TableAction): TableState {
     case "LOAD_START":
       return { ...s, loading: true, error: null };
     case "LOAD_OK":
-      return { ...s, loading: false, orders: a.orders };
+      return { ...s, loading: false, orders: Array.isArray(a.orders) ? a.orders : [] };
     case "LOAD_ERR":
       return { ...s, loading: false, error: a.error };
     case "CLEAR_ERR":
@@ -50,27 +50,15 @@ export function useArchivedOrders() {
 
   // ── Fetch archived orders ─────────────────────────────────────────────
   const load = useCallback(async () => {
-    dispatch({ type: "LOAD_START" });
-    try {
-      const token = getStoredToken();
-      const res = await archivedOrderService.getAll(token);
-
-      // نفس الـ pattern بتاع useOrder.ts:
-      // get() بترجع axios response كامل، فـ res.data هو الـ JSON body
-      // {success, message, responseAt, data}. الـ "?? res" احتياطي لو
-      // الـ interceptor بتاع axios بيرجّع الـ body مباشرة من غير .data
-      const payload =
-        (res as unknown as { data: { data: ArchivedOrder[] } }).data ?? res;
-
-      dispatch({ type: "LOAD_OK", orders: payload.data ?? [] });
-    } catch {
-      dispatch({
-        type: "LOAD_ERR",
-        error: "تعذّر تحميل الطلبات المؤرشفة. يرجى المحاولة لاحقاً.",
-      });
-    }
-  }, []);
-
+  dispatch({ type: "LOAD_START" });
+  try {
+    const token = getStoredToken();
+    const orders = await archivedOrderService.getAllUnwrapped(token);
+    dispatch({ type: "LOAD_OK", orders });
+  } catch {
+    dispatch({ type: "LOAD_ERR", error: "تعذّر تحميل الطلبات المؤرشفة. يرجى المحاولة لاحقاً." });
+  }
+}, []);
   useEffect(() => {
     load();
   }, [load]);

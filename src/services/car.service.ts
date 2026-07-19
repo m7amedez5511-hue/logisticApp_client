@@ -1,14 +1,9 @@
 import { get, post, patch, del } from "./api";
 import type {
-  Car,
-  CarListResponse,
-  CarDetailResponse,
-  CarImageListResponse,
-  CreateCarPayload,
-  UpdateCarPayload,
+  Car, CarImage, CarListResponse, CarDetailResponse, CarImageListResponse,
+  CarListResult, CarOption, CreateCarPayload, UpdateCarPayload,
 } from "@/src/types/car";
 
-/** Build a query string for list endpoints */
 function buildQuery(params: Record<string, string | number | undefined>): string {
   const entries = Object.entries(params).filter(([, v]) => v !== undefined && v !== "");
   if (!entries.length) return "";
@@ -16,91 +11,64 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 }
 
 export const carService = {
-  /**
-   * GET /cars
-   * Fetch paginated + searchable car list.
-   */
-  getAll: (
-    page = 1,
-    search = "",
-    token: string | null,
-  ) =>
-    get<CarListResponse>(
+  getAll: async (page = 1, search = "", token: string | null): Promise<CarListResult> => {
+    const res: CarListResponse = await get<CarListResponse>(
       `cars${buildQuery({ page, limit: 10, search: search || undefined })}`,
       token,
-    ),
+    );
+    return {
+      items: res.data.data,
+      total: res.data.meta?.total ?? res.data.pagination?.total ?? 0,
+      pages: res.data.meta?.pages ?? res.data.pagination?.pages ?? 1,
+    };
+  },
 
-  /**
-   * GET /cars/archived
-   * Fetch soft-deleted cars.
-   */
-  getArchived: (token: string | null) =>
-    get<CarListResponse>("cars/archived", token),
+  getArchived: async (token: string | null): Promise<Car[]> => {
+    const res: CarListResponse = await get<CarListResponse>("cars/archived", token);
+    return res.data.data;
+  },
 
-  /**
-   * GET /cars/:id
-   * Fetch a single car with status history.
-   */
-  getById: (id: string, token: string | null) =>
-    get<CarDetailResponse>(`cars/${id}`, token),
+  getById: async (id: string, token: string | null): Promise<Car> => {
+    const res: CarDetailResponse = await get<CarDetailResponse>(`cars/${id}`, token);
+    return res.data;
+  },
 
-  /**
-   * POST /cars
-   * Create a new car record.
-   */
-  create: (payload: CreateCarPayload, token: string | null) =>
-    post<{ data: Car }>("cars", payload, token),
+  create: async (payload: CreateCarPayload, token: string | null): Promise<Car> => {
+    const res = await post<{ data: Car }>("cars", payload, token);
+    return res.data;
+  },
 
-  /**
-   * PATCH /cars/:id
-   * Update an existing car's details.
-   */
-  update: (id: string, payload: UpdateCarPayload, token: string | null) =>
-    patch<{ data: Car }>(`cars/${id}`, payload, token),
+  update: async (id: string, payload: UpdateCarPayload, token: string | null): Promise<Car> => {
+    const res = await patch<{ data: Car }>(`cars/${id}`, payload, token);
+    return res.data;
+  },
 
-  /**
-   * DELETE /cars/:id
-   * Soft-delete a car (returns 204 No Content).
-   */
-  delete: (id: string, token: string | null) =>
-    del<void>(`cars/${id}`, token),
+  delete: (id: string, token: string | null) => del<void>(`cars/${id}`, token),
 
-  // ── Images ──────────────────────────────────────────────────────────────
-
-  /**
-   * GET /car-images/car/:id
-   * Fetch all active images for a car.
-   * Supports optional query params: day, month, year, date, sortBy.
-   */
-  getImages: (
+  getImages: async (
     carId: string,
     token: string | null,
     filters: { day?: string; month?: string; year?: string; date?: string; sortBy?: "asc" | "desc" } = {},
-  ) =>
-    get<CarImageListResponse>(
+  ): Promise<CarImage[]> => {
+    const res: CarImageListResponse = await get<CarImageListResponse>(
       `car-images/car/${carId}${buildQuery(filters as Record<string, string>)}`,
       token,
-    ),
+    );
+    return res.data;
+  },
 
-  /**
-   * GET /car-images/car/:id/archive
-   * Fetch soft-deleted images for a car.
-   */
-  getArchivedImages: (carId: string, token: string | null) =>
-    get<CarImageListResponse>(`car-images/car/${carId}/archive`, token),
+  getArchivedImages: async (carId: string, token: string | null): Promise<CarImage[]> => {
+    const res: CarImageListResponse = await get<CarImageListResponse>(`car-images/car/${carId}/archive`, token);
+    return res.data;
+  },
 
-  /**
-   * POST /car-images/car/:id   (multipart/form-data)
-   * Upload one or more images.
-   * Uses raw fetch because multer expects FormData, not JSON.
-   */
   uploadImages: async (
     carId: string,
     files: File[],
     stage: "BEFORE" | "AFTER" | "GENERAL" = "GENERAL",
     token: string | null,
     maintenanceId?: string,
-  ): Promise<CarImageListResponse> => {
+  ): Promise<CarImage[]> => {
     const form = new FormData();
     files.forEach((f) => form.append("images", f));
     form.append("stage", stage);
@@ -112,18 +80,19 @@ export const carService = {
       body: form,
       cache: "no-store",
     });
-
     if (!res.ok) {
       const json = await res.json().catch(() => null);
       throw new Error(json?.message ?? `HTTP ${res.status}`);
     }
-    return res.json() as Promise<CarImageListResponse>;
+    const data = (await res.json()) as CarImageListResponse;
+    return data.data;
   },
 
-  /**
-   * DELETE /car-images/:imageId
-   * Soft-delete a single image.
-   */
-  deleteImage: (imageId: string, token: string | null) =>
-    del<void>(`car-images/${imageId}`, token),
+  deleteImage: (imageId: string, token: string | null) => del<void>(`car-images/${imageId}`, token),
+
+  /** Dropdown helper — replaces raw get<T>() calls in TripFormModal / CarFormModal. */
+  getActiveOptions: async (token: string | null): Promise<CarOption[]> => {
+    const res = await get<{ data: { data: CarOption[] } }>("cars?limit=100&currentStatus=Active", token);
+    return res.data.data;
+  },
 };

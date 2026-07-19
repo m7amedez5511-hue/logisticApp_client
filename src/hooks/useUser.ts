@@ -49,33 +49,22 @@ export function useUsers() {
   }, []);
 
   // fetch users with pagination and search
-  const loadUsers = useCallback(async (p: number, q: string) => {
-    dispatch({ type: "LOAD_START" });
-    try {
-      const token = getStoredToken();
-      const res   = await userService.getAll(p, q, token);
-      const payload = res.data ?? res;
-      dispatch({
-        type: "LOAD_OK",
-        users: payload.data ?? [],
-        total: payload.meta?.total ?? 0,
-        pages: payload.meta?.pages ?? 1,
-      });
-    } catch {
-      dispatch({ type: "LOAD_ERR", error: "عذراً، حدث خطأ أثناء تحميل بيانات المستخدمين. يرجى المحاولة لاحقاً." });
-    }
-  }, []);
-
-  // fetch roles and branches for form dropdowns on mount
-  useEffect(() => {
+ const loadUsers = useCallback(async (p: number, q: string) => {
+  dispatch({ type: "LOAD_START" });
+  try {
     const token = getStoredToken();
-    userService.getRoles(token)
-      .then(res => setRoles((res.data ?? res).data ?? []))
-      .catch(() => {});
-    userService.getBranches(token)
-      .then(res => setBranches((res.data ?? res).data ?? []))
-      .catch(() => {});
-  }, []);
+    const { items, total, pages } = await userService.getAll(p, q, token);
+    dispatch({ type: "LOAD_OK", users: items, total, pages });
+  } catch {
+    dispatch({ type: "LOAD_ERR", error: "عذراً، حدث خطأ أثناء تحميل بيانات المستخدمين. يرجى المحاولة لاحقاً." });
+  }
+}, []);
+
+useEffect(() => {
+  const token = getStoredToken();
+  userService.getRoles(token).then(setRoles).catch(() => {});
+  userService.getBranches(token).then(setBranches).catch(() => {});
+}, []);
 
   // reload users when page or search changes
   useEffect(() => {
@@ -83,28 +72,25 @@ export function useUsers() {
   }, [page, search, loadUsers]);
 
   // create new user
-  const createUser = useCallback(async (data: UserFormData): Promise<boolean> => {
-    try {
-      const token = getStoredToken();
-      const res   = await userService.create(data as UserFormData & { password: string }, token);
-      dispatch({ type: "ADD", user: res.data });
-      notify({ type: "success", message: "تم إنشاء مستخدم جديد بنجاح." });
-      return true;
-    } catch (err) {
-      const msg = err instanceof Error && err.message
-        ? err.message
-        : "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.";
-      notify({ type: "error", message: msg });
-      return false;
-    }
-  }, [notify]);
+ const createUser = useCallback(async (data: UserFormData): Promise<boolean> => {
+  try {
+    const token = getStoredToken();
+    const user = await userService.create(data as UserFormData & { password: string }, token);
+    dispatch({ type: "ADD", user });
+    notify({ type: "success", message: "تم إنشاء مستخدم جديد بنجاح." });
+    return true;
+  } catch (err) {
+    notify({ type: "error", message: err instanceof Error && err.message ? err.message : "تعذر الاتصال بالخادم." });
+    return false;
+  }
+}, [notify]);
 
   // update existing user
   const updateUser = useCallback(async (id: string, data: UserFormData): Promise<boolean> => {
     try {
       const token = getStoredToken();
       const res   = await userService.update(id, data, token);
-      dispatch({ type: "UPDATE", user: res.data });
+      dispatch({ type: "UPDATE", user: res?.data });
       notify({ type: "success", message: "تم تحديث بيانات المستخدم بنجاح." });
       return true;
     } catch (err) {

@@ -29,7 +29,7 @@ export interface RoleResponse {
 
 export interface PermissionsResponse {
   data: {
-    premissions: Permission[];
+    premissions: { data: Permission[] };
   };
 }
 
@@ -94,9 +94,17 @@ export interface ArchivedRoleResponse {
   data: ArchivedRole;
 }
 
-// GET /role/archived — NOTE: unlike users/branches archive endpoints,
-// this one returns a plain array with no pagination/meta wrapper.
-// Search & pagination are therefore handled client-side in the hook.
+// GET /role/archived — like the other archive endpoints, this returns
+// { data: { data: ArchivedRole[], meta: {...} } }.
+// Search & pagination are still handled client-side in the hook.
 export interface ArchivedRoleListResponse {
-  data: ArchivedRole[];
+  data: {
+    data: ArchivedRole[];
+    meta?: { total: number; page: number; limit: number; totalPages: number };
+  };
+}
+export interface RoleListResult {
+  items: Role[];
+  total: number;
+  pages: number;
 }

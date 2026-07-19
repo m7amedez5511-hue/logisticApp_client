@@ -6,6 +6,9 @@ import type {
   UpdateAddressFormValues,
 } from "@/src/validations/client_address.validator";
 
+ function normalizeAddress(raw: { id?: string; _id?: string; [k: string]: unknown }): ClientAddress {
+  return { ...raw, id: raw.id ?? raw._id ?? "" } as ClientAddress;
+}
 
 
 const collectionBase = (clientId: string) => {
@@ -73,6 +76,19 @@ export const clientAddressService = {
   setPrimary: (addressId: string, token: string | null) =>
     patch<ApiResponse<ClientAddress>>(`${addressBase(addressId)}/primary`, {}, token),
 
+   getAllNormalized: async (clientId: string, token: string | null): Promise<ClientAddress[]> => {
+    const res = await get<ApiResponse<ClientAddress[]> | { data: { data: ClientAddress[] } }>(
+      collectionBase(clientId), token,
+    );
+    const payload = res.data;
+    const rawList: unknown[] = Array.isArray(payload)
+      ? payload
+      : Array.isArray((payload as { data?: unknown })?.data)
+        ? (payload as { data: unknown[] }).data
+        : [];
+    return rawList.map((r) => normalizeAddress(r as { id?: string; _id?: string }));
+  },
+
 };
 
 
@@ -88,3 +104,5 @@ function buildPayload(
     location: data.location,
   };
 }
+
+export default { normalizeAddress };

@@ -76,21 +76,21 @@ export function ArchivedUserDetailModal({ userId, onClose }: ArchivedUserDetailM
   }, [onClose]);
 
   // fetch archived user details on mount
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const token = getStoredToken();
-        const res   = await archivedUserService.getById(userId, token);
-        if (!cancelled) setUser(res.data);
-      } catch {
-        if (!cancelled) setError("تعذّر تحميل بيانات المستخدم المؤرشف. يرجى المحاولة لاحقاً.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [userId]);
+useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    try {
+      const token = getStoredToken();
+      const data = await archivedUserService.getById(userId, token);
+      if (!cancelled) setUser(data);
+    } catch {
+      if (!cancelled) setError("تعذّر تحميل بيانات المستخدم المؤرشف. يرجى المحاولة لاحقاً.");
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  })();
+  return () => { cancelled = true; };
+}, [userId]);
 
   // ── helpers ───────────────────────────────────────────────────────────────
   const fmt = (iso?: string | null) =>

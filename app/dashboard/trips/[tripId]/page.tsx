@@ -205,44 +205,42 @@ export default function TripDetailPage() {
 
   // ── Load trip ─────────────────────────────────────────────────────────────
   const loadTrip = useCallback(async () => {
-    if (!tripId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const token = getStoredToken();
-      const res = await tripService.getById(tripId, token);
-      setTrip((res as unknown as { data: Trip }).data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "تعذّر تحميل بيانات الرحلة.");
-    } finally {
-      setLoading(false);
-    }
-  }, [tripId]);
-
+  if (!tripId) return;
+  setLoading(true);
+  setError(null);
+  try {
+    const token = getStoredToken();
+    const data = await tripService.getById(tripId, token);
+    setTrip(data);
+  } catch (err: unknown) {
+    setError(err instanceof Error ? err.message : "تعذّر تحميل بيانات الرحلة.");
+  } finally {
+    setLoading(false);
+  }
+}, [tripId]);
   useEffect(() => {
     queueMicrotask(loadTrip);
   }, [loadTrip]);
 
   // ── Edit submit ───────────────────────────────────────────────────────────
   const handleEditSubmit = useCallback(
-    async (
-      payload: CreateTripPayload | UpdateTripPayload,
-    ): Promise<boolean> => {
-      if (!trip) return false;
-      try {
-        const token = getStoredToken();
-        const res = await tripService.update(trip.id, payload as UpdateTripPayload, token);
-        const updated = (res as unknown as { data: Trip }).data;
-        setTrip(updated);
-        notify({ type: "success", message: "تم تحديث بيانات الرحلة بنجاح." });
-        return true;
-      } catch (err) {
-        notify({ type: "error", message: extractApiMessage(err, "تعذّر تحديث الرحلة.") });
-        return false;
-      }
-    },
-    [trip, notify],
-  );
+  async (
+    payload: CreateTripPayload | UpdateTripPayload,
+  ): Promise<boolean> => {
+    if (!trip) return false;
+    try {
+      const token = getStoredToken();
+      const updated = await tripService.update(trip.id, payload as UpdateTripPayload, token);
+      setTrip(updated);
+      notify({ type: "success", message: "تم تحديث بيانات الرحلة بنجاح." });
+      return true;
+    } catch (err) {
+      notify({ type: "error", message: extractApiMessage(err, "تعذّر تحديث الرحلة.") });
+      return false;
+    }
+  },
+  [trip, notify],
+);
 
   // ── Delete confirm ────────────────────────────────────────────────────────
   const handleConfirmDelete = useCallback(async () => {

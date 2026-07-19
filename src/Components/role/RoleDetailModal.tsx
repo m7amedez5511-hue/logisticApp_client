@@ -8,7 +8,7 @@ import { Permission, Role } from "@/src/types/role";
 
 interface RoleDetailModalProps {
   roleId:      string;
-  permissions: Permission[]; // full catalog, for the "add permission" select
+  permissions: Permission[];
   onClose:     () => void;
   onAssign:    (roleId: string, permissionId: string) => Promise<boolean>;
   onRemove:    (roleId: string, permissionId: string) => Promise<boolean>;
@@ -51,7 +51,6 @@ export function RoleDetailModal({ roleId, permissions, onClose, onAssign, onRemo
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
-  // ── Inline permission mutation state ─────────────────────────────────────────
   const [pendingPermId, setPendingPermId] = useState("");
   const [mutating,       setMutating]     = useState(false);
 
@@ -64,8 +63,8 @@ export function RoleDetailModal({ roleId, permissions, onClose, onAssign, onRemo
   const loadRole = async () => {
     try {
       const token = getStoredToken();
-      const res   = await roleService.getById(roleId, token);
-      setRole((res as unknown as { data: Role }).data);
+      const data = await roleService.getById(roleId, token);
+      setRole(data);
     } catch {
       setError("تعذّر تحميل بيانات الدور. يرجى المحاولة لاحقاً.");
     } finally {
@@ -78,8 +77,8 @@ export function RoleDetailModal({ roleId, permissions, onClose, onAssign, onRemo
     (async () => {
       try {
         const token = getStoredToken();
-        const res   = await roleService.getById(roleId, token);
-        if (!cancelled) setRole((res as unknown as { data: Role }).data);
+        const data = await roleService.getById(roleId, token);
+        if (!cancelled) setRole(data);
       } catch {
         if (!cancelled) setError("تعذّر تحميل بيانات الدور. يرجى المحاولة لاحقاً.");
       } finally {
@@ -89,7 +88,6 @@ export function RoleDetailModal({ roleId, permissions, onClose, onAssign, onRemo
     return () => { cancelled = true; };
   }, [roleId]);
 
-  // Endpoint 1: POST /role/{id}/permissions
   const handleAssign = async () => {
     if (!pendingPermId || mutating) return;
     setMutating(true);
@@ -101,7 +99,6 @@ export function RoleDetailModal({ roleId, permissions, onClose, onAssign, onRemo
     setMutating(false);
   };
 
-  // Endpoint 3: DELETE /role/{id}/permissions/{permissionId}
   const handleRemove = async (permissionId: string) => {
     if (mutating) return;
     setMutating(true);
@@ -135,7 +132,6 @@ export function RoleDetailModal({ roleId, permissions, onClose, onAssign, onRemo
         boxShadow: "0 24px 64px rgba(0,0,0,.18)",
         overflow: "hidden", display: "flex", flexDirection: "column",
       }}>
-        {/* Header */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "1.25rem 1.5rem",
@@ -156,7 +152,6 @@ export function RoleDetailModal({ roleId, permissions, onClose, onAssign, onRemo
           </button>
         </div>
 
-        {/* Body */}
         <div style={{ padding: "1.5rem", overflowY: "auto", maxHeight: "70vh" }}>
           {loading && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "3rem 0", color: "var(--color-text-muted)" }}>
@@ -173,7 +168,6 @@ export function RoleDetailModal({ roleId, permissions, onClose, onAssign, onRemo
 
           {!loading && role && (
             <div dir="rtl">
-              {/* Role icon + name + status */}
               <div style={{ display: "flex", alignItems: "center", gap: "1rem", paddingBottom: "1.25rem", borderBottom: "1px solid var(--color-border)", marginBottom: "0.25rem" }}>
                 <div style={{
                   width: 56, height: 56, borderRadius: "var(--radius-xl)",
@@ -197,13 +191,11 @@ export function RoleDetailModal({ roleId, permissions, onClose, onAssign, onRemo
               <DetailRow label="تاريخ الإنشاء" value={fmt(role.createdAt)} />
               {role.updatedAt && <DetailRow label="آخر تحديث" value={fmt(role.updatedAt)} />}
 
-              {/* Permissions list */}
               <div style={{ paddingTop: "0.75rem" }}>
                 <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--color-text-muted)", margin: "0 0 10px" }}>
                   الصلاحيات ({role.permissions?.length ?? 0})
                 </p>
 
-                {/* Assign new permission — Endpoint 1 */}
                 {assignablePermissions.length > 0 && (
                   <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                     <select
@@ -250,7 +242,6 @@ export function RoleDetailModal({ roleId, permissions, onClose, onAssign, onRemo
                         fontSize: 11, fontWeight: 600, color: "#1D4ED8",
                       }}>
                         {permission.name}
-                        {/* Endpoint 3: remove this permission */}
                         <button
                           type="button" onClick={() => handleRemove(permission.id)} disabled={mutating}
                           aria-label={`إزالة ${permission.name}`}
@@ -273,7 +264,6 @@ export function RoleDetailModal({ roleId, permissions, onClose, onAssign, onRemo
           )}
         </div>
 
-        {/* Footer */}
         <div style={{
           padding: "1rem 1.5rem", borderTop: "1px solid var(--color-border)",
           background: "var(--color-surface-muted)", display: "flex", justifyContent: "flex-end",

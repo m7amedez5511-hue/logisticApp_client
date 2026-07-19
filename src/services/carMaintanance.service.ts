@@ -95,7 +95,18 @@ export const carMaintenanceService = {
    */
   getAllArchivedGlobal: (token: string | null) =>
     get<MaintenanceListResponse>("maintenance/archived", token),
+
+  getAllUnwrapped: async (carId: string, token: string | null): Promise<CarMaintenance[]> => {
+    const res = await carMaintenanceService.getAll(carId, token);
+    return res.data;
+  },
+
+  getArchivedUnwrapped: async (carId: string, token: string | null): Promise<CarMaintenance[]> => {
+    const res = await carMaintenanceService.getArchived(carId, token);
+    return res.data;
+  },
 };
+
 
 // Re-exported so callers can build extra filters (day/month/year, search…)
 // the same way carService does, without duplicating the helper.

@@ -21,8 +21,7 @@ export function useArchivedCars() {
     carService
       .getArchived(token)
       .then((res) => {
-        const payload = (res as unknown as { data: { data: Car[] } }).data ?? res;
-        setAllCars((payload as { data: Car[] }).data ?? []);
+        setAllCars(res ?? []);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));

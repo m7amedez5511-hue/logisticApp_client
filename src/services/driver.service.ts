@@ -4,6 +4,9 @@ import type {
   DriverListResponse,
   DriverDetailResponse,
   DriverReportResponse,
+  DriverListResult,
+  DriverReportResult,
+  DriverOption,
   CreateDriverPayload,
   UpdateDriverPayload,
 } from "@/src/types/driver";
@@ -15,10 +18,6 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 }
 
 // ── Image URL normaliser ──────────────────────────────────────────────────────
-// Returns the URL as-is — <img> tags are not subject to CORS, so we can point
-// directly at the backend without a Next.js proxy hop.
-// Only strips query-string noise or fixes obviously malformed paths if needed.
-
 function normaliseImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   return url;
@@ -29,7 +28,7 @@ function mapDriverImages<
     photoUrl?: string | null;
     nationalPhotoUrl?: string | null;
     driverCardPhotoUrl?: string | null;
-  },
+  }
 >(driver: T): T {
   return {
     ...driver,
@@ -39,11 +38,7 @@ function mapDriverImages<
   };
 }
 
-
-
 // ── Image compression ─────────────────────────────────────────────────────────
-// Resizes to max 1024px while preserving the original file type and name.
-
 async function compressImage(file: File, maxPx = 1024, quality = 0.82): Promise<File> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -54,13 +49,11 @@ async function compressImage(file: File, maxPx = 1024, quality = 0.82): Promise<
 
       let { width, height } = img;
 
-      // Guard: malformed/zero-dimension image — bail out to original file
       if (!width || !height) {
         resolve(file);
         return;
       }
 
-      // Only resize if actually oversized
       if (width <= maxPx && height <= maxPx) {
         resolve(file);
         return;
@@ -81,9 +74,6 @@ async function compressImage(file: File, maxPx = 1024, quality = 0.82): Promise<
       const ctx = canvas.getContext("2d");
       if (!ctx) { resolve(file); return; }
 
-      // PNG/GIF have transparency — paint white behind them first so toBlob
-      // doesn't hand back a canvas with undefined/black fill in some browsers.
-      // (Skip this for formats that don't carry alpha, like plain JPEG.)
       const mimeType = file.type || "image/jpeg";
       if (mimeType !== "image/jpeg") {
         ctx.fillStyle = "#FFFFFF";
@@ -92,14 +82,10 @@ async function compressImage(file: File, maxPx = 1024, quality = 0.82): Promise<
 
       ctx.drawImage(img, 0, 0, width, height);
 
-      // quality param is meaningless (and occasionally mishandled) for
-      // lossless formats — only pass it for jpeg/webp.
       const isLossy = mimeType === "image/jpeg" || mimeType === "image/webp";
 
       canvas.toBlob(
         (blob) => {
-          // Guard: empty/undersized blob means the encode failed — fall
-          // back to the original file rather than uploading garbage.
           if (!blob || blob.size < 100) {
             resolve(file);
             return;
@@ -117,7 +103,7 @@ async function compressImage(file: File, maxPx = 1024, quality = 0.82): Promise<
 }
 
 async function compressPayloadImages<
-  T extends { photo?: File; nationalPhoto?: File; driverCardPhoto?: File },
+  T extends { photo?: File; nationalPhoto?: File; driverCardPhoto?: File }
 >(payload: T): Promise<T> {
   const result = { ...payload };
   if (result.photo)           result.photo           = await compressImage(result.photo);
@@ -129,51 +115,48 @@ async function compressPayloadImages<
 // ── Service ───────────────────────────────────────────────────────────────────
 
 export const driverService = {
-  /** GET /driver — paginated + searchable list */
-  getAll: async (page = 1, search = "", token: string | null): Promise<DriverListResponse> => {
-    const res = await get<DriverListResponse>(
+  /** GET /driver — returns a clean, unwrapped, fully-typed result. */
+  getAll: async (page = 1, search = "", token: string | null): Promise<DriverListResult> => {
+    const res: DriverListResponse = await get<DriverListResponse>(
       `driver${buildQuery({ page, limit: 12, search: search || undefined })}`,
       token,
     );
-    const body = (res as unknown as { data: { data: Driver[]; pagination: unknown; meta?: unknown } }).data;
-    body.data = body.data.map(mapDriverImages);
-    return res;
+    const body = res.data;
+    return {
+      items: body.data.map(mapDriverImages),
+      total: body.meta?.total ?? body.pagination?.total ?? 0,
+      pages: body.meta?.pages ?? body.pagination?.pages ?? 1,
+    };
   },
 
   /** GET /driver/archived */
-  getArchived: async (token: string | null): Promise<DriverListResponse> => {
-    const res = await get<DriverListResponse>("driver/archived", token);
-    const body = (res as unknown as { data: { data: Driver[] } }).data;
-    body.data = body.data.map(mapDriverImages);
-    return res;
+  getArchived: async (token: string | null): Promise<Driver[]> => {
+    const res: DriverListResponse = await get<DriverListResponse>("driver/archived", token);
+    return res.data.data.map(mapDriverImages);
   },
 
   /** GET /driver/me */
-  getMe: async (token: string | null): Promise<DriverDetailResponse> => {
-    const res = await get<DriverDetailResponse>("driver/me", token);
-    const body = res as unknown as { data: Driver };
-    body.data = mapDriverImages(body.data);
-    return res;
+  getMe: async (token: string | null): Promise<Driver> => {
+    const res: DriverDetailResponse = await get<DriverDetailResponse>("driver/me", token);
+    return mapDriverImages(res.data);
   },
 
   /** GET /driver/:id */
-  getById: async (id: string, token: string | null): Promise<DriverDetailResponse> => {
-    const res = await get<DriverDetailResponse>(`driver/${id}`, token);
-    const body = res as unknown as { data: Driver };
-    body.data = mapDriverImages(body.data);
-    return res;
+  getById: async (id: string, token: string | null): Promise<Driver> => {
+    const res: DriverDetailResponse = await get<DriverDetailResponse>(`driver/${id}`, token);
+    return mapDriverImages(res.data);
   },
 
   /** POST /driver  (JSON — no files) */
-  create: (payload: CreateDriverPayload, token: string | null) =>
-    post<{ data: Driver }>("driver", payload, token),
+  create: async (payload: CreateDriverPayload, token: string | null): Promise<Driver> => {
+    const res = await post<{ data: Driver }>("driver", payload, token);
+    return res.data;
+  },
 
   /** PATCH /driver/:id  (JSON — no files) */
-  update: async (id: string, payload: UpdateDriverPayload, token: string | null): Promise<{ data: Driver }> => {
+  update: async (id: string, payload: UpdateDriverPayload, token: string | null): Promise<Driver> => {
     const res = await patch<{ data: Driver }>(`driver/${id}`, payload, token);
-    const body = res as unknown as { data: Driver };
-    body.data = mapDriverImages(body.data);
-    return res;
+    return mapDriverImages(res.data);
   },
 
   /** DELETE /driver/:id */
@@ -181,18 +164,16 @@ export const driverService = {
     del<void>(`driver/${id}`, token),
 
   /** GET /drivers/:id/reports/daily?date=YYYY-MM-DD */
-  getDailyReport: (id: string, date: string, token: string | null) =>
-    get<DriverReportResponse>(
+  getDailyReport: async (id: string, date: string, token: string | null): Promise<DriverReportResult> => {
+    const res: DriverReportResponse = await get<DriverReportResponse>(
       `drivers/${id}/reports/daily?date=${encodeURIComponent(date)}`,
       token,
-    ),
+    );
+    return res.data;
+  },
 
   // ── Multipart helpers (with auto compression) ─────────────────────────────
 
-  /**
-   * POST /driver  (multipart/form-data)
-   * Compresses images before upload to stay under backend LIMIT_FILE_SIZE.
-   */
   createWithImages: async (
     payload: CreateDriverPayload & {
       photo?: File;
@@ -200,7 +181,7 @@ export const driverService = {
       driverCardPhoto?: File;
     },
     token: string | null,
-  ): Promise<{ data: Driver }> => {
+  ): Promise<Driver> => {
     const compressed = await compressPayloadImages(payload);
 
     const form = new FormData();
@@ -225,14 +206,9 @@ export const driverService = {
       throw new Error(json?.message ?? `HTTP ${res.status}`);
     }
     const data = await res.json() as { data: Driver };
-    data.data = mapDriverImages(data.data);
-    return data;
+    return mapDriverImages(data.data);
   },
 
-  /**
-   * PATCH /driver/:id  (multipart/form-data)
-   * Compresses images before upload to stay under backend LIMIT_FILE_SIZE.
-   */
   updateWithImages: async (
     id: string,
     payload: UpdateDriverPayload & {
@@ -241,7 +217,7 @@ export const driverService = {
       driverCardPhoto?: File;
     },
     token: string | null,
-  ): Promise<{ data: Driver }> => {
+  ): Promise<Driver> => {
     const compressed = await compressPayloadImages(payload);
 
     const form = new FormData();
@@ -256,7 +232,6 @@ export const driverService = {
 
     const res = await fetch(`/api/proxy/driver/${id}`, {
       method: "PATCH",
-      // Do NOT set Content-Type — browser sets it with the correct boundary
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
       cache: "no-store",
@@ -267,7 +242,15 @@ export const driverService = {
       throw new Error(json?.message ?? `HTTP ${res.status}`);
     }
     const data = await res.json() as { data: Driver };
-    data.data = mapDriverImages(data.data);
-    return data;
+    return mapDriverImages(data.data);
+  },
+
+  /** Dropdown helper — replaces raw get<T>() calls in TripFormModal. */
+  getActiveOptions: async (token: string | null): Promise<DriverOption[]> => {
+    const res = await get<{ data: { data: DriverOption[] } }>(
+      "driver?limit=100&status=Active",
+      token,
+    );
+    return res.data.data;
   },
 };

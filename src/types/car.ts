@@ -222,4 +222,18 @@ export interface CarFormErrors {
   gpsDeviceId?: string;
   capacity?: string;
   weight?: string;
+
+}
+export interface CarListResult {
+  items: Car[];
+  total: number;
+  pages: number;
+}
+
+export interface CarOption {
+  id: string;
+  manufacturer: string;
+  model: string;
+  plateNumber: string;
+  status?: string;
 }

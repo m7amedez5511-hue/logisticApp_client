@@ -22,8 +22,6 @@ import type { Client } from "@/src/types/client";
 import type { Trip } from "@/src/types/trip";
 import type { OrderSchemaErrors } from "@/src/validations/order.validation";
 
-// ── Shared input / label styles — verbatim from DriverFormModal.tsx ──────────
-
 const inputBase: React.CSSProperties = {
   width: "100%",
   height: 40,
@@ -68,7 +66,6 @@ const optionalLabelStyle: React.CSSProperties = {
   marginRight: 4,
 };
 
-/** Small "Create new" link rendered below each relation dropdown. */
 const createLinkStyle: React.CSSProperties = {
   fontSize: 11,
   color: "var(--color-brand-600)",
@@ -80,8 +77,6 @@ const createLinkStyle: React.CSSProperties = {
   gap: 3,
 };
 
-// ── Props ────────────────────────────────────────────────────────────────────
-
 interface OrderFormModalProps {
   editOrder: Order | null;
   onClose: () => void;
@@ -91,8 +86,6 @@ interface OrderFormModalProps {
   ) => Promise<boolean>;
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
-
 export function OrderFormModal({
   editOrder,
   onClose,
@@ -100,12 +93,10 @@ export function OrderFormModal({
 }: OrderFormModalProps) {
   const isNew = editOrder === null;
 
-  // ── Relation data — clients & trips loaded once on mount ─────────────────
   const [clients, setClients] = useState<Client[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [relLoading, setRelLoading] = useState(true);
 
-  // ── Form state ────────────────────────────────────────────────────────────
   const [shipmentNumber, setShipmentNumber] = useState(
     editOrder?.shipmentNumber ?? "",
   );
@@ -135,8 +126,6 @@ export function OrderFormModal({
     editOrder?.paymentStatus ?? "",
   );
 
-  // ── Address state ─────────────────────────────────────────────────────────
-  // Delivery address (عنوان التسليم) — always creates new MongoDB doc
   const [delCity, setDelCity] = useState(
     editOrder?.deliveryAddress?.details?.city ?? "",
   );
@@ -155,7 +144,6 @@ export function OrderFormModal({
   const [delZipCode, setDelZipCode] = useState(
     editOrder?.deliveryAddress?.details?.zipCode ?? "",
   );
-  // GeoJSON coordinates [longitude, latitude] — required by backend
   const [delLng, setDelLng] = useState(
     editOrder?.deliveryAddress?.location?.coordinates?.[0] != null
       ? String(editOrder.deliveryAddress!.location!.coordinates![0])
@@ -167,7 +155,6 @@ export function OrderFormModal({
       : "",
   );
 
-  // Pickup address (عنوان الاستلام) — إما ID موجود أو object جديد
   const [pickupMode, setPickupMode] = useState<"id" | "new">(
     editOrder?.pickupAddressId ? "id" : "new",
   );
@@ -192,7 +179,6 @@ export function OrderFormModal({
   const [pkpZipCode, setPkpZipCode] = useState(
     editOrder?.pickupAddress?.details?.zipCode ?? "",
   );
-  // GeoJSON coordinates [longitude, latitude] — optional for pickup
   const [pkpLng, setPkpLng] = useState(
     editOrder?.pickupAddress?.location?.coordinates?.[0] != null
       ? String(editOrder.pickupAddress!.location!.coordinates![0])
@@ -209,36 +195,20 @@ export function OrderFormModal({
   const [apiError, setApiError] = useState("");
   const firstRef = useRef<HTMLInputElement>(null);
 
-  // ── Load clients + trips in parallel on mount ─────────────────────────────
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const token = getStoredToken();
 
-        // Fetch first 100 clients (enough for a practical dropdown)
-        const clientRes = await clientService.getAll(1, "", token);
-        const clientPayload = (clientRes as unknown as { data?: { data?: Client[] } }).data ?? clientRes;
-        const clientList: Client[] = (clientPayload as { data?: Client[] }).data ?? [];
-
-        // Fetch first 100 trips (active ones the order can be assigned to)
-        const tripRes = await tripService.getAll(
-          { page: 1, limit: 100 },
-          token,
-        );
-        const tripPayload = (tripRes as unknown as { data?: { data?: Trip[] } }).data ?? tripRes;
-        const tripList: Trip[] = (tripPayload as { data?: Trip[] }).data ?? [];
+        const { items: clientList } = await clientService.getAll(1, "", token);
+        const { items: tripList } = await tripService.getAll({ page: 1, limit: 100 }, token);
 
         if (!cancelled) {
           setClients(clientList);
           setTrips(tripList);
         }
       } catch (err) {
-        // Logged so failures are visible during development instead of
-        // failing completely silently when clientService/tripService error out
-        // (e.g. expired token, CORS, 500). Dropdowns stay empty either way,
-        // and the user can still navigate to the create pages via the helper
-        // links — but now they also see a message explaining why.
         console.error("OrderFormModal: failed to load clients/trips", err);
         if (!cancelled) {
           setApiError(
@@ -254,7 +224,6 @@ export function OrderFormModal({
     };
   }, []);
 
-  // ── Keyboard / focus setup ────────────────────────────────────────────────
   useEffect(() => {
     firstRef.current?.focus();
   }, []);
@@ -266,7 +235,6 @@ export function OrderFormModal({
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
 
-  // ── Dynamic input error style ─────────────────────────────────────────────
   const inputStyle = (field: keyof OrderSchemaErrors): React.CSSProperties => ({
     ...inputBase,
     border: errors[field] ? "1px solid var(--color-danger)" : inputBase.border,
@@ -279,7 +247,6 @@ export function OrderFormModal({
     [],
   );
 
-  // ── Yup validation ────────────────────────────────────────────────────────
   const runValidation = useCallback(async (): Promise<boolean> => {
     const schema = isNew ? createOrderSchema : updateOrderSchema;
     try {
@@ -326,7 +293,6 @@ export function OrderFormModal({
     type,
   ]);
 
-  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
 
     e.preventDefault();
@@ -334,10 +300,6 @@ export function OrderFormModal({
     const valid = await runValidation();
     if (!valid) return;
 
-    // Build clean payload.
-    // NOTE: deliveryAddressId / pickupAddressId are intentionally omitted
-    // from create payloads — the backend creates address records from
-    // deliveryAddressData / pickupAddressData instead.
     const payload: Record<string, unknown> = {
       shipmentNumber,
       recipientName,
@@ -346,10 +308,8 @@ export function OrderFormModal({
       quantity: Number(quantity) || 1,
     };
 
-    // tripId: only include when a value is selected
     if (tripId) payload.tripId = tripId;
 
-    // Optional fields — include only when filled
     if (type) payload.type = type;
     if (weight) payload.weight = Number(weight);
     if (subTotal) payload.subTotal = Number(subTotal);
@@ -357,7 +317,6 @@ export function OrderFormModal({
     if (paymentMethod) payload.paymentMethod = paymentMethod;
     if (paymentStatus) payload.paymentStatus = paymentStatus;
 
-    // ── Build delivery address object (only if at least one field filled) ──
     const delDetails = {
       ...(delCity && { city: delCity }),
       ...(delDistrict && { district: delDistrict }),
@@ -366,7 +325,6 @@ export function OrderFormModal({
       ...(delUnitNo && { unitNo: delUnitNo }),
       ...(delZipCode && { zipCode: delZipCode }),
     };
-    // coordinates are always included when provided (required by backend GeoJSON schema)
     const delCoordinates =
       delLng.trim() && delLat.trim()
         ? [Number(delLng), Number(delLat)]
@@ -379,7 +337,6 @@ export function OrderFormModal({
       };
     }
 
-    // ── Build pickup address: ID or new object ──
     if (pickupMode === "id" && pickupAddressId.trim()) {
       payload.pickupAddressId = pickupAddressId.trim();
     } else {
@@ -428,7 +385,6 @@ export function OrderFormModal({
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
       role="dialog"
@@ -463,7 +419,6 @@ export function OrderFormModal({
           margin: "auto",
         }}
       >
-        {/* ── Header ── */}
         <div
           style={{
             display: "flex",
@@ -522,7 +477,6 @@ export function OrderFormModal({
           </button>
         </div>
 
-        {/* ── Form ── */}
         <form
           onSubmit={handleSubmit}
           noValidate
@@ -544,7 +498,6 @@ export function OrderFormModal({
             />
           )}
 
-          {/* ── Section: Shipment & Recipient ── */}
           <p style={sectionHeadingStyle}>بيانات الشحنة والمستلم</p>
 
           <div
@@ -554,7 +507,6 @@ export function OrderFormModal({
               gap: "0.75rem",
             }}
           >
-            {/* Shipment number — required */}
             <label style={labelStyle}>
               رقم الشحنة *
               <input
@@ -574,14 +526,12 @@ export function OrderFormModal({
               )}
             </label>
 
-            {/* ── Client dropdown — required ── */}
             <label style={labelStyle}>
               العميل *
               <select
                 style={{
                   ...inputStyle("clientId"),
                   cursor: relLoading ? "wait" : "pointer",
-                  // Shift placeholder text right for RTL
                   paddingRight: "0.75rem",
                 }}
                 value={clientId}
@@ -605,7 +555,6 @@ export function OrderFormModal({
               {errors.clientId && (
                 <span style={errorTextStyle}>{errors.clientId}</span>
               )}
-              {/* Helper link */}
               <Link
                 href="/dashboard/clients"
                 style={createLinkStyle}
@@ -626,7 +575,6 @@ export function OrderFormModal({
               </Link>
             </label>
 
-            {/* Recipient name — required */}
             <label style={labelStyle}>
               اسم المستلم *
               <input
@@ -644,7 +592,6 @@ export function OrderFormModal({
               )}
             </label>
 
-            {/* Recipient phone — required */}
             <label style={labelStyle}>
               رقم جوال المستلم *
               <input
@@ -662,7 +609,6 @@ export function OrderFormModal({
               )}
             </label>
 
-            {/* ── Trip dropdown — required on create, optional on edit ── */}
             <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
               {isNew ? "الرحلة *" : "الرحلة"}
               {!isNew && <span style={optionalLabelStyle}>(اختياري)</span>}
@@ -693,7 +639,6 @@ export function OrderFormModal({
               {errors.tripId && (
                 <span style={errorTextStyle}>{errors.tripId}</span>
               )}
-              {/* Helper link */}
               <Link
                 href="/dashboard/trips"
                 style={createLinkStyle}
@@ -715,7 +660,6 @@ export function OrderFormModal({
             </label>
           </div>
 
-          {/* ── Section: Shipment details ── */}
           <p style={sectionHeadingStyle}>تفاصيل الشحنة</p>
 
           <div
@@ -725,7 +669,6 @@ export function OrderFormModal({
               gap: "0.75rem",
             }}
           >
-            {/* Type — optional */}
             <label style={labelStyle}>
               نوع الشحنة
               <span style={optionalLabelStyle}>(اختياري)</span>
@@ -738,7 +681,6 @@ export function OrderFormModal({
               />
             </label>
 
-            {/* Quantity — required, defaults to 1 */}
             <label style={labelStyle}>
               الكمية *
               <input
@@ -757,7 +699,6 @@ export function OrderFormModal({
               )}
             </label>
 
-            {/* Weight — optional */}
             <label style={labelStyle}>
               الوزن (كجم)
               <span style={optionalLabelStyle}>(اختياري)</span>
@@ -773,7 +714,6 @@ export function OrderFormModal({
             </label>
           </div>
 
-          {/* ── Section: Payment ── */}
           <p style={sectionHeadingStyle}>بيانات الدفع</p>
 
           <div
@@ -783,7 +723,6 @@ export function OrderFormModal({
               gap: "0.75rem",
             }}
           >
-            {/* Subtotal — optional */}
             <label style={labelStyle}>
               الإجمالي الفرعي
               <span style={optionalLabelStyle}>(اختياري)</span>
@@ -804,7 +743,6 @@ export function OrderFormModal({
               )}
             </label>
 
-            {/* VAT rate — optional */}
             <label style={labelStyle}>
               نسبة الضريبة (%)
               <span style={optionalLabelStyle}>(اختياري)</span>
@@ -825,7 +763,6 @@ export function OrderFormModal({
               )}
             </label>
 
-            {/* Payment method — optional */}
             <label style={labelStyle}>
               طريقة الدفع
               <span style={optionalLabelStyle}>(اختياري)</span>
@@ -844,7 +781,6 @@ export function OrderFormModal({
               </select>
             </label>
 
-            {/* Payment status — edit-only, mirrors Driver's status-on-edit pattern */}
             {!isNew && (
               <label style={labelStyle}>
                 حالة الدفع
@@ -866,7 +802,6 @@ export function OrderFormModal({
             )}
           </div>
 
-          {/* ── Section: Delivery Address ── */}
           <p style={sectionHeadingStyle}>عنوان التسليم</p>
           <div
             style={{
@@ -941,7 +876,6 @@ export function OrderFormModal({
                 dir="ltr"
               />
             </label>
-            {/* GeoJSON coordinates — required by backend */}
             <label style={labelStyle}>
               خط الطول (Longitude) *
               <input
@@ -968,10 +902,8 @@ export function OrderFormModal({
             </label>
           </div>
 
-          {/* ── Section: Pickup Address ── */}
           <p style={sectionHeadingStyle}>عنوان الاستلام</p>
 
-          {/* Toggle: existing ID or new address */}
           <div
             style={{ display: "flex", gap: "0.5rem", marginBottom: "0.25rem" }}
           >
@@ -1090,7 +1022,6 @@ export function OrderFormModal({
                   dir="ltr"
                 />
               </label>
-              {/* GeoJSON coordinates — optional for pickup */}
               <label style={labelStyle}>
                 خط الطول (Longitude)
                 <span style={optionalLabelStyle}>(اختياري)</span>
@@ -1120,7 +1051,6 @@ export function OrderFormModal({
             </div>
           )}
 
-          {/* ── Actions ── */}
           <div
             style={{
               display: "flex",

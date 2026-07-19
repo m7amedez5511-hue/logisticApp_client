@@ -10,8 +10,6 @@ import { DRIVER_STATUS_MAP, DRIVER_CARD_TYPE_MAP, NATIONAL_ID_TYPE_MAP } from "@
 import { driverService } from "@/src/services";
 import { getStoredToken } from "@/src/lib/auth";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("ar-SA", {
@@ -23,8 +21,6 @@ function isExpiringSoon(iso?: string | null): boolean {
   if (!iso) return false;
   return (new Date(iso).getTime() - Date.now()) <= 90 * 86_400_000;
 }
-
-// ── Sub-components ────────────────────────────────────────────────────────────
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -71,10 +67,6 @@ function DetailRow({ label, value, mono = false, warn = false }: {
   );
 }
 
-
-
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export default function DriverDetailPage() {
   const params   = useParams();
   const router   = useRouter();
@@ -84,11 +76,9 @@ export default function DriverDetailPage() {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState(false);
-  // Reset avatar error when photo changes after an update
   useEffect(() => {
     queueMicrotask(() => setAvatarError(false));
   }, [driver?.photoUrl]);
-  // Toast shown after edit/delete actions on this page
   const [toast, setToast]             = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const [editOpen, setEditOpen]     = useState(false);
@@ -100,15 +90,14 @@ export default function DriverDetailPage() {
     setTimeout(() => setToast(null), 4000);
   }, []);
 
-  // ── Load driver ───────────────────────────────────────────────────────────
   const loadDriver = useCallback(async () => {
     if (!driverId) return;
     setLoading(true);
     setError(null);
     try {
       const token = getStoredToken();
-      const res = await driverService.getById(driverId, token);
-      setDriver((res as unknown as { data: Driver }).data);
+      const data = await driverService.getById(driverId, token);
+      setDriver(data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "تعذّر تحميل بيانات السائق.");
     } finally {
@@ -118,7 +107,6 @@ export default function DriverDetailPage() {
 
   useEffect(() => { queueMicrotask(loadDriver); }, [loadDriver]);
 
-  // ── Edit submit ───────────────────────────────────────────────────────────
   const handleEditSubmit = useCallback(
     async (payload: CreateDriverPayload | UpdateDriverPayload): Promise<boolean> => {
       if (!driver) return false;
@@ -130,13 +118,11 @@ export default function DriverDetailPage() {
         const hasFiles = typedPayload.photo || typedPayload.nationalPhoto || typedPayload.driverCardPhoto;
 
         if (hasFiles) {
-          // Use multipart — JSON.stringify converts File to {} which fails validation
           await driverService.updateWithImages(driver.id, typedPayload, token);
         } else {
           await driverService.update(driver.id, typedPayload, token);
         }
 
-        // Re-fetch to reflect updated status, name, photos, etc.
         await loadDriver();
         showToast("success", "تم تحديث بيانات السائق بنجاح.");
         return true;
@@ -149,7 +135,6 @@ export default function DriverDetailPage() {
     [driver, loadDriver, showToast],
   );
 
-  // ── Delete confirm ────────────────────────────────────────────────────────
   const handleConfirmDelete = useCallback(async () => {
     if (!driver) return;
     setDeleting(true);
@@ -166,7 +151,6 @@ export default function DriverDetailPage() {
 
   const statusConfig = driver ? DRIVER_STATUS_MAP[driver.status] : null;
 
-  // ── Render: Loading ───────────────────────────────────────────────────────
   if (loading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: "6rem 0", color: "var(--color-text-muted)" }}>
@@ -176,7 +160,6 @@ export default function DriverDetailPage() {
     );
   }
 
-  // ── Render: Error ─────────────────────────────────────────────────────────
   if (error || !driver) {
     return (
       <div style={{ maxWidth: 480, margin: "4rem auto", borderRadius: "var(--radius-xl)", border: "1px solid #FECACA", background: "#FEF2F2", padding: "1.5rem", textAlign: "center" }}>
@@ -193,12 +176,10 @@ export default function DriverDetailPage() {
     );
   }
 
-  // ── Render: Driver detail ─────────────────────────────────────────────────
   return (
     <>
       <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
-        {/* ── Toast notification ── */}
         {toast && (
           <div style={{
             borderRadius: "var(--radius-lg)",
@@ -213,7 +194,6 @@ export default function DriverDetailPage() {
           </div>
         )}
 
-        {/* ── Page header ── */}
         <header style={{
           borderRadius: "var(--radius-xl)", border: "1px solid var(--color-border)",
           background: "var(--color-surface)", padding: "1.5rem 2rem", boxShadow: "var(--shadow-card)",
@@ -292,7 +272,6 @@ export default function DriverDetailPage() {
           </div>
         </header>
 
-        {/* ── Content grid ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
           <SectionCard title="البيانات الشخصية">
             <DetailRow label="الاسم الكامل"     value={driver.name} />

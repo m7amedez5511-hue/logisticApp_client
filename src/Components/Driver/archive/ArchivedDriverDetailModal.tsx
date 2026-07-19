@@ -72,27 +72,27 @@ export function ArchivedDriverDetailModal({ driverId, onClose }: ArchivedDriverD
   }, [onClose]);
 
   // fetch archived driver details + status history on mount
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const token = getStoredToken();
-        const [driverRes, historyRes] = await Promise.all([
-          archivedDriverService.getById(driverId, token),
-          archivedDriverService.getStatusHistory(driverId, token),
-        ]);
-        if (!cancelled) {
-          setDriver(driverRes.data);
-          setHistory(historyRes.data ?? []);
-        }
-      } catch {
-        if (!cancelled) setError("تعذّر تحميل بيانات السائق المؤرشف. يرجى المحاولة لاحقاً.");
-      } finally {
-        if (!cancelled) setLoading(false);
+ useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    try {
+      const token = getStoredToken();
+      const [driverData, historyList] = await Promise.all([
+        archivedDriverService.getByIdUnwrapped(driverId, token),
+        archivedDriverService.getStatusHistoryUnwrapped(driverId, token),
+      ]);
+      if (!cancelled) {
+        setDriver(driverData);
+        setHistory(historyList ?? []);
       }
-    })();
-    return () => { cancelled = true; };
-  }, [driverId]);
+    } catch {
+      if (!cancelled) setError("تعذّر تحميل بيانات السائق المؤرشف. يرجى المحاولة لاحقاً.");
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  })();
+  return () => { cancelled = true; };
+}, [driverId]);
 
   // ── helpers ───────────────────────────────────────────────────────────────
   const fmt = (iso?: string | null) =>

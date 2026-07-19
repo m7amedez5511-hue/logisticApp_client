@@ -58,7 +58,7 @@ export default function AddressDetailPage() {
       .then(([addrRes, clientRes]) => {
         const raw = (addrRes as any).data ?? addrRes;
         setAddress({ ...raw, id: raw.id ?? raw._id });
-        setClient(clientRes.data);
+        setClient(clientRes?.data);
       })
       .catch(() => setError("تعذّر تحميل بيانات العنوان. يرجى المحاولة مجدداً."))
       .finally(() => setLoading(false));

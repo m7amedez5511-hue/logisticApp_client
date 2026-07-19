@@ -5,13 +5,9 @@ import { Spinner } from "../UI";
 import { driverService } from "@/src/services/driver.service";
 import { getStoredToken } from "@/src/lib/auth";
 
-// ── Props ─────────────────────────────────────────────────────────────────────
-
 interface DriverReportPanelProps {
   driverId: string;
 }
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export function DriverReportPanel({ driverId }: DriverReportPanelProps) {
   const today = new Date().toISOString().slice(0, 10);
@@ -25,15 +21,10 @@ export function DriverReportPanel({ driverId }: DriverReportPanelProps) {
     setError(null);
     try {
       const token = getStoredToken();
-      const res = await driverService.getDailyReport(driverId, date, token);
-      // The response shape: { data: { reportUrl, filename } }
-      const reportUrl = (
-        res as unknown as { data: { reportUrl: string; filename: string } }
-      ).data?.reportUrl;
+      const { reportUrl } = await driverService.getDailyReport(driverId, date, token);
 
       if (!reportUrl) throw new Error("لم يتم إرجاع رابط التقرير.");
 
-      // Navigate directly to the report URL
       window.location.href = reportUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذّر إنشاء التقرير.");
@@ -52,7 +43,6 @@ export function DriverReportPanel({ driverId }: DriverReportPanelProps) {
         padding: "1rem",
       }}
     >
-      {/* Heading */}
       <p
         style={{
           fontSize: 11,
@@ -74,7 +64,6 @@ export function DriverReportPanel({ driverId }: DriverReportPanelProps) {
           flexWrap: "wrap",
         }}
       >
-        {/* Date input */}
         <div style={{ flex: 1, minWidth: 140 }}>
           <label
             htmlFor="report-date"
@@ -112,7 +101,6 @@ export function DriverReportPanel({ driverId }: DriverReportPanelProps) {
           />
         </div>
 
-        {/* Generate button */}
         <button
           type="button"
           onClick={handleGenerate}
@@ -141,7 +129,6 @@ export function DriverReportPanel({ driverId }: DriverReportPanelProps) {
         </button>
       </div>
 
-      {/* Error */}
       {error && (
         <div
           style={{

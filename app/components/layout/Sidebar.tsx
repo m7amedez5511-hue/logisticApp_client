@@ -363,6 +363,7 @@ function SidebarContent({
                   pathname.startsWith(item.href + "/"));
               return (
                 <Link
+                suppressHydrationWarning
                   key={item.href}
                   href={item.href}
                   title={compact ? item.label : undefined}

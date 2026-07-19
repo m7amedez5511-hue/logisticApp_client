@@ -13,8 +13,6 @@ import type { ToastNotification } from "@/src/Components/UI";
 export type OrderNotification = ToastNotification;
 
 // ── Table state / reducer ──────────────────────────────────────────────────
-// Mirrors useDriver.ts's TableState/TableAction shape so the two resource
-// hooks stay readable side by side.
 interface TableState {
   orders: Order[];
   loading: boolean;
@@ -41,7 +39,6 @@ function reducer(s: TableState, a: TableAction): TableState {
       return { ...s, loading: false, error: a.error };
     case "DELETE":
       return { ...s, orders: s.orders.filter((o) => o.id !== a.id) };
-    // Instantly reflect the updated order in the list without a full reload
     case "UPDATE":
       return { ...s, orders: s.orders.map((o) => (o.id === a.order.id ? a.order : o)) };
     case "CLEAR_ERR":
@@ -67,7 +64,6 @@ export function useOrders() {
   const [statusFilter, setStatusFilter] = useState("");
   const [notification, setNotification] = useState<ToastNotification | null>(null);
 
-  // Show a toast for 4 seconds then auto-dismiss — same timing as useDriver.ts
   const notify = useCallback((n: ToastNotification) => {
     setNotification(n);
     setTimeout(() => setNotification(null), 4000);
@@ -77,20 +73,14 @@ export function useOrders() {
   const loadOrders = useCallback(async (p: number, q: string, status: string) => {
     dispatch({ type: "LOAD_START" });
     try {
-      const res = await orderService.getAll({
+      const { items, total, pages } = await orderService.getAll({
         page: p,
         limit: 12,
         ...(q ? { search: q } : {}),
         ...(status ? { currentStatus: status } : {}),
       });
-      const payload = (res as unknown as { data: { data: Order[]; meta: { total: number; totalPages: number } } }).data ?? res;
 
-      dispatch({
-        type: "LOAD_OK",
-        orders: payload.data ?? [],
-        total: payload.meta?.total ?? 0,
-        pages: payload.meta?.totalPages ?? 1,
-      });
+      dispatch({ type: "LOAD_OK", orders: items, total, pages });
     } catch {
       dispatch({ type: "LOAD_ERR", error: "تعذّر تحميل بيانات الطلبات. يرجى المحاولة مجدداً." });
     }
@@ -109,10 +99,9 @@ export function useOrders() {
         await loadOrders(page, search, statusFilter);
         return true;
       } catch (err) {
-        // نعرض رسالة الخطأ كـ toast برضو، مش بس نرميها لفوق
         const message = err instanceof Error ? err.message : "تعذّر إنشاء الطلب. يرجى المحاولة لاحقاً.";
         notify({ type: "error", message });
-        throw err; // يفضل يترمي عشان OrderFormModal يعرضه جوه المودال كمان لو محتاج
+        throw err;
       }
     },
     [notify, loadOrders, page, search, statusFilter],
@@ -122,8 +111,7 @@ export function useOrders() {
   const updateOrder = useCallback(
     async (id: string, payload: UpdateOrderPayload): Promise<boolean> => {
       try {
-        const res = await orderService.update(id, payload);
-        const updated = (res as unknown as { data: Order }).data ?? (res as unknown as Order);
+        const updated = await orderService.update(id, payload);
         dispatch({ type: "UPDATE", order: updated });
         notify({ type: "success", message: "تم تحديث الطلب بنجاح." });
         return true;
@@ -140,8 +128,7 @@ export function useOrders() {
   const updateStatus = useCallback(
     async (id: string, payload: UpdateOrderStatusPayload): Promise<boolean> => {
       try {
-        const res = await orderService.updateStatus(id, payload);
-        const updated = (res as unknown as { data: Order }).data ?? (res as unknown as Order);
+        const updated = await orderService.updateStatus(id, payload);
         dispatch({ type: "UPDATE", order: updated });
         notify({ type: "success", message: "تم تحديث حالة الطلب بنجاح." });
         return true;

@@ -12,21 +12,19 @@ export function useArchivedUsers() {
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const token = getStoredToken();
-      const res = await archivedUserService.getAll(page, search, token);
-      setUsers(res.data.data);
-      setTotal(res.data.meta.total);
-      setPages(res.data.meta.totalPages);
-      setError(null);
-    } catch {
-      setError("تعذّر تحميل قائمة الأرشيف. يرجى المحاولة لاحقاً.");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search]);
+ const load = useCallback(async () => {
+  setLoading(true);
+  try {
+    const token = getStoredToken();
+    const { items, total, pages } = await archivedUserService.getAllUnwrapped(page, search, token);
+    setUsers(items); setTotal(total); setPages(pages);
+    setError(null);
+  } catch {
+    setError("تعذّر تحميل قائمة الأرشيف. يرجى المحاولة لاحقاً.");
+  } finally {
+    setLoading(false);
+  }
+}, [page, search]);
 
   useEffect(() => { queueMicrotask(load); }, [load]);
 

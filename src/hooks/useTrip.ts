@@ -102,36 +102,22 @@ export function useTrips() {
 
   // ── Fetch trips ───────────────────────────────────────────────────────────
 
-  const loadTrips = useCallback(
-    async (p: number, q: string, st: TripStatus | "") => {
-      dispatch({ type: "LOAD_START" });
-      try {
-        const token = getStoredToken();
-        const res = await tripService.getAll(
-          { page: p, limit: 12, search: q || undefined, status: st || undefined },
-          token,
-        );
-        const payload = (
-          res as unknown as {
-            data: { data: Trip[]; pagination?: { total: number; totalPages: number } };
-          }
-        ).data ?? res;
-
-        dispatch({
-          type: "LOAD_OK",
-          trips: payload.data ?? [],
-          total: payload.pagination?.total ?? 0,
-          pages: payload.pagination?.totalPages ?? 1,
-        });
-      } catch (err) {
-        dispatch({
-          type: "LOAD_ERR",
-          error: extractApiMessage(err, "تعذّر تحميل بيانات الرحلات. يرجى المحاولة مجدداً."),
-        });
-      }
-    },
-    [],
-  );
+ const loadTrips = useCallback(
+  async (p: number, q: string, st: TripStatus | "") => {
+    dispatch({ type: "LOAD_START" });
+    try {
+      const token = getStoredToken();
+      const { items, total, pages } = await tripService.getAll(
+        { page: p, limit: 12, search: q || undefined, status: st || undefined },
+        token,
+      );
+      dispatch({ type: "LOAD_OK", trips: items, total, pages });
+    } catch (err) {
+      dispatch({ type: "LOAD_ERR", error: extractApiMessage(err, "تعذّر تحميل بيانات الرحلات. يرجى المحاولة مجدداً.") });
+    }
+  },
+  [],
+);
 
   useEffect(() => {
     loadTrips(page, search, status);
@@ -139,42 +125,38 @@ export function useTrips() {
 
   // ── Create ────────────────────────────────────────────────────────────────
 
-  const createTrip = useCallback(
-    async (payload: CreateTripPayload): Promise<boolean> => {
-      try {
-        const token = getStoredToken();
-        const res = await tripService.create(payload, token);
-        const newTrip = (res as unknown as { data: Trip }).data;
-        dispatch({ type: "ADD", trip: newTrip });
-        notify({ type: "success", message: "تم إضافة الرحلة بنجاح." });
-        return true;
-      } catch (err) {
-        notify({ type: "error", message: extractApiMessage(err, "تعذّر إضافة الرحلة.") });
-        return false;
-      }
-    },
-    [notify],
-  );
-
+ const createTrip = useCallback(
+  async (payload: CreateTripPayload): Promise<boolean> => {
+    try {
+      const token = getStoredToken();
+      const newTrip = await tripService.create(payload, token);
+      dispatch({ type: "ADD", trip: newTrip });
+      notify({ type: "success", message: "تم إضافة الرحلة بنجاح." });
+      return true;
+    } catch (err) {
+      notify({ type: "error", message: extractApiMessage(err, "تعذّر إضافة الرحلة.") });
+      return false;
+    }
+  },
+  [notify],
+);
   // ── Update ────────────────────────────────────────────────────────────────
 
-  const updateTrip = useCallback(
-    async (id: string, payload: UpdateTripPayload): Promise<boolean> => {
-      try {
-        const token = getStoredToken();
-        const res = await tripService.update(id, payload, token);
-        const updated = (res as unknown as { data: Trip }).data;
-        dispatch({ type: "UPDATE", trip: updated });
-        notify({ type: "success", message: "تم تحديث بيانات الرحلة بنجاح." });
-        return true;
-      } catch (err) {
-        notify({ type: "error", message: extractApiMessage(err, "تعذّر تحديث الرحلة.") });
-        return false;
-      }
-    },
-    [notify],
-  );
-
+ const updateTrip = useCallback(
+  async (id: string, payload: UpdateTripPayload): Promise<boolean> => {
+    try {
+      const token = getStoredToken();
+      const updated = await tripService.update(id, payload, token);
+      dispatch({ type: "UPDATE", trip: updated });
+      notify({ type: "success", message: "تم تحديث بيانات الرحلة بنجاح." });
+      return true;
+    } catch (err) {
+      notify({ type: "error", message: extractApiMessage(err, "تعذّر تحديث الرحلة.") });
+      return false;
+    }
+  },
+  [notify],
+);
   // ── Delete ────────────────────────────────────────────────────────────────
 
   const deleteTrip = useCallback(

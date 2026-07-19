@@ -138,3 +138,8 @@ export interface UserMe extends User {
   role?: UserRoleDetail | null;
   branch?: { id?: string; name: string } | null;
 }
+export interface UserListResult {
+  items: User[];
+  total: number;
+  pages: number;
+}

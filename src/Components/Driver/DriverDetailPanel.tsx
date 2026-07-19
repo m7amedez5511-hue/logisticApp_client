@@ -12,8 +12,6 @@ import {
   NATIONAL_ID_TYPE_MAP,
 } from "@/src/types/driver";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("ar-SA", {
@@ -27,8 +25,6 @@ function isExpiringSoon(iso?: string | null): boolean {
   if (!iso) return false;
   return new Date(iso).getTime() - Date.now() <= 90 * 86_400_000;
 }
-
-// ── Sub-components ────────────────────────────────────────────────────────────
 
 function DetailRow({
   label,
@@ -88,10 +84,6 @@ function SectionHeading({ title }: { title: string }) {
     </p>
   );
 }
-
-// ── PhotoCard ─────────────────────────────────────────────────────────────────
-// key={url} on the <img> forces a full remount whenever the URL changes,
-// which clears any stale onError state from a previously failed load.
 
 function PhotoCard({ url, label }: { url?: string | null; label: string }) {
   const [imgError, setImgError] = useState(false);
@@ -161,16 +153,12 @@ function PhotoCard({ url, label }: { url?: string | null; label: string }) {
   );
 }
 
-// ── Props ─────────────────────────────────────────────────────────────────────
-
 interface DriverDetailPanelProps {
   driverId: string;
   onClose: () => void;
   onEdit: (driver: Driver) => void;
   onDelete: (driver: Driver) => void;
 }
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export function DriverDetailPanel({
   driverId,
@@ -187,8 +175,8 @@ export function DriverDetailPanel({
     setError(null);
     try {
       const token = getStoredToken();
-      const res = await driverService.getById(driverId, token);
-      setDriver((res as unknown as { data: Driver }).data);
+      const data = await driverService.getById(driverId, token);
+      setDriver(data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "تعذّر تحميل بيانات السائق.");
     } finally {
@@ -208,7 +196,6 @@ export function DriverDetailPanel({
 
   return (
     <>
-      {/* Backdrop */}
       <div
         onClick={onClose}
         style={{
@@ -220,7 +207,6 @@ export function DriverDetailPanel({
         }}
       />
 
-      {/* Slide-in panel */}
       <aside
         aria-label="تفاصيل السائق"
         style={{
@@ -238,7 +224,6 @@ export function DriverDetailPanel({
           overflowY: "hidden",
         }}
       >
-        {/* ── Header ── */}
         <div
           style={{
             padding: "1.25rem 1.5rem",
@@ -249,7 +234,6 @@ export function DriverDetailPanel({
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {/* Avatar — key={photoUrl} forces remount on photo change */}
               <div
                 style={{
                   width: 56,
@@ -314,7 +298,6 @@ export function DriverDetailPanel({
           </div>
         </div>
 
-        {/* ── Scrollable content ── */}
         <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem 1.5rem" }}>
           {loading && (
             <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2rem 0" }}>
@@ -338,7 +321,6 @@ export function DriverDetailPanel({
 
           {driver && !loading && (
             <>
-              {/* Status badges */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: "1rem" }}>
                 {statusConfig && (
                   <span style={{
@@ -469,7 +451,6 @@ export function DriverDetailPanel({
           )}
         </div>
 
-        {/* ── Footer actions ── */}
         {driver && (
           <div
             style={{
@@ -536,10 +517,6 @@ export function DriverDetailPanel({
     </>
   );
 }
-
-// ── AvatarImg ─────────────────────────────────────────────────────────────────
-// Separate component so key={src} forces a full remount on photo change,
-// avoiding stale onError state from a previously failed load.
 
 function AvatarImg({ src, name }: { src: string; name: string }) {
   const [error, setError] = useState(false);

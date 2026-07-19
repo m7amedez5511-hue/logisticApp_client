@@ -16,4 +16,8 @@ export const archivedBranchService = {
       `branches/archived${buildArchivedQuery(page, search)}`,
       token,
     ),
+    getAllUnwrapped: async (page, search, token) => {
+  const res = await archivedBranchService.getAll(page, search, token);
+  return { items: res.data.data, total: res.data.meta.total, pages: res.data.meta.totalPages };
+},
 };

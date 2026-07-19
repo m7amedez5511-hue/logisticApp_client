@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as yup from "yup";
 import { Spinner } from "../UI";
-import { get } from "@/src/services/api";
 import { getStoredToken } from "@/src/lib/auth";
 import {
   createTripSchema,
@@ -16,6 +15,12 @@ import type {
   CreateTripPayload,
   UpdateTripPayload,
 } from "@/src/types/trip";
+import { carService, driverService } from "@/src/services";
+import { branchService } from "@/src/services/branch.service";
+import type { DriverOption } from "@/src/types/driver";
+import type { CarOption } from "@/src/types/car";
+import type { BranchOption } from "@/src/types/branch";
+
 
 // ── Shared styles ────────────────────────────────────────────────────────────
 
@@ -63,25 +68,9 @@ const optionalLabelStyle: React.CSSProperties = {
   marginRight: 4,
 };
 
-// ── Driver / Car / Branch minimal types ─────────────────────────────────────
 
-interface DriverOption {
-  id: string;
-  name: string;
-  phone: string;
-  status: string;
-}
-interface CarOption {
-  id: string;
-  manufacturer: string;
-  model: string;
-  plateNumber: string;
-  status?: string;
-}
-interface BranchOption {
-  id: string;
-  name: string;
-}
+
+
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
@@ -108,35 +97,12 @@ export function TripFormModal({
   const [cars, setCars] = useState<CarOption[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
 
-  useEffect(() => {
-    const token = getStoredToken();
-    get<{ data: { data: DriverOption[] } }>(
-      "driver?limit=100&status=Active",
-      token,
-    )
-      .then((res) =>
-        setDrivers(
-          (res as unknown as { data: { data: DriverOption[] } }).data?.data ??
-            [],
-        ),
-      )
-      .catch(() => {});
-    get<{ data: { data: CarOption[] } }>("cars?limit=100&currentStatus=Active", token)
-      .then((res) =>
-        setCars(
-          (res as unknown as { data: { data: CarOption[] } }).data?.data ?? [],
-        ),
-      )
-      .catch(() => {});
-    get<{ data: { data: BranchOption[] } }>("branches?limit=100", token)
-      .then((res) =>
-        setBranches(
-          (res as unknown as { data: { data: BranchOption[] } }).data?.data ??
-            [],
-        ),
-      )
-      .catch(() => {});
-  }, []);
+ useEffect(() => {
+  const token = getStoredToken();
+  driverService.getActiveOptions(token).then(setDrivers).catch(() => {});
+  carService.getActiveOptions(token).then(setCars).catch(() => {});
+  branchService.getOptions(token).then(setBranches).catch(() => {});
+}, []);
   //console.log("cars", cars);
   // ── Form state ────────────────────────────────────────────────────────────
   const [title, setTitle] = useState(editTrip?.title ?? "");

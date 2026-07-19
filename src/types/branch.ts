@@ -121,3 +121,14 @@ export interface ArchivedBranchListResponse {
     };
   };
 }
+
+export interface BranchListResult {
+  items: Branch[];
+  total: number;
+  pages: number;
+}
+
+export interface BranchOption {
+  id: string;
+  name: string;
+}

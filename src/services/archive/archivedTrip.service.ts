@@ -17,4 +17,9 @@ export const archivedTripService = {
   /** Get a single archived trip by id */
   getById: (id: string, token: string | null) =>
     get<ArchivedTripResponse>(`trip/archived/${id}`, token),
+  getAllUnwrapped: async (page, search, token) => {
+  const res = await archivedTripService.getAll(page, search, token);
+  return { items: res.data.data, total: res.data.meta.total, pages: res.data.meta.totalPages };
+},
+getByIdUnwrapped: async (id, token) => (await archivedTripService.getById(id, token)).data,
 };

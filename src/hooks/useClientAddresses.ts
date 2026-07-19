@@ -15,8 +15,6 @@ import type {
 } from "../types/client_adresses";
 import { Notification } from "../types/notif";
 
-
-
 function normalizeAddress(raw: unknown): ClientAddress {
   const data = raw as { id?: string; _id?: string; [key: string]: unknown };
 
@@ -34,7 +32,10 @@ function normalizeAddresses(rawList: unknown[]): ClientAddress[] {
 }
 
 // ── Reducer ────────────────────────────────────────────────────────────────
-function reducer(s: AddressTableState, a: AddressTableAction): AddressTableState {
+function reducer(
+  s: AddressTableState,
+  a: AddressTableAction,
+): AddressTableState {
   switch (a.type) {
     case "LOAD_START":
       return { ...s, loading: true, error: null };
@@ -48,7 +49,7 @@ function reducer(s: AddressTableState, a: AddressTableAction): AddressTableState
       return {
         ...s,
         addresses: s.addresses.map((a2) =>
-          a2.id === a.address.id ? a.address : a2
+          a2.id === a.address.id ? a.address : a2,
         ),
       };
     case "DELETE":
@@ -91,33 +92,23 @@ export function useClientAddresses(clientId: string) {
   }, []);
 
   // ── Fetch ────────────────────────────────────────────────────────────────
- const loadAddresses = useCallback(async () => {
-  if (!clientId) return;
-  dispatch({ type: "LOAD_START" });
-  try {
-    const token = getStoredToken();
-    const res = await clientAddressService.getAll(clientId, token);
-    const payload = (res as unknown as { data?: unknown }).data ?? res;
-
-    // FIXED: explicit Array.isArray checks instead of relying on
-    // TS to narrow the ternary's return type on its own.
-    const rawList: unknown[] = Array.isArray(payload)
-      ? payload
-      : Array.isArray((payload as { data?: unknown })?.data)
-        ? ((payload as { data?: unknown }).data as unknown[])
-        : [];
-
-    dispatch({
-      type: "LOAD_OK",
-      addresses: normalizeAddresses(rawList),
-    });
-  } catch {
-    dispatch({
-      type: "LOAD_ERR",
-      error: "تعذّر تحميل العناوين. يرجى المحاولة مجدداً.",
-    });
-  }
-}, [clientId]);
+  const loadAddresses = useCallback(async () => {
+    if (!clientId) return;
+    dispatch({ type: "LOAD_START" });
+    try {
+      const token = getStoredToken();
+      const addresses = await clientAddressService.getAllNormalized(
+        clientId,
+        token,
+      );
+      dispatch({ type: "LOAD_OK", addresses });
+    } catch {
+      dispatch({
+        type: "LOAD_ERR",
+        error: "تعذّر تحميل العناوين. يرجى المحاولة مجدداً.",
+      });
+    }
+  }, [clientId]);
 
   useEffect(() => {
     loadAddresses();
@@ -129,7 +120,7 @@ export function useClientAddresses(clientId: string) {
       try {
         const token = getStoredToken();
         const res = await clientAddressService.create(clientId, data, token);
-        dispatch({ type: "ADD", address: normalizeAddress(res.data) });
+        dispatch({ type: "ADD", address: normalizeAddress(res.data as any) });
         notify({ type: "success", message: "تم إضافة العنوان بنجاح." });
         return true;
       } catch (err) {
@@ -148,7 +139,12 @@ export function useClientAddresses(clientId: string) {
     async (id: string, data: UpdateAddressFormValues): Promise<boolean> => {
       try {
         const token = getStoredToken();
-        const res = await clientAddressService.update(clientId, id, data, token);
+        const res = await clientAddressService.update(
+          clientId,
+          id,
+          data,
+          token,
+        );
         dispatch({ type: "UPDATE", address: normalizeAddress(res.data) });
         notify({ type: "success", message: "تم تحديث العنوان." });
         return true;
@@ -200,7 +196,8 @@ export function useClientAddresses(clientId: string) {
       } catch (err) {
         notify({
           type: "error",
-          message: err instanceof Error ? err.message : "تعذّر تعيين العنوان كأساسي.",
+          message:
+            err instanceof Error ? err.message : "تعذّر تعيين العنوان كأساسي.",
         });
         return false;
       } finally {

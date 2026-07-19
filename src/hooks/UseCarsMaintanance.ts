@@ -33,20 +33,19 @@ export function useCarMaintenanceList(
   const [error,   setError]   = useState<string | null>(null);
 
   const loadRecords = useCallback(() => {
-    if (!carId) return;
-    const token = getStoredToken();
-    setLoading(true);
-    setError(null);
-    carMaintenanceService
-      .getAll(carId, token)
-      .then((res) => {
-        const list = (res as unknown as { data: CarMaintenance[] }).data ?? [];
-        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setAllRecords(list);
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [carId]);
+  if (!carId) return;
+  const token = getStoredToken();
+  setLoading(true);
+  setError(null);
+  carMaintenanceService
+    .getAllUnwrapped(carId, token)
+    .then((list) => {
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setAllRecords(list);
+    })
+    .catch((err: Error) => setError(err.message))
+    .finally(() => setLoading(false));
+}, [carId]);
 
   useEffect(() => { queueMicrotask(loadRecords); }, [loadRecords]);
 

@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Spinner } from "../UI";
-import { Toast } from "../UI/Toast";
+import { Spinner ,Toast} from "../UI";
 import { tripService } from "@/src/services/trip.service";
 import { getStoredToken } from "@/src/lib/auth";
 import type { TripNotification } from "@/src/hooks/useTrip";
@@ -11,7 +10,6 @@ interface TripReportPanelProps {
   tripId: string;
 }
 
-// Extracts a readable message from any error shape the API might return.
 function extractApiMessage(err: unknown, fallback: string): string {
   if (err && typeof err === "object") {
     const e = err as Record<string, unknown>;
@@ -40,15 +38,14 @@ export function TripReportPanel({ tripId }: TripReportPanelProps) {
     setLoading(true);
     try {
       const token = getStoredToken();
-      const res   = await tripService.getReport(tripId, token);
-      const url   = (res as unknown as { data: { reportUrl: string } }).data?.reportUrl;
+      const { reportUrl } = await tripService.getReport(tripId, token);
 
-      if (!url) {
+      if (!reportUrl) {
         notify({ type: "error", message: "لم يتم إرجاع رابط التقرير من الخادم." });
         return;
       }
 
-      window.open(url, "_blank", "noopener,noreferrer");
+      window.open(reportUrl, "_blank", "noopener,noreferrer");
       notify({ type: "success", message: "تم إنشاء التقرير بنجاح." });
     } catch (err) {
       notify({ type: "error", message: extractApiMessage(err, "تعذّر إنشاء التقرير.") });
@@ -107,7 +104,6 @@ export function TripReportPanel({ tripId }: TripReportPanelProps) {
         </button>
       </div>
 
-      {/* Toast scoped to this panel — sits at the bottom of the screen */}
       <Toast
         notification={notification}
         onDismiss={() => {

@@ -5,13 +5,7 @@ import { Spinner, Alert } from "../UI";
 import { orderService } from "@/src/services/order.service";
 import type { Order, OrderStatus, UpdateOrderStatusPayload } from "@/src/types/order";
 
-// ── Status config ────────────────────────────────────────────────────────
-// Same shape as DRIVER_STATUS_MAP in src/types/driver.ts, kept local here
-// since order.ts doesn't currently export a colour map of its own.
-const ORDER_STATUS_MAP: Record<
-  OrderStatus,
-  { label: string; color: string; bg: string; border: string; dot: string }
-> = {
+const ORDER_STATUS_MAP: Record<OrderStatus, { label: string; color: string; bg: string; border: string; dot: string }> = {
   Created:   { label: "تم الإنشاء",  color: "#1E40AF", bg: "#EFF6FF", border: "#BFDBFE", dot: "#3B82F6" },
   Assigned:  { label: "مُعيَّن",      color: "#5B21B6", bg: "#F5F3FF", border: "#DDD6FE", dot: "#8B5CF6" },
   InTransit: { label: "قيد التوصيل", color: "#854D0E", bg: "#FFFBEB", border: "#FDE68A", dot: "#D97706" },
@@ -33,7 +27,6 @@ const PAY_METHOD_LABEL: Record<string, string> = {
   Prepaid: "مدفوع مسبقاً",
 };
 
-// ── Helpers — identical to DriverDetailPanel.tsx's fmtDate ──────────────
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("ar-SA", {
@@ -49,11 +42,6 @@ function fmtAmount(n?: number | string | null): string {
   if (isNaN(num)) return "—";
   return `${num.toFixed(2)} ر.س`;
 }
-
-// ── Sub-components — copied verbatim from DriverDetailPanel.tsx ─────────
-// (DetailRow / SectionHeading carry no Driver-specific logic, so they are
-// reproduced here rather than imported, matching how the Driver files keep
-// their detail-panel building blocks local to the panel that uses them.)
 
 function DetailRow({
   label,
@@ -114,21 +102,13 @@ function SectionHeading({ title }: { title: string }) {
   );
 }
 
-// ── Props ─────────────────────────────────────────────────────────────────
-
 interface OrderDetailPanelProps {
   orderId: string;
   onClose: () => void;
   onEdit: (order: Order) => void;
   onDelete: (order: Order) => void;
-  /** Bubble a status change up so the list row updates without a full reload */
   onStatusChanged?: (order: Order) => void;
 }
-
-// ── Component ─────────────────────────────────────────────────────────────
-// Structurally identical to DriverDetailPanel.tsx: fixed backdrop + slide-in
-// <aside>, header with avatar-equivalent badge, scrollable body of
-// SectionHeading/DetailRow blocks, sticky footer actions.
 
 export function OrderDetailPanel({
   orderId,
@@ -141,7 +121,6 @@ export function OrderDetailPanel({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Inline status-update control state
   const [statusDraft, setStatusDraft] = useState<OrderStatus | "">("");
   const [statusReason, setStatusReason] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -151,8 +130,7 @@ export function OrderDetailPanel({
     setLoading(true);
     setError(null);
     try {
-      const res = await orderService.getById(orderId);
-      const data = (res as unknown as { data: Order }).data ?? (res as unknown as Order);
+      const data = await orderService.getById(orderId);
       setOrder(data);
       setStatusDraft(data.currentStatus);
     } catch (err: unknown) {
@@ -170,7 +148,6 @@ export function OrderDetailPanel({
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
 
-  // ── Status update — alert shown inline in the panel, success bubbled up ──
   const handleStatusUpdate = useCallback(async () => {
     if (!order || !statusDraft || statusDraft === order.currentStatus) return;
     setUpdatingStatus(true);
@@ -178,8 +155,7 @@ export function OrderDetailPanel({
     try {
       const payload: UpdateOrderStatusPayload = { status: statusDraft };
       if (statusReason) payload.reason = statusReason;
-      const res = await orderService.updateStatus(order.id, payload);
-      const updated = (res as unknown as { data: Order }).data ?? (res as unknown as Order);
+      const updated = await orderService.updateStatus(order.id, payload);
       setOrder(updated);
       setStatusReason("");
       onStatusChanged?.(updated);
@@ -195,7 +171,6 @@ export function OrderDetailPanel({
 
   return (
     <>
-      {/* Backdrop */}
       <div
         onClick={onClose}
         style={{
@@ -207,7 +182,6 @@ export function OrderDetailPanel({
         }}
       />
 
-      {/* Slide-in panel */}
       <aside
         aria-label="تفاصيل الطلب"
         style={{
@@ -225,7 +199,6 @@ export function OrderDetailPanel({
           overflowY: "hidden",
         }}
       >
-        {/* ── Header ── */}
         <div
           style={{
             padding: "1.25rem 1.5rem",
@@ -236,8 +209,6 @@ export function OrderDetailPanel({
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {/* Shipment "avatar" badge — order has no photo, so a glyph stands in for it,
-                  matching the circular-badge slot Driver uses for its avatar image. */}
               <div
                 style={{
                   width: 56,
@@ -298,7 +269,6 @@ export function OrderDetailPanel({
           </div>
         </div>
 
-        {/* ── Scrollable content ── */}
         <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem 1.5rem" }}>
           {loading && (
             <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2rem 0" }}>
@@ -322,7 +292,6 @@ export function OrderDetailPanel({
 
           {order && !loading && (
             <>
-              {/* Status badges */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: "1rem" }}>
                 {statusConfig && (
                   <span style={{
@@ -375,7 +344,6 @@ export function OrderDetailPanel({
               <DetailRow label="ضريبة القيمة المضافة" value={fmtAmount(order.vatAmount)} mono />
               <DetailRow label="الإجمالي" value={fmtAmount(order.totalPrice)} mono />
 
-              {/* ── Delivery Address ── */}
               {order.deliveryAddress?.details && Object.values(order.deliveryAddress.details).some(Boolean) && (
                 <>
                   <SectionHeading title="عنوان التسليم" />
@@ -394,7 +362,6 @@ export function OrderDetailPanel({
                 </>
               )}
 
-              {/* ── Pickup Address ── */}
               {order.pickupAddress?.details && Object.values(order.pickupAddress.details).some(Boolean) && (
                 <>
                   <SectionHeading title="عنوان الاستلام" />
@@ -416,11 +383,6 @@ export function OrderDetailPanel({
               <SectionHeading title="معلومات النظام" />              <DetailRow label="تاريخ الإنشاء" value={fmtDate(order.createdAt)} />
               <DetailRow label="آخر تحديث"     value={fmtDate(order.updatedAt)} />
 
-              {/* ── Inline status update ──
-                   Same alert/feedback pattern as the rest of the panel: a
-                   local Alert renders any failure, success simply updates
-                   the badge above (no extra toast — the parent page's
-                   global toast already fires via onStatusChanged). */}
               <SectionHeading title="تحديث الحالة" />
               {statusError && (
                 <Alert type="error" message={statusError} onClose={() => setStatusError(null)} />
@@ -519,7 +481,6 @@ export function OrderDetailPanel({
           )}
         </div>
 
-        {/* ── Footer actions ── */}
         {order && (
           <div
             style={{

@@ -46,21 +46,15 @@ export function useBranches() {
 
   // fetch branches with pagination and search
   const loadBranches = useCallback(async (p: number, q: string) => {
-    dispatch({ type: "LOAD_START" });
-    try {
-      const token = getStoredToken();
-      const res   = await branchService.getAll(p, q, token);
-      const payload = res.data ?? res;
-      dispatch({
-        type: "LOAD_OK",
-        branches: payload.data ?? [],
-        total: payload.meta?.total ?? payload.pagination?.total ?? 0,
-        pages: payload.meta?.pages ?? payload.pagination?.pages ?? 1,
-      });
-    } catch {
-      dispatch({ type: "LOAD_ERR", error: "عذراً، حدث خطأ أثناء تحميل بيانات الفروع. يرجى المحاولة لاحقاً." });
-    }
-  }, []);
+  dispatch({ type: "LOAD_START" });
+  try {
+    const token = getStoredToken();
+    const { items, total, pages } = await branchService.getAll(p, q, token);
+    dispatch({ type: "LOAD_OK", branches: items, total, pages });
+  } catch {
+    dispatch({ type: "LOAD_ERR", error: "عذراً، حدث خطأ أثناء تحميل بيانات الفروع. يرجى المحاولة لاحقاً." });
+  }
+}, []);
 
   // reload branches when page or search changes
   useEffect(() => {
@@ -69,27 +63,24 @@ export function useBranches() {
 
   // create new branch
   const createBranch = useCallback(async (data: BranchFormData): Promise<boolean> => {
-    try {
-      const token = getStoredToken();
-      const res   = await branchService.create(data, token);
-      dispatch({ type: "ADD", branch: res.data });
-      notify({ type: "success", message: "تم إضافة الفرع بنجاح." });
-      return true;
-    } catch (err) {
-      const msg = err instanceof Error && err.message
-        ? err.message
-        : "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.";
-      notify({ type: "error", message: msg });
-      return false;
-    }
-  }, [notify]);
+  try {
+    const token = getStoredToken();
+    const branch = await branchService.create(data, token);
+    dispatch({ type: "ADD", branch });
+    notify({ type: "success", message: "تم إضافة الفرع بنجاح." });
+    return true;
+  } catch (err) {
+    notify({ type: "error", message: err instanceof Error ? err.message : "تعذر الاتصال بالخادم." });
+    return false;
+  }
+}, [notify]);
 
   // update existing branch
   const updateBranch = useCallback(async (id: string, data: BranchFormData): Promise<boolean> => {
     try {
       const token = getStoredToken();
       const res   = await branchService.update(id, data, token);
-      dispatch({ type: "UPDATE", branch: res.data });
+      dispatch({ type: "UPDATE", branch: res?.data });
       notify({ type: "success", message: "تم تحديث الفرع بنجاح." });
       return true;
     } catch (err) {

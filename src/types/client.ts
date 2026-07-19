@@ -154,3 +154,8 @@ export interface ArchivedClientOrdersResponse {
     };
   };
 }
+export interface ClientListResult {
+  items: Client[];
+  total: number;
+  pages: number;
+}

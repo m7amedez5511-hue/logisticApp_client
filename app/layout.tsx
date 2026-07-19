@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     // ⚠️ اتصلح: الـ Navbar والـ footer كانوا برة <html>/<body> وده HTML غير صالح
     <html lang="ar" dir="rtl">
-      <body className="app-shell">
+      <body className="app-shell" suppressHydrationWarning>
         {/* الناف بار بيظهر بس لو مفيش يوزر مسجل دخول */}
         <ConditionalNavbar />
         {children}

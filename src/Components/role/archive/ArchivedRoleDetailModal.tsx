@@ -78,20 +78,20 @@ export function ArchivedRoleDetailModal({ roleId, onClose }: ArchivedRoleDetailM
 
   // fetch archived role details on mount
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const token = getStoredToken();
-        const res   = await archivedRoleService.getById(roleId, token);
-        if (!cancelled) setRole(res.data);
-      } catch {
-        if (!cancelled) setError("تعذّر تحميل بيانات الدور المؤرشف. يرجى المحاولة لاحقاً.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [roleId]);
+  let cancelled = false;
+  (async () => {
+    try {
+      const token = getStoredToken();
+      const data = await archivedRoleService.getByIdUnwrapped(roleId, token);
+      if (!cancelled) setRole(data);
+    } catch {
+      if (!cancelled) setError("تعذّر تحميل بيانات الدور المؤرشف. يرجى المحاولة لاحقاً.");
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  })();
+  return () => { cancelled = true; };
+}, [roleId]);
 
   // ── helpers ───────────────────────────────────────────────────────────────
   const fmt = (iso?: string | null) =>

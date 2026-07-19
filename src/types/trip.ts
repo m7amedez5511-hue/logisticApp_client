@@ -173,3 +173,12 @@ export interface ArchivedTripListResponse {
     };
   };
 }
+export interface TripListResult {
+  items: Trip[];
+  total: number;
+  pages: number;
+}
+
+export interface TripReportResult {
+  reportUrl: string;
+}

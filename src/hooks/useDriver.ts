@@ -35,7 +35,6 @@ function reducer(s: TableState, a: TableAction): TableState {
       return { ...s, loading: false, error: a.error };
     case "DELETE":
       return { ...s, drivers: s.drivers.filter((d) => d.id !== a.id) };
-    // Instantly reflect updated driver in the list without a full reload
     case "UPDATE":
       return { ...s, drivers: s.drivers.map((d) => (d.id === a.driver.id ? a.driver : d)) };
     case "CLEAR_ERR":
@@ -60,7 +59,6 @@ export function useDrivers() {
   const [page, setPage] = useState(1);
   const [notification, setNotification] = useState<ToastNotification | null>(null);
 
-  // Show a toast for 4 seconds then auto-dismiss
   const notify = useCallback((n: ToastNotification) => {
     setNotification(n);
     setTimeout(() => setNotification(null), 4000);
@@ -71,23 +69,8 @@ export function useDrivers() {
     dispatch({ type: "LOAD_START" });
     try {
       const token = getStoredToken();
-      const res = await driverService.getAll(p, q, token);
-      const payload = (
-        res as unknown as {
-          data: {
-            data: Driver[];
-            pagination?: { total: number; pages: number };
-            meta?: { total: number; pages: number };
-          };
-        }
-      ).data ?? res;
-
-      dispatch({
-        type: "LOAD_OK",
-        drivers: payload.data ?? [],
-        total: payload.meta?.total ?? payload.pagination?.total ?? 0,
-        pages: payload.meta?.pages ?? payload.pagination?.pages ?? 1,
-      });
+      const { items, total, pages } = await driverService.getAll(p, q, token);
+      dispatch({ type: "LOAD_OK", drivers: items, total, pages });
     } catch {
       dispatch({ type: "LOAD_ERR", error: "تعذّر تحميل بيانات السائقين. يرجى المحاولة مجدداً." });
     }
@@ -111,8 +94,7 @@ export function useDrivers() {
         const hasFiles = payload.photo || payload.nationalPhoto || payload.driverCardPhoto;
 
         if (hasFiles) {
-          const res = await driverService.createWithImages(payload, token);
-          const created = (res as unknown as { data: Driver }).data;
+          const created = await driverService.createWithImages(payload, token);
           if (created?.id) {
             await driverService.getById(created.id, token).catch(() => null);
           }
@@ -124,10 +106,9 @@ export function useDrivers() {
         await loadDrivers(page, search);
         return true;
       } catch (err) {
-        // ✅ بنعرض رسالة الخطأ كـ toast برضو، مش بس نرميها لفوق
         const message = err instanceof Error ? err.message : "تعذّر إضافة السائق. يرجى المحاولة لاحقاً.";
         notify({ type: "error", message });
-        throw err; // يفضل يترمي عشان DriverFormModal يعرضه جوه المودال كمان لو محتاج
+        throw err;
       }
     },
     [notify, loadDrivers, page, search],
@@ -147,22 +128,14 @@ export function useDrivers() {
         const token = getStoredToken();
         const hasFiles = payload.photo || payload.nationalPhoto || payload.driverCardPhoto;
 
-        let updatedDriver: Driver;
-
-        if (hasFiles) {
-          await driverService.updateWithImages(id, payload, token);
-          const fresh = await driverService.getById(id, token);
-          updatedDriver = (fresh as unknown as { data: Driver }).data;
-        } else {
-          const res = await driverService.update(id, payload, token);
-          updatedDriver = (res as unknown as { data: Driver }).data;
-        }
+        const updatedDriver = hasFiles
+          ? await driverService.updateWithImages(id, payload, token)
+          : await driverService.update(id, payload, token);
 
         dispatch({ type: "UPDATE", driver: updatedDriver });
         notify({ type: "success", message: "تم تحديث بيانات السائق بنجاح." });
         return true;
       } catch (err) {
-        // ✅ نفس الفكرة هنا — أي فشل في التحديث يبان كـ toast أحمر
         const message = err instanceof Error ? err.message : "تعذّر تحديث بيانات السائق. يرجى المحاولة لاحقاً.";
         notify({ type: "error", message });
         throw err;

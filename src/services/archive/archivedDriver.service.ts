@@ -43,4 +43,10 @@ export const archivedDriverService = {
    */
   getStatusHistory: (id: string, token: string | null) =>
     get<ArchivedDriverStatusHistoryResponse>(`driver/archived/driverStatus/${id}`, token),
+  getAllUnwrapped: async (page, search, token) => {
+  const res = await archivedDriverService.getAll(page, search, token);
+  return { items: res.data.data, total: res.data.meta.total, pages: res.data.meta.totalPages };
+},
+getByIdUnwrapped: async (id, token) => (await archivedDriverService.getById(id, token)).data,
+getStatusHistoryUnwrapped: async (id, token) => (await archivedDriverService.getStatusHistory(id, token)).data ?? [],
 };

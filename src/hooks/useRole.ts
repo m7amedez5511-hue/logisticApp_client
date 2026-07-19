@@ -82,33 +82,20 @@ export function useRoles() {
 
   // ── Fetch roles ─────────────────────────────────────────────────────────────
   const loadRoles = useCallback(async (p: number, q: string) => {
-    dispatch({ type: "LOAD_START" });
-    try {
-      const token = getStoredToken();
-      const res = await roleService.getAll(p, q, token);
-      const payload =
-        (
-          res as unknown as {
-            data: {
-              data: Role[];
-              meta?: { total: number; pages: number };
-              pagination?: { total: number; pages: number };
-            };
-          }
-        ).data ?? res;
-      dispatch({
-        type: "LOAD_OK",
-        roles: payload.data ?? [],
-        total: payload.meta?.total ?? payload.pagination?.total ?? 0,
-        pages: payload.meta?.pages ?? payload.pagination?.pages ?? 1,
-      });
-    } catch {
-      dispatch({
-        type: "LOAD_ERR",
-        error: "تعذّر تحميل بيانات الأدوار. يرجى المحاولة مجدداً.",
-      });
-    }
-  }, []);
+  dispatch({ type: "LOAD_START" });
+  try {
+    const token = getStoredToken();
+    const { items, total, pages } = await roleService.getAll(p, q, token);
+    dispatch({ type: "LOAD_OK", roles: items, total, pages });
+  } catch {
+    dispatch({ type: "LOAD_ERR", error: "تعذّر تحميل بيانات الأدوار. يرجى المحاولة مجدداً." });
+  }
+}, []);
+
+useEffect(() => {
+  const token = getStoredToken();
+  roleService.getPermissions(token).then(setPermissions).catch(() => {});
+}, []);
 
   // ── Load permissions on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -131,36 +118,24 @@ export function useRoles() {
 
   // ── CRUD actions ─────────────────────────────────────────────────────────────
 
-  const createRole = useCallback(
-    async (data: RoleFormData): Promise<boolean> => {
-      try {
-        const token = getStoredToken();
-        const res = await roleService.create(data, token);
-        const role = (res as unknown as { data: Role }).data;
-
-        // Endpoint 2 (PATCH /role/{id}/permissions/bulk): attach selected
-        // permissions right after creation, since POST /role only accepts
-        // name/description.
-        if (data.permissionIds.length) {
-          await roleService.bulkAssignPermissions(role.id, data.permissionIds, token);
-        }
-
-        await loadRoles(page, search);
-        notify({
-          type: "success",
-          message: "تم إنشاء الدور وتعيين الصلاحيات بنجاح.",
-        });
-        return true;
-      } catch (err) {
-        notify({
-          type: "error",
-          message: parseApiError(err, "تعذّر إنشاء الدور."),
-        });
-        return false;
+ const createRole = useCallback(
+  async (data: RoleFormData): Promise<boolean> => {
+    try {
+      const token = getStoredToken();
+      const role = await roleService.create(data, token);
+      if (data.permissionIds.length) {
+        await roleService.bulkAssignPermissions(role.id, data.permissionIds, token);
       }
-    },
-    [page, search, loadRoles, notify],
-  );
+      await loadRoles(page, search);
+      notify({ type: "success", message: "تم إنشاء الدور وتعيين الصلاحيات بنجاح." });
+      return true;
+    } catch (err) {
+      notify({ type: "error", message: parseApiError(err, "تعذّر إنشاء الدور.") });
+      return false;
+    }
+  },
+  [page, search, loadRoles, notify],
+);
 
   const updateRole = useCallback(
     async (

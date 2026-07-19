@@ -78,20 +78,20 @@ export function BranchDetailModal({ branchId, onClose }: BranchDetailModalProps)
 
   // fetch branch details on mount
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const token = getStoredToken();
-        const res   = await branchService.getById(branchId, token);
-        if (!cancelled) setBranch(res.data);
-      } catch {
-        if (!cancelled) setError("تعذّر تحميل بيانات الفرع. يرجى المحاولة لاحقاً.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [branchId]);
+  let cancelled = false;
+  (async () => {
+    try {
+      const token = getStoredToken();
+      const data = await branchService.getById(branchId, token);
+      if (!cancelled) setBranch(data);
+    } catch {
+      if (!cancelled) setError("تعذّر تحميل بيانات الفرع. يرجى المحاولة لاحقاً.");
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  })();
+  return () => { cancelled = true; };
+}, [branchId]);
 
   // ── helpers ───────────────────────────────────────────────────────────────
   const fmt = (iso?: string | null) =>

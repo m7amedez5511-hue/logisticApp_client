@@ -10,16 +10,16 @@ function buildArchivedQuery(page: number, search: string): string {
 }
 
 export const archivedUserService = {
-  /** Fetching the archived user list, paginated */
   getAll: (page: number, search: string, token: string | null) =>
-    get<ArchivedUserListResponse>(
-      `users/archived${buildArchivedQuery(page, search)}`,
-      token,
-    ),
+    get<ArchivedUserListResponse>(`users/archived${buildArchivedQuery(page, search)}`, token),
 
-  /** Get a single archived user by id */
-  getById: (id: string, token: string | null) =>
-    get<ArchivedUserResponse>(`users/archived/${id}`, token),
+  getAllUnwrapped: async (page: number, search: string, token: string | null) => {
+    const res = await archivedUserService.getAll(page, search, token);
+    return { items: res.data.data, total: res.data.meta.total, pages: res.data.meta.totalPages };
+  },
 
-  // NOTE: delete/restore intentionally left out for now — see ticket follow-up.
+  getById: async (id: string, token: string | null) => {
+    const res = await get<ArchivedUserResponse>(`users/archived/${id}`, token);
+    return res.data;
+  },
 };

@@ -18,19 +18,18 @@ export function useArchivedClientAddresses(clientId?: string) {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const token = getStoredToken();
-      const res = await archivedClientAddressService.getAll(token);
-      setAddresses(res.data);
-      setError(null);
-    } catch {
-      setError("تعذّر تحميل أرشيف العناوين. يرجى المحاولة لاحقاً.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+const load = useCallback(async () => {
+  setLoading(true);
+  try {
+    const token = getStoredToken();
+    setAddresses(await archivedClientAddressService.getAllUnwrapped(token));
+    setError(null);
+  } catch {
+    setError("تعذّر تحميل أرشيف العناوين. يرجى المحاولة لاحقاً.");
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useEffect(() => { queueMicrotask(load); }, [load]);
 

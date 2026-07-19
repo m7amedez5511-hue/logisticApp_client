@@ -77,20 +77,20 @@ export function UserDetailModal({ userId, onClose }: UserDetailModalProps) {
 
   // fetch user details on mount
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const token = getStoredToken();
-        const res   = await userService.getById(userId, token);
-        if (!cancelled) setUser(res.data);
-      } catch {
-        if (!cancelled) setError("تعذّر تحميل بيانات المستخدم. يرجى المحاولة لاحقاً.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [userId]);
+  let cancelled = false;
+  (async () => {
+    try {
+      const token = getStoredToken();
+      const data = await userService.getById(userId, token);
+      if (!cancelled) setUser(data);
+    } catch {
+      if (!cancelled) setError("تعذّر تحميل بيانات المستخدم. يرجى المحاولة لاحقاً.");
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  })();
+  return () => { cancelled = true; };
+}, [userId]);
 
   // ── helpers ───────────────────────────────────────────────────────────────
   const fmt = (iso?: string | null) =>

@@ -31,10 +31,8 @@ export default function ArchivedTripDetailPage() {
       setError(null);
       try {
         const token = getStoredToken();
-        // Archived trips must go through the archived endpoint —
-        // the normal /trip/:id endpoint won't return soft-deleted trips.
-        const res = await tripService.getArchivedById(tripId, token);
-        if (!cancelled) setTrip((res as unknown as { data: Trip }).data);
+        const data = await tripService.getArchivedById(tripId, token);
+        if (!cancelled) setTrip(data);
       } catch {
         if (!cancelled) setError("لم يتم العثور على هذه الرحلة في الأرشيف.");
       } finally {
@@ -54,7 +52,6 @@ export default function ArchivedTripDetailPage() {
     );
   }
 
-  // Edge case: invalid/missing/unreachable trip ID
   if (error || !trip) {
     return (
       <EmptyState

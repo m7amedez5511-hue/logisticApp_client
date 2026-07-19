@@ -39,6 +39,7 @@ export interface Driver {
   driverCardPhotoUrl?: string | null;
 }
 
+
 export interface DriverStatusHistoryEntry {
   id: string;
   status: DriverStatus;
@@ -183,4 +184,24 @@ export interface ArchivedDriverResponse {
 // GET /driver/archived/driverStatus/{id}
 export interface ArchivedDriverStatusHistoryResponse {
   data: DriverStatusHistoryEntry[];
+}
+// ── Clean, unwrapped shapes returned by driverService ──
+
+export interface DriverListResult {
+  items: Driver[];
+  total: number;
+  pages: number;
+}
+
+export interface DriverReportResult {
+  reportUrl: string;
+  filename: string;
+}
+
+/** Minimal shape used by dropdowns (TripFormModal etc.) */
+export interface DriverOption {
+  id: string;
+  name: string;
+  phone: string;
+  status: DriverStatus;
 }

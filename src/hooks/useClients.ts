@@ -71,33 +71,16 @@ export function useClients() {
   }, []);
 
   // ── Fetch clients ────────────────────────────────────────────────────────
-  const loadClients = useCallback(async (p: number, q: string) => {
-    dispatch({ type: "LOAD_START" });
-    try {
-      const token = getStoredToken();
-      const res = await clientService.getAll(p, q, token);
-
-      // Normalise both pagination shapes the backend might return
-      const apiResponse = res as { data?: unknown };
-      const payload = apiResponse.data ?? res;
-      const response = payload as {
-        data?: Client[];
-        meta?: { total?: number; pages?: number };
-        pagination?: { total?: number; pages?: number };
-      };
-      dispatch({
-        type: "LOAD_OK",
-        clients: response.data ?? [],
-        total: response.meta?.total ?? response.pagination?.total ?? 0,
-        pages: response.meta?.pages ?? response.pagination?.pages ?? 1,
-      });
-    } catch {
-      dispatch({
-        type: "LOAD_ERR",
-        error: "تعذّر تحميل بيانات العملاء. يرجى المحاولة مجدداً.",
-      });
-    }
-  }, []);
+const loadClients = useCallback(async (p: number, q: string) => {
+  dispatch({ type: "LOAD_START" });
+  try {
+    const token = getStoredToken();
+    const { items, total, pages } = await clientService.getAll(p, q, token);
+    dispatch({ type: "LOAD_OK", clients: items, total, pages });
+  } catch {
+    dispatch({ type: "LOAD_ERR", error: "تعذّر تحميل بيانات العملاء. يرجى المحاولة مجدداً." });
+  }
+}, []);
 
   // Reload whenever page or search changes
   useEffect(() => {
@@ -111,24 +94,18 @@ export function useClients() {
   }, []);
 
   // ── CREATE ───────────────────────────────────────────────────────────────
-  const createClient = useCallback(
-    async (data: ClientFormData): Promise<boolean> => {
-      try {
-        const token = getStoredToken();
-        const res = await clientService.create(data, token);
-        dispatch({ type: "ADD", client: res.data });
-        notify({ type: "success", message: "تم إضافة العميل بنجاح." });
-        return true;
-      } catch (err) {
-        notify({
-          type: "error",
-          message: err instanceof Error ? err.message : "تعذّر إضافة العميل.",
-        });
-        return false;
-      }
-    },
-    [notify],
-  );
+  const createClient = useCallback(async (data: ClientFormData): Promise<boolean> => {
+  try {
+    const token = getStoredToken();
+    const client = await clientService.create(data, token);
+    dispatch({ type: "ADD", client });
+    notify({ type: "success", message: "تم إضافة العميل بنجاح." });
+    return true;
+  } catch (err) {
+    notify({ type: "error", message: err instanceof Error ? err.message : "تعذّر إضافة العميل." });
+    return false;
+  }
+}, [notify]);
 
   // ── UPDATE ───────────────────────────────────────────────────────────────
   const updateClient = useCallback(
@@ -136,7 +113,7 @@ export function useClients() {
       try {
         const token = getStoredToken();
         const res = await clientService.update(id, data, token);
-        dispatch({ type: "UPDATE", client: res.data });
+        dispatch({ type: "UPDATE", client: res?.data });
         notify({ type: "success", message: "تم تحديث بيانات العميل." });
         return true;
       } catch (err) {
