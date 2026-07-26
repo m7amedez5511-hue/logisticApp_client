@@ -1,48 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import * as yup from "yup";
-import { Alert, Spinner } from "../UI";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import type { Resolver } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { Alert, Button, Input, Select } from "../UI";
 import { createUserSchema, updateUserSchema } from "@/src/validations/user.validator";
 import type { Branch } from "@/src/types/branch";
 import type { Role } from "@/src/types/role";
-import type { FormErrors, User, UserFormData } from "@/src/types/user";
-
-// ── fixed styles ─────────────────────────────────────────
-const S = {
-  input: {
-    width: "100%", height: 40, padding: "0 0.75rem",
-    borderRadius: "var(--radius-md)",
-    border: "1px solid var(--color-border)",
-    background: "var(--color-surface)",
-    fontSize: 13, color: "var(--color-text-primary)",
-    outline: "none", fontFamily: "var(--font-sans)",
-  } as React.CSSProperties,
-  label: {
-    display: "flex", flexDirection: "column" as const,
-    gap: 6, fontSize: 12, fontWeight: 600,
-    color: "var(--color-text-secondary)",
-  } as React.CSSProperties,
-  errorText: { fontSize: 11, color: "var(--color-danger)", fontWeight: 500 } as React.CSSProperties,
-};
-
-// ── yup validation ────────────────────────────────────────────────────────────
-async function validate(data: UserFormData, isNew: boolean): Promise<FormErrors> {
-  const schema = isNew ? createUserSchema : updateUserSchema;
-  try {
-    await schema.validate(data, { abortEarly: false });
-    return {};
-  } catch (err) {
-    if (err instanceof yup.ValidationError) {
-      return err.inner.reduce<FormErrors>((acc, e) => {
-        const field = e.path as keyof FormErrors;
-        if (field && !acc[field]) acc[field] = e.message;
-        return acc;
-      }, {});
-    }
-    return {};
-  }
-}
+import type { User, UserFormData } from "@/src/types/user";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface UserFormModalProps {
@@ -57,57 +23,70 @@ interface UserFormModalProps {
 export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: UserFormModalProps) {
   const isNew = editUser === null;
 
-  const [form, setForm] = useState<UserFormData>({
-    name:     editUser?.name        ?? "",
-    email:    editUser?.email       ?? "",
-    phone:    editUser?.phone       ?? "",
-    password: "",
-    roleId:   editUser?.role?.id    ?? "",
-    branchId: editUser?.branch?.id  ?? "",
-  });
-  const [errors,   setErrors]   = useState<FormErrors>({});
-  const [saving,   setSaving]   = useState(false);
-  const [apiError, setApiError] = useState("");
-  const firstInputRef           = useRef<HTMLInputElement>(null);
-
-  useEffect(() => { firstInputRef.current?.focus(); }, []);
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
-
-  const set = (field: keyof UserFormData) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setForm(p => ({ ...p, [field]: e.target.value }));
-      // clear field error on change
-      if (errors[field]) setErrors(p => ({ ...p, [field]: undefined }));
-    };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const errs = await validate(
-      !isNew && !form.password
-        ? { ...form, password: undefined as unknown as string }
-        : form,
-      isNew,
-    );
-    if (Object.keys(errs).length) { setErrors(errs); return; }
-    setSaving(true);
-    setApiError("");
-    const payload: Partial<UserFormData> = { ...form };
-    if (!isNew && !payload.password) delete payload.password;
-    const ok = await onSubmit(payload as UserFormData, isNew);
-    setSaving(false);
-    if (ok) onClose();
-    else setApiError("حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.");
+  // Custom resolver wrapper — on edit, an empty password field must be
+  // treated as "not provided" (skip the min(8) rule entirely) rather than
+  // validated as an empty string, exactly like the old validate() call did
+  // by stripping `password` from the object before running the schema.
+  const resolver: Resolver<UserFormData> = async (values, context, options) => {
+    const schema = isNew ? createUserSchema : updateUserSchema;
+    const data = !isNew && !values.password ? { ...values, password: undefined } : values;
+    // Cast both the schema argument and yupResolver's own return value — same
+    // fix already applied in TripFormModal/DriverFormModal/CarFormModal:
+    // passing an explicit <UserFormData> generic here forces a structural
+    // comparison between yup's inferred optional-field shape and
+    // UserFormData that fails the same way it did for those forms.
+    return (yupResolver(schema as any) as any)(data as UserFormData, context, options);
   };
 
-  // dynamic styles for inputs with errors
-  const inputStyle = (field: keyof FormErrors): React.CSSProperties => ({
-    ...S.input,
-    ...(errors[field] ? { borderColor: "var(--color-danger)", background: "#FEF2F2" } : {}),
+  const {
+    register,
+    handleSubmit,
+    setError,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<UserFormData>({
+    resolver,
+    defaultValues: {
+      name:     editUser?.name        ?? "",
+      email:    editUser?.email       ?? "",
+      phone:    editUser?.phone       ?? "",
+      password: "",
+      roleId:   editUser?.role?.id    ?? "",
+      branchId: editUser?.branch?.id  ?? "",
+    },
   });
+
+  // roles/branches are passed in as props rather than fetched inside this
+  // modal (unlike Trip/Driver/Car), but the same timing issue applies if the
+  // parent still has them loading when the modal first mounts: defaultValues
+  // are applied before the matching <option> exists, so the <select>
+  // silently falls back to "". Reapply the saved id once each list actually
+  // contains it.
+  useEffect(() => {
+    const savedRoleId = editUser?.role?.id;
+    if (savedRoleId && roles.some(r => r.id === savedRoleId)) {
+      setValue("roleId", savedRoleId);
+    }
+  }, [roles, editUser, setValue]);
+
+  useEffect(() => {
+    const savedBranchId = editUser?.branch?.id;
+    if (savedBranchId && branches.some(b => b.id === savedBranchId)) {
+      setValue("branchId", savedBranchId);
+    }
+  }, [branches, editUser, setValue]);
+
+  const submitHandler = async (data: UserFormData) => {
+    const payload: Partial<UserFormData> = { ...data };
+    if (!isNew && !payload.password) delete payload.password;
+
+    const ok = await onSubmit(payload as UserFormData, isNew);
+    if (ok) {
+      onClose();
+    } else {
+      setError("name", { message: "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً." });
+    }
+  };
 
   return (
     <div
@@ -145,75 +124,97 @@ export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: 
               {isNew ? "مستخدم جديد" : editUser?.name}
             </h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="إغلاق"
-            style={{ width: 34, height: 34, borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface)", cursor: "pointer", fontSize: 18, color: "var(--color-text-muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            aria-label="إغلاق"
+            style={{ width: 34, height: 34, padding: 0, fontSize: 18 }}
+          >
             ×
-          </button>
+          </Button>
         </div>
 
         {/* body */}
-        <form onSubmit={handleSubmit} noValidate style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {apiError && <Alert type="error" message={apiError} onClose={() => setApiError("")} />}
+        <form onSubmit={handleSubmit(submitHandler)} noValidate style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {errors.name?.type === "manual" && (
+            <Alert type="error" message={errors.name.message ?? ""} onClose={() => {}} />
+          )}
 
           {/* name */}
-          <label style={S.label}>
-            الاسم الكامل *
-            <input ref={firstInputRef} style={inputStyle("name")} value={form.name} onChange={set("name")} placeholder="أحمد الرشيدي" autoComplete="name" dir="rtl" />
-            {errors.name && <span style={S.errorText}>{errors.name}</span>}
-          </label>
+          <Input
+            label="الاسم الكامل *"
+            {...register("name")}
+            error={errors.name && errors.name.type !== "manual" ? errors.name.message : undefined}
+            placeholder="أحمد الرشيدي"
+            autoComplete="name"
+            autoFocus
+            dir="rtl"
+          />
 
           {/* email + phone */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-            <label style={S.label}>
-              البريد الإلكتروني
-              <input style={inputStyle("email")} type="email" value={form.email} onChange={set("email")} placeholder="ahmed@co.sa" autoComplete="email" dir="ltr" />
-              {errors.email && <span style={S.errorText}>{errors.email}</span>}
-            </label>
-            <label style={S.label}>
-              رقم الهاتف *
-              <input style={inputStyle("phone")} type="tel" value={form.phone} onChange={set("phone")} placeholder="+966 5x xxx xxxx" autoComplete="tel" dir="ltr" />
-              {errors.phone && <span style={S.errorText}>{errors.phone}</span>}
-            </label>
+            <Input
+              label="البريد الإلكتروني"
+              type="email"
+              {...register("email")}
+              error={errors.email?.message}
+              placeholder="ahmed@co.sa"
+              autoComplete="email"
+              dir="ltr"
+            />
+            <Input
+              label="رقم الهاتف *"
+              type="tel"
+              {...register("phone")}
+              error={errors.phone?.message}
+              placeholder="+966 5x xxx xxxx"
+              autoComplete="tel"
+              dir="ltr"
+            />
           </div>
 
           {/* password */}
-          <label style={S.label}>
-            {isNew ? "كلمة المرور *" : "كلمة المرور الجديدة (اتركها فارغة إذا لا تريد تغييرها)"}
-            <input style={inputStyle("password")} type="password" value={form.password} onChange={set("password")} placeholder="••••••••" autoComplete={isNew ? "new-password" : "off"} dir="ltr" />
-            {errors.password && <span style={S.errorText}>{errors.password}</span>}
-          </label>
+          <Input
+            label={isNew ? "كلمة المرور *" : "كلمة المرور الجديدة (اتركها فارغة إذا لا تريد تغييرها)"}
+            type="password"
+            {...register("password")}
+            error={errors.password?.message}
+            placeholder="••••••••"
+            autoComplete={isNew ? "new-password" : "off"}
+            dir="ltr"
+          />
 
           {/* role + branch */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-            <label style={S.label}>
-              الدور *
-              <select style={{ ...inputStyle("roleId"), cursor: "pointer" }} value={form.roleId} onChange={set("roleId")} dir="rtl">
-                <option value="">اختر الدور</option>
-                {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
-              {errors.roleId && <span style={S.errorText}>{errors.roleId}</span>}
-            </label>
-            <label style={S.label}>
-              الفرع *
-              <select style={{ ...inputStyle("branchId"), cursor: "pointer" }} value={form.branchId} onChange={set("branchId")} dir="rtl">
-                <option value="">اختر الفرع</option>
-                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-              {errors.branchId && <span style={S.errorText}>{errors.branchId}</span>}
-            </label>
+            <Select
+              label="الدور *"
+              {...register("roleId")}
+              error={errors.roleId?.message}
+              dir="rtl"
+            >
+              <option value="">اختر الدور</option>
+              {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+            </Select>
+            <Select
+              label="الفرع *"
+              {...register("branchId")}
+              error={errors.branchId?.message}
+              dir="rtl"
+            >
+              <option value="">اختر الفرع</option>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </Select>
           </div>
 
           {/* actions */}
           <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", paddingTop: "0.5rem" }}>
-            <button type="button" onClick={onClose} disabled={saving}
-              style={{ height: 40, padding: "0 1.25rem", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface)", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-sans)" }}>
+            <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
               إلغاء
-            </button>
-            <button type="submit" disabled={saving}
-              style={{ height: 40, padding: "0 1.5rem", borderRadius: "var(--radius-md)", border: "none", background: saving ? "var(--color-brand-400)" : "var(--color-brand-600)", fontSize: 13, fontWeight: 700, color: "#FFF", cursor: saving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-sans)" }}>
-              {saving && <Spinner size="sm" className="text-white" />}
-              {saving ? "جارٍ الحفظ…" : isNew ? "إضافة المستخدم" : "حفظ التغييرات"}
-            </button>
+            </Button>
+            <Button type="submit" variant="primary" loading={isSubmitting}>
+              {isSubmitting ? "جارٍ الحفظ…" : isNew ? "إضافة المستخدم" : "حفظ التغييرات"}
+            </Button>
           </div>
         </form>
       </div>

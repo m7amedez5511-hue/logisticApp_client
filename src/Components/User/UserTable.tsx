@@ -1,35 +1,17 @@
 "use client";
 
-import { Spinner } from "../UI";
+import { Badge, Button, EmptyState, IconBtn, Spinner } from "../UI";
 import type { User } from "@/src/types/user";
 
-// ── role badge ───────────────────────────────────────────────────────────────
-function RoleBadge({ name }: { name?: string }) {
-  const isAdmin = name === "مدير النظام";
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", borderRadius: "var(--radius-full)", border: isAdmin ? "1px solid #BFDBFE" : "1px solid var(--color-border)", background: isAdmin ? "#EFF6FF" : "var(--color-surface-muted)", padding: "0.2rem 0.625rem", fontSize: 11, fontWeight: 600, color: isAdmin ? "#1D4ED8" : "var(--color-text-muted)" }}>
-      {name ?? "—"}
-    </span>
-  );
-}
-
 // ── status badge ─────────────────────────────────────────────────────────────
+// Kept custom rather than swapped for <Badge/>: Badge only renders a label
+// pill (no dot indicator), and the pulse-dot is the whole point of this chip.
 function StatusBadge({ active }: { active: boolean }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, borderRadius: "var(--radius-full)", border: active ? "1px solid #BBF7D0" : "1px solid #FECACA", background: active ? "#DCFCE7" : "#FEF2F2", padding: "0.2rem 0.625rem", fontSize: 11, fontWeight: 600, color: active ? "#166534" : "#991B1B" }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: active ? "#16A34A" : "#DC2626" }} />
       {active ? "نشط" : "معطل"}
     </span>
-  );
-}
-
-// ── icon button ──────────────────────────────────────────────────────────────
-function IconBtn({ onClick, title, color, bg, borderColor, children }: { onClick: () => void; title: string; color: string; bg: string; borderColor: string; children: React.ReactNode }) {
-  return (
-    <button type="button" title={title} aria-label={title} onClick={e => { e.stopPropagation(); onClick(); }}
-      style={{ width: 32, height: 32, borderRadius: "var(--radius-md)", border: `1px solid ${borderColor}`, background: bg, color, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "opacity 150ms" }}>
-      {children}
-    </button>
   );
 }
 
@@ -82,17 +64,17 @@ export function UserTable({ users, loading, search, page, pages, onEdit, onDelet
         </div>
       ) : users.length === 0 ? (
         /* empty state */
-        <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-            {search ? `لا توجد نتائج لـ "${search}"` : "لا يوجد مستخدمون لعرضهم."}
-          </p>
-          {!search && (
-            <button type="button" onClick={onAddFirst}
-              style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: "var(--color-brand-600)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-              أضف أول مستخدم
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon="👥"
+          title={search ? `لا توجد نتائج لـ "${search}"` : "لا يوجد مستخدمون لعرضهم."}
+          action={
+            !search && (
+              <Button type="button" variant="ghost" size="sm" onClick={onAddFirst}>
+                أضف أول مستخدم
+              </Button>
+            )
+          }
+        />
       ) : (
         /* data rows */
         <ul dir="rtl" style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -110,7 +92,7 @@ export function UserTable({ users, loading, search, page, pages, onEdit, onDelet
               </div>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#2563EB", fontWeight: 600 }}>{u.userName ?? "—"}</span>
               <span style={{ color: "var(--color-text-secondary)" }}>{u.branch?.name ?? "—"}</span>
-              <RoleBadge name={u.role?.name} />
+              <Badge label={u.role?.name ?? "—"} color={u.role?.name === "مدير النظام" ? "indigo" : "slate"} />
               <StatusBadge active={u.isActive} />
               <span style={{ textAlign: "center", fontSize: 11, color: "var(--color-text-muted)" }}>
                 {new Date(u.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" })}
@@ -150,15 +132,24 @@ export function UserTable({ users, loading, search, page, pages, onEdit, onDelet
             صفحة <strong style={{ color: "var(--color-text-primary)" }}>{page}</strong> من <strong style={{ color: "var(--color-text-primary)" }}>{pages}</strong>
           </span>
           <div style={{ display: "flex", gap: "0.5rem" }}>
-            {[
-              { label: "السابق", action: () => onPageChange(Math.max(1, page - 1)),     disabled: page === 1     },
-              { label: "التالي", action: () => onPageChange(Math.min(pages, page + 1)), disabled: page === pages },
-            ].map(btn => (
-              <button key={btn.label} type="button" onClick={btn.action} disabled={btn.disabled}
-                style={{ borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border)", background: "var(--color-surface-muted)", padding: "0.375rem 0.875rem", fontSize: 12, color: "var(--color-text-secondary)", cursor: btn.disabled ? "not-allowed" : "pointer", opacity: btn.disabled ? 0.4 : 1, fontFamily: "var(--font-sans)" }}>
-                {btn.label}
-              </button>
-            ))}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onPageChange(Math.max(1, page - 1))}
+              disabled={page === 1}
+            >
+              السابق
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onPageChange(Math.min(pages, page + 1))}
+              disabled={page === pages}
+            >
+              التالي
+            </Button>
           </div>
         </div>
       )}

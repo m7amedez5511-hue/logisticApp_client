@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Spinner } from "../UI";
+import { Alert, Button, EmptyState, IconBtn, Select, Spinner } from "../UI";
 import { useCarImages } from "@/src/hooks/useCars";
 import { STAGE_MAP } from "@/src/types/car";
 import type { Car, CarImage, ImageStage } from "@/src/types/car";
@@ -90,48 +90,61 @@ export function CarImageGallery({ car, onClose }: CarImageGalleryProps) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           {/* Sort */}
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as "asc" | "desc")}
-            style={{ height: 36, borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface)", fontSize: 12, color: "var(--color-text-secondary)", padding: "0 0.75rem", outline: "none", fontFamily: "var(--font-sans)" }}>
+          <Select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as "asc" | "desc")}
+            wrapperClassName="w-auto"
+            className="h-9"
+          >
             <option value="desc">الأحدث أولاً</option>
             <option value="asc">الأقدم أولاً</option>
-          </select>
+          </Select>
 
           {/* Stage selector for upload */}
-          <select value={stage} onChange={e => setStage(e.target.value as ImageStage)}
-            style={{ height: 36, borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface)", fontSize: 12, color: "var(--color-text-secondary)", padding: "0 0.75rem", outline: "none", fontFamily: "var(--font-sans)" }}>
+          <Select
+            value={stage}
+            onChange={e => setStage(e.target.value as ImageStage)}
+            wrapperClassName="w-auto"
+            className="h-9"
+          >
             <option value="GENERAL">عام</option>
             <option value="BEFORE">قبل</option>
             <option value="AFTER">بعد</option>
-          </select>
+          </Select>
 
           {/* Upload button */}
-          <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-            style={{ height: 36, padding: "0 1rem", borderRadius: "var(--radius-md)", border: "none", background: uploading ? "var(--color-brand-400)" : "var(--color-brand-600)", fontSize: 13, fontWeight: 700, color: "#FFF", cursor: uploading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-sans)" }}>
-            {uploading
-              ? <><Spinner size="sm" className="text-white" /> جارٍ الرفع…</>
-              : <>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                  رفع صور
-                </>
-            }
-          </button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => fileRef.current?.click()}
+            loading={uploading}
+          >
+            {!uploading && (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            )}
+            {uploading ? "جارٍ الرفع…" : "رفع صور"}
+          </Button>
           <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handleUpload} />
 
           {/* Close */}
-          <button type="button" onClick={onClose} aria-label="إغلاق"
-            style={{ width: 36, height: 36, borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface)", cursor: "pointer", fontSize: 20, color: "var(--color-text-muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            ×
-          </button>
+          <IconBtn
+            title="إغلاق"
+            color="var(--color-text-muted)"
+            bg="var(--color-surface)"
+            borderColor="var(--color-border)"
+            onClick={onClose}
+          >
+            <span style={{ fontSize: 20, lineHeight: 1 }}>×</span>
+          </IconBtn>
         </div>
       </div>
 
       {/* ── Error ── */}
       {error && (
-        <div style={{ padding: "0.75rem 1.5rem", background: "#FEF2F2", borderBottom: "1px solid #FECACA", fontSize: 13, color: "#DC2626", fontWeight: 500 }}>
-          ⚠ {error}
-          <button onClick={() => setError(null)} style={{ marginRight: 8, fontSize: 14, background: "none", border: "none", color: "#DC2626", cursor: "pointer" }}>×</button>
+        <div style={{ padding: "0.75rem 1.5rem" }}>
+          <Alert type="error" message={error} onClose={() => setError(null)} />
         </div>
       )}
 
@@ -143,13 +156,11 @@ export function CarImageGallery({ car, onClose }: CarImageGalleryProps) {
             <span style={{ fontSize: 14, color: "var(--color-text-muted)" }}>جارٍ تحميل الصور…</span>
           </div>
         ) : images.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "5rem 0" }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>📸</div>
-            <p style={{ fontSize: 15, color: "var(--color-text-muted)", fontWeight: 600 }}>لا توجد صور بعد</p>
-            <p style={{ fontSize: 13, color: "var(--color-text-hint)", marginTop: 4 }}>
-              اضغط على &quot;رفع صور&quot; لإضافة أولى الصور لهذه المركبة.
-            </p>
-          </div>
+          <EmptyState
+            icon="📸"
+            title="لا توجد صور بعد"
+            description='اضغط على "رفع صور" لإضافة أولى الصور لهذه المركبة.'
+          />
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1rem" }}>
             {images.map(img => {
@@ -204,8 +215,13 @@ export function CarImageGallery({ car, onClose }: CarImageGalleryProps) {
                     <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
                       {new Date(img.createdAt).toLocaleDateString("ar-SA", { month: "short", day: "numeric" })}
                     </span>
-                    <button type="button" onClick={() => handleDelete(img.id)} disabled={isDeleting} aria-label="حذف الصورة"
-                      style={{ width: 28, height: 28, borderRadius: "var(--radius-sm)", border: "1px solid #FECACA", background: "#FEF2F2", color: "#DC2626", cursor: isDeleting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <IconBtn
+                      title="حذف الصورة"
+                      color="#DC2626"
+                      bg="#FEF2F2"
+                      borderColor="#FECACA"
+                      onClick={() => handleDelete(img.id)}
+                    >
                       {isDeleting
                         ? <Spinner size="sm" className="text-red-600" />
                         : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -213,7 +229,7 @@ export function CarImageGallery({ car, onClose }: CarImageGalleryProps) {
                             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
                           </svg>
                       }
-                    </button>
+                    </IconBtn>
                   </div>
                 </div>
               );
@@ -243,6 +259,8 @@ export function CarImageGallery({ car, onClose }: CarImageGalleryProps) {
             onLoad={() => setLightboxLoaded(true)}
             onError={e => { (e.target as HTMLImageElement).src = "/file.svg"; setLightboxLoaded(true); }}
           />
+          {/* Kept custom — a circular translucent button on a dark overlay,
+              a different visual context than IconBtn's light-surface style. */}
           <button onClick={() => setLightbox(null)} style={{ position: "absolute", top: 24, right: 24, width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             ×
           </button>

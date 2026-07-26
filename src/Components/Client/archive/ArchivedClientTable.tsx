@@ -1,27 +1,7 @@
 "use client";
 
-import { Spinner } from "../../UI";
+import { Badge, Button, EmptyState, IconBtn, Spinner } from "../../UI";
 import type { ArchivedClient } from "@/src/types/client";
-
-// ── status badge ─────────────────────────────────────────────────────────────
-function StatusBadge({ active }: { active: boolean }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, borderRadius: "var(--radius-full)", border: active ? "1px solid #BBF7D0" : "1px solid #FECACA", background: active ? "#DCFCE7" : "#FEF2F2", padding: "0.2rem 0.625rem", fontSize: 11, fontWeight: 600, color: active ? "#166534" : "#991B1B" }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: active ? "#16A34A" : "#DC2626" }} />
-      {active ? "نشط" : "معطل"}
-    </span>
-  );
-}
-
-// ── icon button ──────────────────────────────────────────────────────────────
-function IconBtn({ onClick, title, color, bg, borderColor, children }: { onClick: () => void; title: string; color: string; bg: string; borderColor: string; children: React.ReactNode }) {
-  return (
-    <button type="button" title={title} aria-label={title} onClick={e => { e.stopPropagation(); onClick(); }}
-      style={{ width: 32, height: 32, borderRadius: "var(--radius-md)", border: `1px solid ${borderColor}`, background: bg, color, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "opacity 150ms" }}>
-      {children}
-    </button>
-  );
-}
 
 // ── card / header styles ─────────────────────────────────────────────────────
 const cardStyle: React.CSSProperties = {
@@ -68,11 +48,10 @@ export function ArchivedClientTable({ clients, loading, search, page, pages, onV
         </div>
       ) : clients.length === 0 ? (
         /* empty state */
-        <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-            {search ? `لا توجد نتائج لـ "${search}"` : "لا يوجد عملاء في الأرشيف."}
-          </p>
-        </div>
+        <EmptyState
+          icon="👥"
+          title={search ? `لا توجد نتائج لـ "${search}"` : "لا يوجد عملاء في الأرشيف."}
+        />
       ) : (
         /* data rows */
         <ul dir="rtl" style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -89,7 +68,7 @@ export function ArchivedClientTable({ clients, loading, search, page, pages, onV
                 <p style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-text-muted)" }}>{c.phone}</p>
               </div>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#2563EB", fontWeight: 600 }}>{c.email}</span>
-              <StatusBadge active={c.isActive} />
+              <Badge label={c.isActive ? "نشط" : "معطل"} color={c.isActive ? "green" : "red"} />
               <span style={{ textAlign: "center", fontSize: 11, color: "var(--color-text-muted)" }}>
                 {new Date(c.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" })}
               </span>
@@ -121,10 +100,9 @@ export function ArchivedClientTable({ clients, loading, search, page, pages, onV
               { label: "السابق", action: () => onPageChange(Math.max(1, page - 1)),     disabled: page === 1     },
               { label: "التالي", action: () => onPageChange(Math.min(pages, page + 1)), disabled: page === pages },
             ].map(btn => (
-              <button key={btn.label} type="button" onClick={btn.action} disabled={btn.disabled}
-                style={{ borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border)", background: "var(--color-surface-muted)", padding: "0.375rem 0.875rem", fontSize: 12, color: "var(--color-text-secondary)", cursor: btn.disabled ? "not-allowed" : "pointer", opacity: btn.disabled ? 0.4 : 1, fontFamily: "var(--font-sans)" }}>
+              <Button key={btn.label} type="button" variant="secondary" size="sm" onClick={btn.action} disabled={btn.disabled}>
                 {btn.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>

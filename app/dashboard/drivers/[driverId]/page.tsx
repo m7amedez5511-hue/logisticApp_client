@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ConfirmDialog, Spinner } from "@/src/Components/UI";
+import { ConfirmDialog, Spinner, Button, Toast } from "@/src/Components/UI";
 import { DriverFormModal , PhotoCard } from "@/src/Components/Driver";
 import { DriverReportPanel } from "@/src/Components/Driver_Report/driverReport";
 import type { Driver, CreateDriverPayload, UpdateDriverPayload } from "@/src/types/driver";
@@ -164,14 +164,9 @@ export default function DriverDetailPage() {
     return (
       <div style={{ maxWidth: 480, margin: "4rem auto", borderRadius: "var(--radius-xl)", border: "1px solid #FECACA", background: "#FEF2F2", padding: "1.5rem", textAlign: "center" }}>
         <p style={{ fontSize: 14, color: "#DC2626", fontWeight: 600 }}>⚠ {error ?? "السائق غير موجود"}</p>
-        <button type="button" onClick={() => router.back()} style={{
-          marginTop: "1rem", height: 38, padding: "0 1.25rem",
-          borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)",
-          background: "var(--color-surface)", fontSize: 13, fontWeight: 600,
-          color: "var(--color-text-secondary)", cursor: "pointer", fontFamily: "var(--font-sans)",
-        }}>
+        <Button variant="secondary" size="sm" onClick={() => router.back()} className="mt-4">
           ← رجوع
-        </button>
+        </Button>
       </div>
     );
   }
@@ -180,35 +175,18 @@ export default function DriverDetailPage() {
     <>
       <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
-        {toast && (
-          <div style={{
-            borderRadius: "var(--radius-lg)",
-            border: `1px solid ${toast.type === "success" ? "#BBF7D0" : "#FECACA"}`,
-            background: toast.type === "success" ? "#DCFCE7" : "#FEF2F2",
-            padding: "0.75rem 1.25rem",
-            fontSize: 13,
-            fontWeight: 600,
-            color: toast.type === "success" ? "#166534" : "#DC2626",
-          }}>
-            {toast.type === "success" ? "✓ " : "⚠ "}{toast.message}
-          </div>
-        )}
+        <Toast notification={toast} onDismiss={() => setToast(null)} />
 
         <header style={{
           borderRadius: "var(--radius-xl)", border: "1px solid var(--color-border)",
           background: "var(--color-surface)", padding: "1.5rem 2rem", boxShadow: "var(--shadow-card)",
         }}>
-          <button type="button" onClick={() => router.back()} style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)",
-            background: "none", border: "none", cursor: "pointer", padding: 0,
-            marginBottom: "1rem", fontFamily: "var(--font-sans)",
-          }}>
+          <Button variant="ghost" size="sm" onClick={() => router.back()} className="mb-4 !px-0">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M19 12H5M12 5l-7 7 7 7" />
             </svg>
             العودة إلى قائمة السائقين
-          </button>
+          </Button>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -249,25 +227,16 @@ export default function DriverDetailPage() {
             </div>
 
             <div style={{ display: "flex", gap: "0.75rem" }}>
-              <button type="button" onClick={() => setDeleteOpen(true)} style={{
-                height: 40, padding: "0 1.25rem", borderRadius: "var(--radius-lg)",
-                border: "1px solid #FECACA", background: "#FEF2F2",
-                fontSize: 13, fontWeight: 700, color: "#DC2626", cursor: "pointer", fontFamily: "var(--font-sans)",
-              }}>
+              <Button variant="danger" onClick={() => setDeleteOpen(true)}>
                 حذف السائق
-              </button>
-              <button type="button" onClick={() => setEditOpen(true)} style={{
-                height: 40, padding: "0 1.25rem", borderRadius: "var(--radius-lg)",
-                border: "none", background: "var(--color-brand-600)",
-                fontSize: 13, fontWeight: 700, color: "#FFF", cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-sans)",
-              }}>
+              </Button>
+              <Button variant="primary" onClick={() => setEditOpen(true)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
                 تعديل السائق
-              </button>
+              </Button>
             </div>
           </div>
         </header>

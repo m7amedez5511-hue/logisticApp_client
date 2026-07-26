@@ -11,9 +11,6 @@ export function Topbar() {
   const router = useRouter();
   const { setOpen } = useSidebarDrawer();
 
-  // كان بيتقرأ بشكل sync عن طريق getStoredUser() جوه الرندر — استبدلناه بالـ hook
-  // عشان يبقى SSR-safe ومايعملش hydration mismatch، وكمان يعمل subscribe
-  // لأي تغيير في الـ storage (تسجيل دخول/خروج من تاب تاني).
   const { user, loading } = useStoredUser();
 
   async function handleLogout() {

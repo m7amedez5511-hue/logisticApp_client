@@ -1,9 +1,18 @@
 "use client";
 
+// app/dashboard/trips/[tripId]/page.tsx
+// CHANGE: TripFormModal now imported from the barrel (@/src/Components/Trip)
+// instead of a direct path — avoids the Tripformmodal.tsx case-sensitivity
+// mismatch that breaks on case-sensitive filesystems (Linux/Docker builds).
+// CHANGE: loadTrip's catch block now uses the same extractApiMessage helper
+// already defined in this file (and used by handleEditSubmit/handleConfirmDelete)
+// instead of `err instanceof Error ? err.message : ...` — so backend
+// validation messages surface correctly here too, not just on edit/delete.
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ConfirmDialog, Spinner } from "@/src/Components/UI";
-import { TripFormModal } from "@/src/Components/Trip/Tripformmodal";
+import { Button, ConfirmDialog, Spinner } from "@/src/Components/UI";
+import { TripFormModal } from "@/src/Components/Trip";
 import { TripReportPanel } from "@/src/Components/Trip_Report/Tripreportpanel";
 import { tripService } from "@/src/services/trip.service";
 import { getStoredToken } from "@/src/lib/auth";
@@ -205,42 +214,42 @@ export default function TripDetailPage() {
 
   // ── Load trip ─────────────────────────────────────────────────────────────
   const loadTrip = useCallback(async () => {
-  if (!tripId) return;
-  setLoading(true);
-  setError(null);
-  try {
-    const token = getStoredToken();
-    const data = await tripService.getById(tripId, token);
-    setTrip(data);
-  } catch (err: unknown) {
-    setError(err instanceof Error ? err.message : "تعذّر تحميل بيانات الرحلة.");
-  } finally {
-    setLoading(false);
-  }
-}, [tripId]);
+    if (!tripId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const token = getStoredToken();
+      const data = await tripService.getById(tripId, token);
+      setTrip(data);
+    } catch (err: unknown) {
+      setError(extractApiMessage(err, "تعذّر تحميل بيانات الرحلة."));
+    } finally {
+      setLoading(false);
+    }
+  }, [tripId]);
   useEffect(() => {
     queueMicrotask(loadTrip);
   }, [loadTrip]);
 
   // ── Edit submit ───────────────────────────────────────────────────────────
   const handleEditSubmit = useCallback(
-  async (
-    payload: CreateTripPayload | UpdateTripPayload,
-  ): Promise<boolean> => {
-    if (!trip) return false;
-    try {
-      const token = getStoredToken();
-      const updated = await tripService.update(trip.id, payload as UpdateTripPayload, token);
-      setTrip(updated);
-      notify({ type: "success", message: "تم تحديث بيانات الرحلة بنجاح." });
-      return true;
-    } catch (err) {
-      notify({ type: "error", message: extractApiMessage(err, "تعذّر تحديث الرحلة.") });
-      return false;
-    }
-  },
-  [trip, notify],
-);
+    async (
+      payload: CreateTripPayload | UpdateTripPayload,
+    ): Promise<boolean> => {
+      if (!trip) return false;
+      try {
+        const token = getStoredToken();
+        const updated = await tripService.update(trip.id, payload as UpdateTripPayload, token);
+        setTrip(updated);
+        notify({ type: "success", message: "تم تحديث بيانات الرحلة بنجاح." });
+        return true;
+      } catch (err) {
+        notify({ type: "error", message: extractApiMessage(err, "تعذّر تحديث الرحلة.") });
+        return false;
+      }
+    },
+    [trip, notify],
+  );
 
   // ── Delete confirm ────────────────────────────────────────────────────────
   const handleConfirmDelete = useCallback(async () => {
@@ -295,25 +304,9 @@ export default function TripDetailPage() {
         <p style={{ fontSize: 14, color: "#DC2626", fontWeight: 600 }}>
           ⚠ {error ?? "الرحلة غير موجودة"}
         </p>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          style={{
-            marginTop: "1rem",
-            height: 38,
-            padding: "0 1.25rem",
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--color-border)",
-            background: "var(--color-surface)",
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--color-text-secondary)",
-            cursor: "pointer",
-            fontFamily: "var(--font-sans)",
-          }}
-        >
+        <Button variant="secondary" size="sm" onClick={() => router.back()} style={{ marginTop: "1rem" }}>
           ← رجوع
-        </button>
+        </Button>
       </div>
     );
   }
@@ -337,29 +330,17 @@ export default function TripDetailPage() {
           }}
         >
           {/* Back link */}
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => router.back()}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 12,
-              fontWeight: 600,
-              color: "var(--color-text-muted)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
-              marginBottom: "1rem",
-              fontFamily: "var(--font-sans)",
-            }}
+            style={{ height: "auto", padding: 0, background: "none", marginBottom: "1rem" }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M19 12H5M12 5l-7 7 7 7" />
             </svg>
             العودة إلى قائمة الرحلات
-          </button>
+          </Button>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
             {/* Icon + title */}

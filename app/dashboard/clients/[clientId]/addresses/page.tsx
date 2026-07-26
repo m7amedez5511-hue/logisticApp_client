@@ -3,7 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import { Alert, ConfirmDialog, Toast, ArchiveButton } from "@/src/Components/UI";
+import {
+  Alert,
+  ConfirmDialog,
+  Toast,
+  ArchiveButton,
+  Button,
+  EmptyState,
+  PageLoader,
+  InlineLoader,
+} from "@/src/Components/UI";
 
 import { useClientAddresses } from "@/src/hooks/useClientAddresses";
 import { clientService }      from "@/src/services/client.service";
@@ -13,6 +22,7 @@ import type { Client, ClientFormData } from "@/src/types/client";
 import type { ClientAddress }          from "@/src/types/client_adresses";
 
 import { AddressFormModal, ClientFormModal } from "@/src/Components/Client";
+import { AddressDetailModal } from "@/src/Components/Client_Adress/AddressDetailModal";
 import { ArchivedClientsAddressesModal } from "@/src/Components/Client_Adress/archive/ArchivedClientsAddressesModal";
 import type {
   CreateAddressFormValues,
@@ -38,16 +48,21 @@ function labelIcon(label: string): string {
 }
 
 // ─── AddressCard ───────────────────────────────────────────────────────────
+// CHANGE: clicking the card now opens AddressDetailModal — same pattern as
+// UserTable → UserDetailModal (viewUserId). Action buttons stop propagation
+// so they don't trigger the modal. `ActionBtn` (custom component) removed in
+// favor of the shared <Button size="sm" /> from the template.
 
 interface AddressCardProps {
   address:        ClientAddress;
+  onView:         () => void;
   onEdit:         () => void;
   onDelete:       () => void;
   onSetPrimary:   () => void;
   settingPrimary: boolean; // true only while THIS card's request is in flight
 }
 
-function AddressCard({ address, onEdit, onDelete, onSetPrimary, settingPrimary }: AddressCardProps) {
+function AddressCard({ address, onView, onEdit, onDelete, onSetPrimary, settingPrimary }: AddressCardProps) {
   const { details, contactPerson } = address;
   const {
     street,
@@ -63,6 +78,10 @@ function AddressCard({ address, onEdit, onDelete, onSetPrimary, settingPrimary }
 
   return (
     <div
+      onClick={onView}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onView(); }}
       style={{
         position: "relative",
         display: "flex",
@@ -73,6 +92,7 @@ function AddressCard({ address, onEdit, onDelete, onSetPrimary, settingPrimary }
         padding: "1.25rem",
         background: "var(--color-surface)",
         boxShadow: "var(--shadow-card)",
+        cursor: "pointer",
       }}
     >
       {/* Label row */}
@@ -183,8 +203,9 @@ function AddressCard({ address, onEdit, onDelete, onSetPrimary, settingPrimary }
         </div>
       )}
 
-      {/* Actions */}
+      {/* Actions — stopPropagation so clicking them doesn't open the detail modal */}
       <div
+        onClick={(e) => e.stopPropagation()}
         style={{
           display: "flex",
           flexWrap: "wrap",
@@ -194,124 +215,31 @@ function AddressCard({ address, onEdit, onDelete, onSetPrimary, settingPrimary }
           borderTop: "1px solid var(--color-border)",
         }}
       >
-        <ActionBtn onClick={onEdit} color="#1D4ED8" bg="#EFF6FF" border="#BFDBFE">
+        <Button type="button" variant="secondary" size="sm" onClick={onEdit}>
           تعديل
-        </ActionBtn>
+        </Button>
 
         {!address.isPrimary && (
-          <ActionBtn
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
             onClick={onSetPrimary}
-            disabled={settingPrimary}
-            color="#B45309"
-            bg="#FFFBEB"
-            border="#FDE68A"
+            loading={settingPrimary}
           >
-            {settingPrimary ? "جارٍ التعيين…" : "تعيين كأساسي"}
-          </ActionBtn>
+            تعيين كأساسي
+          </Button>
         )}
 
-        <ActionBtn
+        <Button
+          type="button"
+          variant="danger"
+          size="sm"
           onClick={onDelete}
-          color="#DC2626"
-          bg="#FEF2F2"
-          border="#FECACA"
-          style={{ marginRight: "auto" }}
+          style={{ marginInlineStart: "auto" }}
         >
           حذف
-        </ActionBtn>
-      </div>
-    </div>
-  );
-}
-
-function ActionBtn({
-  onClick,
-  color,
-  bg,
-  border,
-  style,
-  disabled,
-  children,
-}: {
-  onClick:   () => void;
-  color:     string;
-  bg:        string;
-  border:    string;
-  style?:    React.CSSProperties;
-  disabled?: boolean;
-  children:  React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        height: 30,
-        padding: "0 0.75rem",
-        borderRadius: "var(--radius-md)",
-        border: `1px solid ${border}`,
-        background: bg,
-        fontSize: 12,
-        fontWeight: 600,
-        color,
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.6 : 1,
-        fontFamily: "var(--font-sans)",
-        transition: "opacity 150ms",
-        ...style,
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-// ─── ClientEditModal ───────────────────────────────────────────────────────
-
-interface ClientEditModalProps {
-  client:   Client;
-  onClose:  () => void;
-  onSubmit: (data: ClientFormData, isNew: boolean) => Promise<boolean>;
-}
-
-function ClientEditModal({ client, onClose, onSubmit }: ClientEditModalProps) {
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="تعديل بيانات العميل"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 50,
-        background: "rgba(15,23,42,0.55)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        padding: "2rem 1rem",
-        overflowY: "auto",
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 520,
-          background: "var(--color-surface)",
-          borderRadius: "var(--radius-2xl)",
-          border: "1px solid var(--color-border)",
-          boxShadow: "0 24px 64px rgba(0,0,0,.18)",
-          overflow: "hidden",
-        }}
-      >
-        <ClientFormModal
-          editClient={client}
-          onClose={onClose}
-          onSubmit={onSubmit}
-        />
+        </Button>
       </div>
     </div>
   );
@@ -341,7 +269,7 @@ export default function ClientAddressesPage() {
       setClientLoading(true);
       clientService
         .getById(clientId, getStoredToken())
-        .then((res) => setClient(res.data))
+        .then((res) => setClient(res))
         .catch(() => router.replace("/dashboard/clients"))
         .finally(() => setClientLoading(false));
     });
@@ -372,6 +300,8 @@ export default function ClientAddressesPage() {
   const [editingClient,  setEditingClient]  = useState(false);
   // Archive browser modal open/closed — scoped to this client's addresses
   const [archiveOpen,    setArchiveOpen]    = useState(false);
+  // Address whose detail modal is open — same pattern as viewUserId/UserDetailModal
+  const [viewAddress,    setViewAddress]    = useState<ClientAddress | null>(null);
 
   // ── Address form handler ─────────────────────────────────────────────────
   const handleAddressSubmit = async (
@@ -403,7 +333,7 @@ export default function ClientAddressesPage() {
     if (!client) return false;
     try {
       const res = await clientService.update(client.id, data, getStoredToken());
-      setClient(res.data);
+      setClient(res);
       return true;
     } catch {
       return false;
@@ -411,27 +341,23 @@ export default function ClientAddressesPage() {
   };
 
   // ── Loading guard ────────────────────────────────────────────────────────
+  // CHANGE: swapped the hand-rolled spinning <div> for the template's PageLoader.
   if (!clientId || clientLoading) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: "50%",
-            border: "3px solid var(--color-border)",
-            borderTopColor: "var(--color-brand-600)",
-            animation: "spin 0.7s linear infinite",
-          }}
-        />
-      </div>
-    );
+    return <PageLoader message="جارٍ تحميل بيانات العميل…" />;
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       <Toast notification={notification} />
+
+      {/* Address detail modal — same pattern as viewUserId → UserDetailModal */}
+      {viewAddress && (
+        <AddressDetailModal
+          address={viewAddress}
+          onClose={() => setViewAddress(null)}
+        />
+      )}
 
       {/* Address create / edit modal */}
       {addrFormTarget !== false && (
@@ -448,14 +374,20 @@ export default function ClientAddressesPage() {
         loading={deleting}
         onCancel={() => { if (!deleting) setDeleteTarget(null); }}
         onConfirm={handleDeleteConfirm}
-        title="حذف العميل"
-        description={`هل أنت متأكد من حذف ${deleteTarget?.label ?? ""}؟ سيتم حذف جميع عناوينه أيضاً. لا يمكن التراجع عن هذا الإجراء.`}
+        title="حذف العنوان"
+        description={`هل أنت متأكد من حذف ${deleteTarget?.label ?? ""}؟ لا يمكن التراجع عن هذا الإجراء.`}
       />
 
-      {/* Client edit modal */}
+      {/*
+        Client edit modal
+        CHANGE: removed the custom `ClientEditModal` wrapper that built its
+        own fixed-position backdrop by hand. `ClientFormModal` already
+        renders the shared <Modal/> internally, so wrapping it in another
+        backdrop produced two stacked overlays. We now render it directly.
+      */}
       {editingClient && client && (
-        <ClientEditModal
-          client={client}
+        <ClientFormModal
+          editClient={client}
           onClose={() => setEditingClient(false)}
           onSubmit={handleClientEditSubmit}
         />
@@ -481,28 +413,19 @@ export default function ClientAddressesPage() {
             boxShadow: "var(--shadow-card)",
           }}
         >
-          <button
+          {/* CHANGE: custom <button> → Button variant="ghost" */}
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => router.push("/dashboard/clients")}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 12,
-              fontWeight: 600,
-              color: "var(--color-text-muted)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              marginBottom: 12,
-              fontFamily: "var(--font-sans)",
-            }}
+            style={{ marginBottom: 12 }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M15 18l-6-6 6-6" />
             </svg>
             جميع العملاء
-          </button>
+          </Button>
 
           <p style={{ fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", color: "#2563EB", fontWeight: 600 }}>
             إدارة العناوين
@@ -521,61 +444,25 @@ export default function ClientAddressesPage() {
             </div>
 
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              {/* CHANGE: custom <button> → Button variant="secondary" */}
               {client && (
-                <button
-                  type="button"
-                  onClick={() => setEditingClient(true)}
-                  style={{
-                    height: 40,
-                    padding: "0 1rem",
-                    borderRadius: "var(--radius-lg)",
-                    border: "1px solid var(--color-border)",
-                    background: "var(--color-surface)",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "var(--color-text-secondary)",
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 7,
-                    fontFamily: "var(--font-sans)",
-                  }}
-                >
+                <Button type="button" variant="secondary" onClick={() => setEditingClient(true)}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
                   تعديل بيانات العميل
-                </button>
+                </Button>
               )}
 
-              <button
-                type="button"
-                onClick={() => setAddrFormTarget(null)}
-                style={{
-                  height: 40,
-                  padding: "0 1.125rem",
-                  borderRadius: "var(--radius-lg)",
-                  border: "none",
-                  background: "var(--color-brand-600)",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: "#FFF",
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 7,
-                  fontFamily: "var(--font-sans)",
-                  boxShadow: "0 1px 4px rgba(37,99,235,.35)",
-                  whiteSpace: "nowrap",
-                }}
-              >
+              {/* CHANGE: custom <button> → Button variant="primary" */}
+              <Button type="button" variant="primary" onClick={() => setAddrFormTarget(null)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
                 إضافة عنوان
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -620,46 +507,20 @@ export default function ClientAddressesPage() {
 
         {/* ── Address grid ── */}
         {addrLoading ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "4rem 0", color: "var(--color-text-muted)", gap: 12, fontSize: 13 }}>
-            <div
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: "50%",
-                border: "2px solid var(--color-border)",
-                borderTopColor: "var(--color-brand-600)",
-                animation: "spin 0.7s linear infinite",
-                flexShrink: 0,
-              }}
-            />
-            جارٍ تحميل العناوين…
-          </div>
+          // CHANGE: hand-rolled spinning <div> → InlineLoader
+          <InlineLoader message="جارٍ تحميل العناوين…" />
         ) : addresses.length === 0 ? (
-          <div
-            style={{
-              borderRadius: "var(--radius-xl)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              padding: "4rem 1rem",
-              textAlign: "center",
-              boxShadow: "var(--shadow-card)",
-            }}
-          >
-            <p style={{ fontSize: 32, margin: 0 }}>📍</p>
-            <p style={{ marginTop: 12, fontSize: 15, fontWeight: 700, color: "var(--color-text-primary)" }}>
-              لا توجد عناوين بعد
-            </p>
-            <p style={{ marginTop: 4, fontSize: 13, color: "var(--color-text-muted)" }}>
-              أضف عنواناً واحداً على الأقل حتى يتمكن العميل من استقبال الشحنات والفواتير.
-            </p>
-            <button
-              type="button"
-              onClick={() => setAddrFormTarget(null)}
-              style={{ marginTop: 16, fontSize: 13, fontWeight: 600, color: "var(--color-brand-600)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
-            >
-              أضف أول عنوان
-            </button>
-          </div>
+          // CHANGE: custom empty-state <div> → EmptyState
+          <EmptyState
+            icon="📍"
+            title="لا توجد عناوين بعد"
+            description="أضف عنواناً واحداً على الأقل حتى يتمكن العميل من استقبال الشحنات والفواتير."
+            action={
+              <Button type="button" variant="primary" onClick={() => setAddrFormTarget(null)}>
+                أضف أول عنوان
+              </Button>
+            }
+          />
         ) : (
           <div
             style={{
@@ -672,6 +533,7 @@ export default function ClientAddressesPage() {
               <AddressCard
                 key={addr.id}
                 address={addr}
+                onView={() => setViewAddress(addr)}
                 onEdit={() => setAddrFormTarget(addr)}
                 onDelete={() => setDeleteTarget(addr)}
                 onSetPrimary={() => handleSetPrimary(addr)}

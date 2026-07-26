@@ -1,27 +1,7 @@
 "use client";
 
-import { Spinner } from "../../UI";
+import { Badge, EmptyState, IconBtn, Spinner } from "../../UI";
 import type { ArchivedClientAddress } from "@/src/types/client_adresses";
-
-// ── validation badge ─────────────────────────────────────────────────────────
-function ValidatedBadge({ validated }: { validated: boolean }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, borderRadius: "var(--radius-full)", border: validated ? "1px solid #BBF7D0" : "1px solid var(--color-border)", background: validated ? "#DCFCE7" : "var(--color-surface-muted)", padding: "0.2rem 0.625rem", fontSize: 11, fontWeight: 600, color: validated ? "#166534" : "var(--color-text-muted)" }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: validated ? "#16A34A" : "var(--color-text-hint)" }} />
-      {validated ? "موثّق" : "غير موثّق"}
-    </span>
-  );
-}
-
-// ── icon button ──────────────────────────────────────────────────────────────
-function IconBtn({ onClick, title, color, bg, borderColor, children }: { onClick: () => void; title: string; color: string; bg: string; borderColor: string; children: React.ReactNode }) {
-  return (
-    <button type="button" title={title} aria-label={title} onClick={e => { e.stopPropagation(); onClick(); }}
-      style={{ width: 32, height: 32, borderRadius: "var(--radius-md)", border: `1px solid ${borderColor}`, background: bg, color, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "opacity 150ms" }}>
-      {children}
-    </button>
-  );
-}
 
 // ── card / header styles ─────────────────────────────────────────────────────
 const cardStyle: React.CSSProperties = {
@@ -65,11 +45,10 @@ export function ArchivedClientAddressesTable({ addresses, loading, search, onVie
         </div>
       ) : addresses.length === 0 ? (
         /* empty state */
-        <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-            {search ? `لا توجد نتائج لـ "${search}"` : "لا توجد عناوين في الأرشيف."}
-          </p>
-        </div>
+        <EmptyState
+          icon="📍"
+          title={search ? `لا توجد نتائج لـ "${search}"` : "لا توجد عناوين في الأرشيف."}
+        />
       ) : (
         /* data rows */
         <ul dir="rtl" style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -93,7 +72,10 @@ export function ArchivedClientAddressesTable({ addresses, loading, search, onVie
               <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
                 {a.contactPerson?.name ?? "—"}
               </span>
-              <ValidatedBadge validated={!!a.isValidated} />
+              <Badge
+                label={a.isValidated ? "موثّق" : "غير موثّق"}
+                color={a.isValidated ? "green" : "slate"}
+              />
               <span style={{ textAlign: "center", fontSize: 11, color: "var(--color-text-muted)" }}>
                 {new Date(a.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" })}
               </span>

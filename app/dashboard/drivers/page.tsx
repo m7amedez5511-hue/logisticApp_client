@@ -248,6 +248,14 @@ export default function DriversPage() {
             </p>
           ) : (
             <ul dir="rtl" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              {/* PERF NOTE: Rows are rendered inline via .map() below. At the
+                  current pagination size (10-12 items) this is not a
+                  bottleneck. If page size increases (e.g. "show all" mode,
+                  a larger page-size selector, or removal of server-side
+                  pagination), extract a <DriverRow> component into
+                  src/Components/Driver/ and wrap it in React.memo, passing
+                  only primitives and useCallback-stabilized handlers so
+                  memoization is actually effective. */}
               {drivers.map((d, i) => {
                 const statusCfg = DRIVER_STATUS_MAP[d.status] ?? DRIVER_STATUS_MAP.Inactive;
                 const licWarn   = expirySoon(d.licenseExpiry);
@@ -257,19 +265,19 @@ export default function DriversPage() {
                   <li
                     key={d.id}
                     onClick={() => setSelectedDriverId(d.id)}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: ROW_GRID_COLUMNS,
-                      alignItems: "center", gap: "0.5rem",
-                      padding: "0.875rem 1.5rem",
-                      borderBottom: "1px solid var(--color-border)",
-                      background: i % 2 !== 0 ? "var(--color-surface-muted)" : "transparent",
-                      fontSize: 13,
-                      cursor: "pointer",
-                      transition: "background 0.15s",
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedDriverId(d.id);
+                      }
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-hover, #F8FAFC)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 !== 0 ? "var(--color-surface-muted)" : "transparent")}
+                    aria-label={`عرض تفاصيل ${d.name}`}
+                    className={`grid items-center gap-2 px-6 py-3.5 text-[13px] border-b border-[var(--color-border)] cursor-pointer outline-none transition-colors duration-150 hover:bg-[var(--color-surface-hover,#F8FAFC)] focus-visible:bg-[var(--color-surface-hover,#F8FAFC)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-brand-600)] ${
+                      i % 2 !== 0 ? "bg-[var(--color-surface-muted)]" : "bg-transparent"
+                    }`}
+                    style={{ gridTemplateColumns: ROW_GRID_COLUMNS }}
                   >
                     <div>
                       <p style={{ fontWeight: 600, color: "var(--color-text-primary)", margin: 0 }}>{d.name}</p>
@@ -298,9 +306,9 @@ export default function DriversPage() {
 
                     {/* ── Inline row actions: edit / delete ──
                          stopPropagation is required on both buttons so the
-                         click doesn't bubble up to the <li> onClick and
-                         open the detail panel as well. */}
-                    <div style={{ display: "flex", gap: "0.4rem" }}>
+                         click doesn't bubble up to the row and open the
+                         detail panel as well. */}
+                    <div style={{ display: "flex", gap: "0.4rem" }} onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
                         aria-label="تعديل السائق"

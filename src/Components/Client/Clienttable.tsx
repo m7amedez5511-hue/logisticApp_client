@@ -2,7 +2,7 @@
 
 
 import { useState } from "react";
-import { Spinner } from "../UI";
+import { Button, EmptyState, IconBtn, Spinner } from "../UI";
 import type { Client } from "@/src/types/client";
 
 // ── Address count badge ────────────────────────────────────────────────────
@@ -34,47 +34,6 @@ function AddressBadge({ count, onClick }: { count: number; onClick: () => void }
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
         <path d="M9 18l6-6-6-6" />
       </svg>
-    </button>
-  );
-}
-
-// ── Icon button ────────────────────────────────────────────────────────────
-function IconBtn({
-  onClick,
-  title,
-  color,
-  bg,
-  borderColor,
-  children,
-}: {
-  onClick: () => void;
-  title: string;
-  color: string;
-  bg: string;
-  borderColor: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      aria-label={title}
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      style={{
-        width: 32,
-        height: 32,
-        borderRadius: "var(--radius-md)",
-        border: `1px solid ${borderColor}`,
-        background: bg,
-        color,
-        cursor: "pointer",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        transition: "opacity 150ms",
-      }}
-    >
-      {children}
     </button>
   );
 }
@@ -182,55 +141,28 @@ function ClientDetailPanel({
         {/* Action buttons */}
         <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
           {/* Edit client */}
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            style={{
-              height: 32,
-              padding: "0 0.875rem",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid #BFDBFE",
-              background: "#EFF6FF",
-              fontSize: 12,
-              fontWeight: 600,
-              color: "#1D4ED8",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontFamily: "var(--font-sans)",
-            }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
             تعديل البيانات
-          </button>
+          </Button>
 
           {/*
            * "Addresses" button — KEY FEATURE:
            * Navigates to /dashboard/clients/[clientId]/addresses
            */}
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={(e) => { e.stopPropagation(); onGoAddresses(); }}
-            style={{
-              height: 32,
-              padding: "0 0.875rem",
-              borderRadius: "var(--radius-md)",
-              border: "none",
-              background: "var(--color-brand-600)",
-              fontSize: 12,
-              fontWeight: 700,
-              color: "#FFF",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontFamily: "var(--font-sans)",
-              boxShadow: "0 1px 4px rgba(37,99,235,.3)",
-            }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -251,7 +183,7 @@ function ClientDetailPanel({
                 {client.addresses.length}
               </span>
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -401,31 +333,17 @@ export function ClientTable({
         </div>
       ) : clients.length === 0 ? (
         /* Empty state */
-        <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-            {search
-              ? `لا توجد نتائج لـ "${search}"`
-              : "لا يوجد عملاء لعرضهم."}
-          </p>
-          {!search && (
-            <button
-              type="button"
-              onClick={onAddFirst}
-              style={{
-                marginTop: 12,
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--color-brand-600)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                textDecoration: "underline",
-              }}
-            >
-              أضف أول عميل
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon="👥"
+          title={search ? `لا توجد نتائج لـ "${search}"` : "لا يوجد عملاء لعرضهم."}
+          action={
+            !search && (
+              <Button type="button" variant="ghost" size="sm" onClick={onAddFirst}>
+                أضف أول عميل
+              </Button>
+            )
+          }
+        />
       ) : (
         /* Data rows */
         <ul dir="rtl" style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -659,25 +577,16 @@ export function ClientTable({
                 disabled: page === pages,
               },
             ].map((btn) => (
-              <button
+              <Button
                 key={btn.label}
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={btn.action}
                 disabled={btn.disabled}
-                style={{
-                  borderRadius: "var(--radius-lg)",
-                  border: "1px solid var(--color-border)",
-                  background: "var(--color-surface-muted)",
-                  padding: "0.375rem 0.875rem",
-                  fontSize: 12,
-                  color: "var(--color-text-secondary)",
-                  cursor: btn.disabled ? "not-allowed" : "pointer",
-                  opacity: btn.disabled ? 0.4 : 1,
-                  fontFamily: "var(--font-sans)",
-                }}
               >
                 {btn.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>

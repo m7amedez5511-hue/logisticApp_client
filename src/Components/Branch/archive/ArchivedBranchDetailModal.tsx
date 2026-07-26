@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Badge, Button, Modal } from "../../UI";
 import type { ArchivedBranch } from "@/src/types/branch";
 
 interface ArchivedBranchDetailModalProps {
@@ -26,23 +26,6 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-function StatusBadge({ active }: { active: boolean }) {
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 6,
-      borderRadius: "var(--radius-full)",
-      border: active ? "1px solid #BBF7D0" : "1px solid #FECACA",
-      background: active ? "#DCFCE7" : "#FEF2F2",
-      padding: "0.25rem 0.75rem",
-      fontSize: 12, fontWeight: 600,
-      color: active ? "#166534" : "#991B1B",
-    }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: active ? "#16A34A" : "#DC2626" }} />
-      {active ? "نشط" : "معطل"}
-    </span>
-  );
-}
-
 function BranchIcon() {
   return (
     <div style={{
@@ -65,13 +48,6 @@ function BranchIcon() {
 // modal does NOT fetch — it just renders the ArchivedBranch object that was
 // already loaded from GET /branches/archived (passed down from the table).
 export function ArchivedBranchDetailModal({ branch, onClose }: ArchivedBranchDetailModalProps) {
-  // close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
-
   // ── helpers ───────────────────────────────────────────────────────────────
   const fmt = (iso?: string | null) =>
     iso ? new Date(iso).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" }) : null;
@@ -81,126 +57,61 @@ export function ArchivedBranchDetailModal({ branch, onClose }: ArchivedBranchDet
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
-    <div
-      role="dialog" aria-modal="true" aria-labelledby="archived-branch-detail-title"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 55,
-        background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem",
-      }}
+    <Modal
+      open
+      onClose={onClose}
+      size="md"
+      subtitle="فرع مؤرشف"
+      title={branch.name}
+      zIndex={60}
+      footer={
+        <Button variant="secondary" onClick={onClose}>
+          إغلاق
+        </Button>
+      }
     >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: 480,
-          background: "var(--color-surface)",
-          borderRadius: "var(--radius-2xl)",
-          border: "1px solid var(--color-border)",
-          boxShadow: "0 24px 64px rgba(0,0,0,.18)",
-          overflow: "hidden",
-          display: "flex", flexDirection: "column",
-        }}
-      >
-        {/* ── header ── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 0 }} dir="rtl">
+
+        {/* icon + name + status row */}
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "1.25rem 1.5rem",
+          display: "flex", alignItems: "center", gap: "1rem",
+          padding: "0 0 1.25rem",
           borderBottom: "1px solid var(--color-border)",
-          background: "var(--color-surface-muted)",
+          marginBottom: "0.25rem",
         }}>
-          <div>
-            <p style={{ fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", color: "#EA580C", fontWeight: 600, margin: 0 }}>
-              فرع مؤرشف
+          <BranchIcon />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text-primary)", margin: 0 }}>{branch.name}</p>
+            <p style={{ marginTop: 3, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-text-muted)" }}>
+              #{branch.id}
             </p>
-            <h2 id="archived-branch-detail-title" style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text-primary)", margin: "4px 0 0" }}>
-              {branch.name}
-            </h2>
-          </div>
-          <button
-            type="button" onClick={onClose} aria-label="إغلاق"
-            style={{
-              width: 34, height: 34, borderRadius: "var(--radius-md)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              cursor: "pointer", fontSize: 18,
-              color: "var(--color-text-muted)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >
-            ×
-          </button>
-        </div>
-
-        {/* ── body ── */}
-        <div style={{ padding: "1.5rem", overflowY: "auto", maxHeight: "70vh" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }} dir="rtl">
-
-            {/* icon + name + status row */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: "1rem",
-              padding: "0 0 1.25rem",
-              borderBottom: "1px solid var(--color-border)",
-              marginBottom: "0.25rem",
-            }}>
-              <BranchIcon />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text-primary)", margin: 0 }}>{branch.name}</p>
-                <p style={{ marginTop: 3, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-text-muted)" }}>
-                  #{branch.id}
-                </p>
-                <div style={{ marginTop: 8 }}>
-                  <StatusBadge active={branch.isActive} />
-                </div>
-              </div>
+            <div style={{ marginTop: 8 }}>
+              <Badge label={branch.isActive ? "نشط" : "معطل"} color={branch.isActive ? "green" : "red"} />
             </div>
-
-            {/* detail rows — every field requested */}
-            <DetailRow label="رقم الهاتف"        value={branch.phone} />
-            <DetailRow label="البريد الإلكتروني"  value={branch.email} />
-            <DetailRow label="الدولة"             value={branch.country} />
-            <DetailRow label="المدينة"            value={branch.city} />
-            <DetailRow label="المنطقة"            value={branch.state} />
-            <DetailRow label="الحي"               value={branch.district} />
-            <DetailRow label="الشارع"             value={branch.street} />
-            <DetailRow label="العنوان الكامل"     value={fullAddress(branch)} />
-            <DetailRow label="رقم المبنى"         value={branch.buildingNo} />
-            <DetailRow label="رقم الوحدة"         value={branch.unitNo} />
-            <DetailRow label="الرمز البريدي"      value={branch.zipCode} />
-            <DetailRow
-              label="الموقع الجغرافي"
-              value={branch.latitude != null && branch.longitude != null
-                ? `${branch.latitude}, ${branch.longitude}`
-                : null}
-            />
-            <DetailRow label="تاريخ الإنشاء"      value={fmt(branch.createdAt)} />
-            <DetailRow label="آخر تحديث"          value={fmt(branch.updatedAt)} />
           </div>
         </div>
 
-        {/* ── footer ── */}
-        <div style={{
-          padding: "1rem 1.5rem",
-          borderTop: "1px solid var(--color-border)",
-          background: "var(--color-surface-muted)",
-          display: "flex", justifyContent: "flex-end",
-        }}>
-          <button
-            type="button" onClick={onClose}
-            style={{
-              height: 40, padding: "0 1.5rem",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              fontSize: 13, fontWeight: 600,
-              color: "var(--color-text-secondary)",
-              cursor: "pointer", fontFamily: "var(--font-sans)",
-            }}
-          >
-            إغلاق
-          </button>
-        </div>
+        {/* detail rows — every field requested */}
+        <DetailRow label="رقم الهاتف"        value={branch.phone} />
+        <DetailRow label="البريد الإلكتروني"  value={branch.email} />
+        <DetailRow label="الدولة"             value={branch.country} />
+        <DetailRow label="المدينة"            value={branch.city} />
+        <DetailRow label="المنطقة"            value={branch.state} />
+        <DetailRow label="الحي"               value={branch.district} />
+        <DetailRow label="الشارع"             value={branch.street} />
+        <DetailRow label="العنوان الكامل"     value={fullAddress(branch)} />
+        <DetailRow label="رقم المبنى"         value={branch.buildingNo} />
+        <DetailRow label="رقم الوحدة"         value={branch.unitNo} />
+        <DetailRow label="الرمز البريدي"      value={branch.zipCode} />
+        <DetailRow
+          label="الموقع الجغرافي"
+          value={branch.latitude != null && branch.longitude != null
+            ? `${branch.latitude}, ${branch.longitude}`
+            : null}
+        />
+        <DetailRow label="تاريخ الإنشاء"      value={fmt(branch.createdAt)} />
+        <DetailRow label="آخر تحديث"          value={fmt(branch.updatedAt)} />
       </div>
-    </div>
+    </Modal>
   );
 }

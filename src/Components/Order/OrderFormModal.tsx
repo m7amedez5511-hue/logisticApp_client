@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Alert, Spinner } from "../UI";
+import { useForm, type Resolver } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { Alert, Button, Input, Modal, Select } from "../UI";
 import { getStoredToken } from "@/src/lib/auth";
 import { clientService } from "@/src/services/client.service";
 import { tripService } from "@/src/services/trip.service";
@@ -10,7 +12,6 @@ import {
   createOrderSchema,
   updateOrderSchema,
 } from "@/src/validations/order.validation";
-import type { ValidationError } from "yup";
 import type {
   Order,
   CreateOrderPayload,
@@ -20,35 +21,6 @@ import type {
 } from "@/src/types/order";
 import type { Client } from "@/src/types/client";
 import type { Trip } from "@/src/types/trip";
-import type { OrderSchemaErrors } from "@/src/validations/order.validation";
-
-const inputBase: React.CSSProperties = {
-  width: "100%",
-  height: 40,
-  padding: "0 0.75rem",
-  borderRadius: "var(--radius-md)",
-  border: "1px solid var(--color-border)",
-  background: "var(--color-surface)",
-  fontSize: 13,
-  color: "var(--color-text-primary)",
-  outline: "none",
-  fontFamily: "var(--font-sans)",
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 6,
-  fontSize: 12,
-  fontWeight: 600,
-  color: "var(--color-text-secondary)",
-};
-
-const errorTextStyle: React.CSSProperties = {
-  fontSize: 11,
-  color: "var(--color-danger)",
-  fontWeight: 500,
-};
 
 const sectionHeadingStyle: React.CSSProperties = {
   fontSize: 11,
@@ -59,23 +31,58 @@ const sectionHeadingStyle: React.CSSProperties = {
   margin: "0.5rem 0 0",
 };
 
-const optionalLabelStyle: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 500,
-  color: "var(--color-text-hint)",
-  marginRight: 4,
-};
-
 const createLinkStyle: React.CSSProperties = {
   fontSize: 11,
   color: "var(--color-brand-600)",
   textDecoration: "none",
   fontWeight: 500,
-  marginTop: 2,
+  marginTop: 6,
   display: "inline-flex",
   alignItems: "center",
   gap: 3,
 };
+
+// ── Form values shape ────────────────────────────────────────────────────────
+// Nested address paths mirror the yup schema exactly (deliveryAddress.details.*,
+// deliveryAddress.location.coordinates.0/1, etc.) so register("a.b.c") dot-paths
+// validate against the matching nested schema node without any extra mapping.
+
+interface AddressFormValues {
+  details: {
+    city: string;
+    district: string;
+    street: string;
+    buildingNo: string;
+    unitNo: string;
+    zipCode: string;
+  };
+  location: {
+    coordinates: [number | undefined, number | undefined];
+  };
+}
+
+interface OrderFormValues {
+  shipmentNumber: string;
+  recipientName: string;
+  recipientPhone: string;
+  clientId: string;
+  tripId: string;
+  type: string;
+  quantity: number | undefined;
+  weight: number | undefined;
+  subTotal: number | undefined;
+  vatRate: number | undefined;
+  paymentMethod: PaymentMethod | "";
+  paymentStatus: PaymentStatus | "";
+  deliveryAddress: AddressFormValues;
+  pickupAddressId: string;
+  pickupAddress: AddressFormValues;
+}
+
+const emptyAddress = (): AddressFormValues => ({
+  details: { city: "", district: "", street: "", buildingNo: "", unitNo: "", zipCode: "" },
+  location: { coordinates: [undefined, undefined] },
+});
 
 interface OrderFormModalProps {
   editOrder: Order | null;
@@ -97,113 +104,95 @@ export function OrderFormModal({
   const [trips, setTrips] = useState<Trip[]>([]);
   const [relLoading, setRelLoading] = useState(true);
 
-  const [shipmentNumber, setShipmentNumber] = useState(
-    editOrder?.shipmentNumber ?? "",
-  );
-  const [recipientName, setRecipientName] = useState(
-    editOrder?.recipientName ?? "",
-  );
-  const [recipientPhone, setRecipientPhone] = useState(
-    editOrder?.recipientPhone ?? "",
-  );
-  const [clientId, setClientId] = useState(editOrder?.clientId ?? "");
-  const [tripId, setTripId] = useState(editOrder?.tripId ?? "");
-  const [type, setType] = useState(editOrder?.type ?? "");
-  const [quantity, setQuantity] = useState(String(editOrder?.quantity ?? 1));
-  const [weight, setWeight] = useState(
-    editOrder?.weight != null ? String(editOrder.weight) : "",
-  );
-  const [subTotal, setSubTotal] = useState(
-    editOrder?.subTotal != null ? String(editOrder.subTotal) : "",
-  );
-  const [vatRate, setVatRate] = useState(
-    editOrder?.vatRate != null ? String(editOrder.vatRate) : "",
-  );
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
-    editOrder?.paymentMethod ?? "",
-  );
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | "">(
-    editOrder?.paymentStatus ?? "",
-  );
-
-  const [delCity, setDelCity] = useState(
-    editOrder?.deliveryAddress?.details?.city ?? "",
-  );
-  const [delDistrict, setDelDistrict] = useState(
-    editOrder?.deliveryAddress?.details?.district ?? "",
-  );
-  const [delStreet, setDelStreet] = useState(
-    editOrder?.deliveryAddress?.details?.street ?? "",
-  );
-  const [delBuildingNo, setDelBuildingNo] = useState(
-    editOrder?.deliveryAddress?.details?.buildingNo ?? "",
-  );
-  const [delUnitNo, setDelUnitNo] = useState(
-    editOrder?.deliveryAddress?.details?.unitNo ?? "",
-  );
-  const [delZipCode, setDelZipCode] = useState(
-    editOrder?.deliveryAddress?.details?.zipCode ?? "",
-  );
-  const [delLng, setDelLng] = useState(
-    editOrder?.deliveryAddress?.location?.coordinates?.[0] != null
-      ? String(editOrder.deliveryAddress!.location!.coordinates![0])
-      : "",
-  );
-  const [delLat, setDelLat] = useState(
-    editOrder?.deliveryAddress?.location?.coordinates?.[1] != null
-      ? String(editOrder.deliveryAddress!.location!.coordinates![1])
-      : "",
-  );
-
   const [pickupMode, setPickupMode] = useState<"id" | "new">(
     editOrder?.pickupAddressId ? "id" : "new",
   );
-  const [pickupAddressId, setPickupAddressId] = useState(
-    editOrder?.pickupAddressId ?? "",
-  );
-  const [pkpCity, setPkpCity] = useState(
-    editOrder?.pickupAddress?.details?.city ?? "",
-  );
-  const [pkpDistrict, setPkpDistrict] = useState(
-    editOrder?.pickupAddress?.details?.district ?? "",
-  );
-  const [pkpStreet, setPkpStreet] = useState(
-    editOrder?.pickupAddress?.details?.street ?? "",
-  );
-  const [pkpBuildingNo, setPkpBuildingNo] = useState(
-    editOrder?.pickupAddress?.details?.buildingNo ?? "",
-  );
-  const [pkpUnitNo, setPkpUnitNo] = useState(
-    editOrder?.pickupAddress?.details?.unitNo ?? "",
-  );
-  const [pkpZipCode, setPkpZipCode] = useState(
-    editOrder?.pickupAddress?.details?.zipCode ?? "",
-  );
-  const [pkpLng, setPkpLng] = useState(
-    editOrder?.pickupAddress?.location?.coordinates?.[0] != null
-      ? String(editOrder.pickupAddress!.location!.coordinates![0])
-      : "",
-  );
-  const [pkpLat, setPkpLat] = useState(
-    editOrder?.pickupAddress?.location?.coordinates?.[1] != null
-      ? String(editOrder.pickupAddress!.location!.coordinates![1])
-      : "",
-  );
 
-  const [errors, setErrors] = useState<OrderSchemaErrors>({});
-  const [saving, setSaving] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    setError,
+    setFocus,
+    formState: { errors, isSubmitting },
+  } = useForm<OrderFormValues>({
+    // create/update schemas differ structurally in which fields are
+    // required (e.g. tripId), so yup can't unify them into one type on
+    // its own — the ternary alone won't typecheck as a single schema
+    // argument. We cast in two places for two separate reasons:
+    //   1. `(...) as any` on the schema — lets the ternary's two
+    //      differently-shaped ObjectSchemas pass as a single argument.
+    //   2. `as unknown as Resolver<OrderFormValues>` on the whole call —
+    //      stops TS from inferring the Resolver's generics from the
+    //      schema's own (slightly different) inferred shape, which is
+    //      what caused the earlier "quantity optional vs required"
+    //      mismatch.
+    resolver: yupResolver(
+      (isNew ? createOrderSchema : updateOrderSchema) as any,
+    ) as unknown as Resolver<OrderFormValues>,
+    defaultValues: {
+      shipmentNumber: editOrder?.shipmentNumber ?? "",
+      recipientName: editOrder?.recipientName ?? "",
+      recipientPhone: editOrder?.recipientPhone ?? "",
+      clientId: editOrder?.clientId ?? "",
+      tripId: editOrder?.tripId ?? "",
+      type: editOrder?.type ?? "",
+      quantity: editOrder?.quantity ?? 1,
+      weight: editOrder?.weight ?? undefined,
+      subTotal: editOrder?.subTotal ?? undefined,
+      vatRate: editOrder?.vatRate ?? undefined,
+      paymentMethod: editOrder?.paymentMethod ?? "",
+      paymentStatus: editOrder?.paymentStatus ?? "",
+      deliveryAddress: {
+        details: {
+          city: editOrder?.deliveryAddress?.details?.city ?? "",
+          district: editOrder?.deliveryAddress?.details?.district ?? "",
+          street: editOrder?.deliveryAddress?.details?.street ?? "",
+          buildingNo: editOrder?.deliveryAddress?.details?.buildingNo ?? "",
+          unitNo: editOrder?.deliveryAddress?.details?.unitNo ?? "",
+          zipCode: editOrder?.deliveryAddress?.details?.zipCode ?? "",
+        },
+        location: {
+          coordinates: [
+            editOrder?.deliveryAddress?.location?.coordinates?.[0],
+            editOrder?.deliveryAddress?.location?.coordinates?.[1],
+          ],
+        },
+      },
+      pickupAddressId: editOrder?.pickupAddressId ?? "",
+      pickupAddress: {
+        details: {
+          city: editOrder?.pickupAddress?.details?.city ?? "",
+          district: editOrder?.pickupAddress?.details?.district ?? "",
+          street: editOrder?.pickupAddress?.details?.street ?? "",
+          buildingNo: editOrder?.pickupAddress?.details?.buildingNo ?? "",
+          unitNo: editOrder?.pickupAddress?.details?.unitNo ?? "",
+          zipCode: editOrder?.pickupAddress?.details?.zipCode ?? "",
+        },
+        location: {
+          coordinates: [
+            editOrder?.pickupAddress?.location?.coordinates?.[0],
+            editOrder?.pickupAddress?.location?.coordinates?.[1],
+          ],
+        },
+      },
+    },
+  });
+
   const [apiError, setApiError] = useState("");
-  const firstRef = useRef<HTMLInputElement>(null);
+
+  // register("shipmentNumber") already attaches its own ref — focusing via
+  // setFocus avoids the ref collision a separate `ref={firstRef}` would cause.
+  useEffect(() => {
+    setFocus("shipmentNumber");
+  }, [setFocus]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const token = getStoredToken();
-
         const { items: clientList } = await clientService.getAll(1, "", token);
         const { items: tripList } = await tripService.getAll({ page: 1, limit: 100 }, token);
-
         if (!cancelled) {
           setClients(clientList);
           setTrips(tripList);
@@ -211,9 +200,7 @@ export function OrderFormModal({
       } catch (err) {
         console.error("OrderFormModal: failed to load clients/trips", err);
         if (!cancelled) {
-          setApiError(
-            "تعذّر تحميل قوائم العملاء والرحلات. تحقق من اتصالك وحاول إعادة فتح النافذة.",
-          );
+          setApiError("تعذّر تحميل قوائم العملاء والرحلات. تحقق من اتصالك وحاول إعادة فتح النافذة.");
         }
       } finally {
         if (!cancelled) setRelLoading(false);
@@ -224,111 +211,58 @@ export function OrderFormModal({
     };
   }, []);
 
-  useEffect(() => {
-    firstRef.current?.focus();
-  }, []);
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
+  const numberField = (
+    field:
+      | "quantity"
+      | "weight"
+      | "subTotal"
+      | "vatRate",
+  ) =>
+    register(field, {
+      setValueAs: (v) => (v === "" || v === null ? undefined : Number(v)),
+    });
 
-  const inputStyle = (field: keyof OrderSchemaErrors): React.CSSProperties => ({
-    ...inputBase,
-    border: errors[field] ? "1px solid var(--color-danger)" : inputBase.border,
-    ...(errors[field] ? { background: "#FEF2F2" } : {}),
-  });
+  // Coordinate fields use dot-path registration (matches the pattern already
+  // used in Client_Adress/Addressformmodal.tsx for location.coordinates.0/1).
+  const coordField = (
+    path:
+      | "deliveryAddress.location.coordinates.0"
+      | "deliveryAddress.location.coordinates.1"
+      | "pickupAddress.location.coordinates.0"
+      | "pickupAddress.location.coordinates.1",
+  ) =>
+    register(path as never, {
+      setValueAs: (v: string) => (v === "" || v === null ? undefined : Number(v)),
+    });
 
-  const clearFieldError = useCallback(
-    (field: keyof OrderSchemaErrors) =>
-      setErrors((p) => ({ ...p, [field]: undefined })),
-    [],
-  );
+  // ── Submit ────────────────────────────────────────────────────────────────
+  // Address objects stay entirely optional at the schema level (see the
+  // inline note in order.validation.ts), so — exactly like before the
+  // refactor — we only attach deliveryAddress/pickupAddress to the payload
+  // when the person actually filled in at least one field for them.
 
-  const runValidation = useCallback(async (): Promise<boolean> => {
-    const schema = isNew ? createOrderSchema : updateOrderSchema;
-    try {
-      await schema.validate(
-        {
-          tripId,
-          clientId,
-          shipmentNumber,
-          recipientName,
-          recipientPhone,
-          quantity: quantity ? Number(quantity) : undefined,
-          weight: weight ? Number(weight) : undefined,
-          subTotal: subTotal ? Number(subTotal) : undefined,
-          vatRate: vatRate ? Number(vatRate) : undefined,
-          paymentMethod: paymentMethod || undefined,
-          paymentStatus: paymentStatus || undefined,
-          type: type || undefined,
-        },
-        { abortEarly: false },
-      );
-      setErrors({});
-      return true;
-    } catch (err) {
-      const bag: OrderSchemaErrors = {};
-      (err as ValidationError).inner.forEach((e) => {
-        if (e.path) (bag as Record<string, string>)[e.path] = e.message;
-      });
-      setErrors(bag);
-      return false;
-    }
-  }, [
-    isNew,
-    tripId,
-    clientId,
-    shipmentNumber,
-    recipientName,
-    recipientPhone,
-    quantity,
-    weight,
-    subTotal,
-    vatRate,
-    paymentMethod,
-    paymentStatus,
-    type,
-  ]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-
-    e.preventDefault();
-
-    const valid = await runValidation();
-    if (!valid) return;
-
+  const submitHandler = async (data: OrderFormValues) => {
     const payload: Record<string, unknown> = {
-      shipmentNumber,
-      recipientName,
-      recipientPhone,
-      clientId,
-      quantity: Number(quantity) || 1,
+      shipmentNumber: data.shipmentNumber,
+      recipientName: data.recipientName,
+      recipientPhone: data.recipientPhone,
+      clientId: data.clientId,
+      quantity: data.quantity || 1,
     };
 
-    if (tripId) payload.tripId = tripId;
+    if (data.tripId) payload.tripId = data.tripId;
+    if (data.type) payload.type = data.type;
+    if (data.weight !== undefined) payload.weight = data.weight;
+    if (data.subTotal !== undefined) payload.subTotal = data.subTotal;
+    if (data.vatRate !== undefined) payload.vatRate = data.vatRate;
+    if (data.paymentMethod) payload.paymentMethod = data.paymentMethod;
+    if (data.paymentStatus) payload.paymentStatus = data.paymentStatus;
 
-    if (type) payload.type = type;
-    if (weight) payload.weight = Number(weight);
-    if (subTotal) payload.subTotal = Number(subTotal);
-    if (vatRate) payload.vatRate = Number(vatRate);
-    if (paymentMethod) payload.paymentMethod = paymentMethod;
-    if (paymentStatus) payload.paymentStatus = paymentStatus;
-
-    const delDetails = {
-      ...(delCity && { city: delCity }),
-      ...(delDistrict && { district: delDistrict }),
-      ...(delStreet && { street: delStreet }),
-      ...(delBuildingNo && { buildingNo: delBuildingNo }),
-      ...(delUnitNo && { unitNo: delUnitNo }),
-      ...(delZipCode && { zipCode: delZipCode }),
-    };
-    const delCoordinates =
-      delLng.trim() && delLat.trim()
-        ? [Number(delLng), Number(delLat)]
-        : undefined;
+    const delDetails = Object.fromEntries(
+      Object.entries(data.deliveryAddress.details).filter(([, v]) => !!v),
+    );
+    const [delLng, delLat] = data.deliveryAddress.location.coordinates;
+    const delCoordinates = delLng !== undefined && delLat !== undefined ? [delLng, delLat] : undefined;
 
     if (Object.keys(delDetails).length > 0 || delCoordinates) {
       payload.deliveryAddress = {
@@ -337,21 +271,14 @@ export function OrderFormModal({
       };
     }
 
-    if (pickupMode === "id" && pickupAddressId.trim()) {
-      payload.pickupAddressId = pickupAddressId.trim();
+    if (pickupMode === "id" && data.pickupAddressId.trim()) {
+      payload.pickupAddressId = data.pickupAddressId.trim();
     } else {
-      const pkpDetails = {
-        ...(pkpCity && { city: pkpCity }),
-        ...(pkpDistrict && { district: pkpDistrict }),
-        ...(pkpStreet && { street: pkpStreet }),
-        ...(pkpBuildingNo && { buildingNo: pkpBuildingNo }),
-        ...(pkpUnitNo && { unitNo: pkpUnitNo }),
-        ...(pkpZipCode && { zipCode: pkpZipCode }),
-      };
-      const pkpCoordinates =
-        pkpLng.trim() && pkpLat.trim()
-          ? [Number(pkpLng), Number(pkpLat)]
-          : undefined;
+      const pkpDetails = Object.fromEntries(
+        Object.entries(data.pickupAddress.details).filter(([, v]) => !!v),
+      );
+      const [pkpLng, pkpLat] = data.pickupAddress.location.coordinates;
+      const pkpCoordinates = pkpLng !== undefined && pkpLat !== undefined ? [pkpLng, pkpLat] : undefined;
 
       if (Object.keys(pkpDetails).length > 0 || pkpCoordinates) {
         payload.pickupAddress = {
@@ -361,751 +288,393 @@ export function OrderFormModal({
       }
     }
 
-    setSaving(true);
     setApiError("");
-
     try {
-      const ok = await onSubmit(
-        payload as unknown as CreateOrderPayload,
-        isNew,
-      );
+      const ok = await onSubmit(payload as unknown as CreateOrderPayload, isNew);
       if (ok) {
         onClose();
       } else {
+        setError("shipmentNumber", { message: "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً." });
         setApiError("حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.");
       }
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.";
+      const message = err instanceof Error ? err.message : "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.";
+      setError("shipmentNumber", { message });
       setApiError(message);
-    } finally {
-      setSaving(false);
     }
   };
 
+  const deliveryErr = errors.deliveryAddress;
+  const pickupErr = errors.pickupAddress;
+
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="order-modal-title"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 50,
-        background: "rgba(15,23,42,0.55)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1rem",
-        overflowY: "auto",
-      }}
+    <Modal
+      open
+      title={isNew ? "طلب جديد" : editOrder?.shipmentNumber ?? ""}
+      subtitle={isNew ? "إنشاء طلب" : "تعديل طلب"}
+      onClose={onClose}
+      size="lg"
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+            إلغاء
+          </Button>
+          <Button type="submit" form="order-form" loading={isSubmitting}>
+            {isNew ? "إنشاء الطلب" : "حفظ التغييرات"}
+          </Button>
+        </>
+      }
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 640,
-          background: "var(--color-surface)",
-          borderRadius: "var(--radius-2xl)",
-          border: "1px solid var(--color-border)",
-          boxShadow: "0 24px 64px rgba(0,0,0,.18)",
-          overflow: "hidden",
-          margin: "auto",
-        }}
+      <form
+        id="order-form"
+        onSubmit={handleSubmit(submitHandler)}
+        noValidate
+        style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+        dir="rtl"
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "1.25rem 1.5rem",
-            borderBottom: "1px solid var(--color-border)",
-            background: "var(--color-surface-muted)",
-          }}
-        >
+        {errors.shipmentNumber?.type === "manual" && (
+          <Alert type="error" message={errors.shipmentNumber.message ?? ""} onClose={() => setApiError("")} />
+        )}
+
+        <p style={sectionHeadingStyle}>بيانات الشحنة والمستلم</p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <Input
+            id="order-shipmentNumber"
+            label="رقم الشحنة *"
+            error={
+              errors.shipmentNumber && errors.shipmentNumber.type !== "manual"
+                ? errors.shipmentNumber.message
+                : undefined
+            }
+            {...register("shipmentNumber")}
+            placeholder="SHP-0001"
+            dir="ltr"
+            autoComplete="off"
+          />
+
           <div>
-            <p
-              style={{
-                fontSize: 11,
-                letterSpacing: "0.3em",
-                textTransform: "uppercase",
-                color: "#2563EB",
-                fontWeight: 600,
-                margin: 0,
-              }}
+            <Select
+              id="order-clientId"
+              label="العميل *"
+              error={errors.clientId?.message}
+              disabled={relLoading}
+              {...register("clientId")}
+              dir="rtl"
+              style={{ cursor: relLoading ? "wait" : "pointer" }}
             >
-              {isNew ? "إنشاء طلب" : "تعديل طلب"}
-            </p>
-            <h2
-              id="order-modal-title"
-              style={{
-                fontSize: 17,
-                fontWeight: 700,
-                color: "var(--color-text-primary)",
-                margin: "4px 0 0",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              {isNew ? "طلب جديد" : editOrder?.shipmentNumber}
-            </h2>
+              <option value="">{relLoading ? "جارٍ التحميل…" : "اختر العميل"}</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                  {c.phone ? ` — ${c.phone}` : ""}
+                </option>
+              ))}
+            </Select>
+            <Link href="/dashboard/clients" style={createLinkStyle} tabIndex={-1}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              إنشاء عميل جديد
+            </Link>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="إغلاق"
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              cursor: "pointer",
-              fontSize: 18,
-              color: "var(--color-text-muted)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            ×
-          </button>
+
+          <Input
+            id="order-recipientName"
+            label="اسم المستلم *"
+            error={errors.recipientName?.message}
+            {...register("recipientName")}
+            placeholder="أحمد محمد"
+            dir="rtl"
+          />
+
+          <Input
+            id="order-recipientPhone"
+            label="رقم جوال المستلم *"
+            error={errors.recipientPhone?.message}
+            {...register("recipientPhone")}
+            placeholder="05XXXXXXXX"
+            dir="ltr"
+          />
+
+          <div style={{ gridColumn: "1 / -1" }}>
+            <Select
+              id="order-tripId"
+              label={isNew ? "الرحلة *" : "الرحلة (اختياري)"}
+              error={errors.tripId?.message}
+              disabled={relLoading}
+              {...register("tripId")}
+              dir="rtl"
+              style={{ cursor: relLoading ? "wait" : "pointer" }}
+            >
+              <option value="">{relLoading ? "جارٍ التحميل…" : "اختر الرحلة"}</option>
+              {trips.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.tripNumber}
+                  {t.title ? ` — ${t.title}` : ""}
+                  {t.driver?.name ? ` (${t.driver.name})` : ""}
+                </option>
+              ))}
+            </Select>
+            <Link href="/dashboard/trips" style={createLinkStyle} tabIndex={-1}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              إنشاء رحلة جديدة
+            </Link>
+          </div>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          noValidate
-          style={{
-            padding: "1.5rem",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-            maxHeight: "75vh",
-            overflowY: "auto",
-          }}
-          dir="rtl"
-        >
-          {apiError && (
-            <Alert
-              type="error"
-              message={apiError}
-              onClose={() => setApiError("")}
-            />
-          )}
+        <p style={sectionHeadingStyle}>تفاصيل الشحنة</p>
 
-          <p style={sectionHeadingStyle}>بيانات الشحنة والمستلم</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+          <Input
+            id="order-type"
+            label="نوع الشحنة (اختياري)"
+            {...register("type")}
+            placeholder="عادي / مبرد"
+            dir="rtl"
+          />
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "0.75rem",
-            }}
+          <Input
+            id="order-quantity"
+            label="الكمية *"
+            type="number"
+            min={1}
+            error={errors.quantity?.message}
+            {...numberField("quantity")}
+            dir="ltr"
+          />
+
+          <Input
+            id="order-weight"
+            label="الوزن (كجم) (اختياري)"
+            type="number"
+            min={0}
+            step="0.01"
+            {...numberField("weight")}
+            dir="ltr"
+          />
+        </div>
+
+        <p style={sectionHeadingStyle}>بيانات الدفع</p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+          <Input
+            id="order-subTotal"
+            label="الإجمالي الفرعي (اختياري)"
+            type="number"
+            min={0}
+            step="0.01"
+            error={errors.subTotal?.message}
+            {...numberField("subTotal")}
+            dir="ltr"
+          />
+
+          <Input
+            id="order-vatRate"
+            label="نسبة الضريبة (%) (اختياري)"
+            type="number"
+            min={0}
+            step="0.01"
+            error={errors.vatRate?.message}
+            {...numberField("vatRate")}
+            dir="ltr"
+          />
+
+          <Select
+            id="order-paymentMethod"
+            label="طريقة الدفع (اختياري)"
+            {...register("paymentMethod")}
+            dir="rtl"
+            style={{ cursor: "pointer" }}
           >
-            <label style={labelStyle}>
-              رقم الشحنة *
-              <input
-                ref={firstRef}
-                style={inputStyle("shipmentNumber")}
-                value={shipmentNumber}
-                onChange={(e) => {
-                  setShipmentNumber(e.target.value);
-                  clearFieldError("shipmentNumber");
-                }}
-                placeholder="SHP-0001"
-                dir="ltr"
-                autoComplete="off"
-              />
-              {errors.shipmentNumber && (
-                <span style={errorTextStyle}>{errors.shipmentNumber}</span>
-              )}
-            </label>
+            <option value="">اختر الطريقة</option>
+            <option value="Cash">نقداً</option>
+            <option value="Card">بطاقة</option>
+            <option value="Prepaid">مدفوع مسبقاً</option>
+          </Select>
 
-            <label style={labelStyle}>
-              العميل *
-              <select
-                style={{
-                  ...inputStyle("clientId"),
-                  cursor: relLoading ? "wait" : "pointer",
-                  paddingRight: "0.75rem",
-                }}
-                value={clientId}
-                disabled={relLoading}
-                onChange={(e) => {
-                  setClientId(e.target.value);
-                  clearFieldError("clientId");
-                }}
-                dir="rtl"
-              >
-                <option value="">
-                  {relLoading ? "جارٍ التحميل…" : "اختر العميل"}
-                </option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                    {c.phone ? ` — ${c.phone}` : ""}
-                  </option>
-                ))}
-              </select>
-              {errors.clientId && (
-                <span style={errorTextStyle}>{errors.clientId}</span>
-              )}
-              <Link
-                href="/dashboard/clients"
-                style={createLinkStyle}
-                tabIndex={-1}
-              >
-                <svg
-                  width="11"
-                  height="11"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                >
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                إنشاء عميل جديد
-              </Link>
-            </label>
-
-            <label style={labelStyle}>
-              اسم المستلم *
-              <input
-                style={inputStyle("recipientName")}
-                value={recipientName}
-                onChange={(e) => {
-                  setRecipientName(e.target.value);
-                  clearFieldError("recipientName");
-                }}
-                placeholder="أحمد محمد"
-                dir="rtl"
-              />
-              {errors.recipientName && (
-                <span style={errorTextStyle}>{errors.recipientName}</span>
-              )}
-            </label>
-
-            <label style={labelStyle}>
-              رقم جوال المستلم *
-              <input
-                style={inputStyle("recipientPhone")}
-                value={recipientPhone}
-                onChange={(e) => {
-                  setRecipientPhone(e.target.value);
-                  clearFieldError("recipientPhone");
-                }}
-                placeholder="05XXXXXXXX"
-                dir="ltr"
-              />
-              {errors.recipientPhone && (
-                <span style={errorTextStyle}>{errors.recipientPhone}</span>
-              )}
-            </label>
-
-            <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
-              {isNew ? "الرحلة *" : "الرحلة"}
-              {!isNew && <span style={optionalLabelStyle}>(اختياري)</span>}
-              <select
-                style={{
-                  ...inputStyle("tripId"),
-                  cursor: relLoading ? "wait" : "pointer",
-                }}
-                value={tripId ?? ""}
-                disabled={relLoading}
-                onChange={(e) => {
-                  setTripId(e.target.value);
-                  clearFieldError("tripId");
-                }}
-                dir="rtl"
-              >
-                <option value="">
-                  {relLoading ? "جارٍ التحميل…" : "اختر الرحلة"}
-                </option>
-                {trips.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.tripNumber}
-                    {t.title ? ` — ${t.title}` : ""}
-                    {t.driver?.name ? ` (${t.driver.name})` : ""}
-                  </option>
-                ))}
-              </select>
-              {errors.tripId && (
-                <span style={errorTextStyle}>{errors.tripId}</span>
-              )}
-              <Link
-                href="/dashboard/trips"
-                style={createLinkStyle}
-                tabIndex={-1}
-              >
-                <svg
-                  width="11"
-                  height="11"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                >
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                إنشاء رحلة جديدة
-              </Link>
-            </label>
-          </div>
-
-          <p style={sectionHeadingStyle}>تفاصيل الشحنة</p>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: "0.75rem",
-            }}
-          >
-            <label style={labelStyle}>
-              نوع الشحنة
-              <span style={optionalLabelStyle}>(اختياري)</span>
-              <input
-                style={inputBase}
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                placeholder="عادي / مبرد"
-                dir="rtl"
-              />
-            </label>
-
-            <label style={labelStyle}>
-              الكمية *
-              <input
-                style={inputStyle("quantity")}
-                type="number"
-                min={1}
-                value={quantity}
-                onChange={(e) => {
-                  setQuantity(e.target.value);
-                  clearFieldError("quantity");
-                }}
-                dir="ltr"
-              />
-              {errors.quantity && (
-                <span style={errorTextStyle}>{errors.quantity}</span>
-              )}
-            </label>
-
-            <label style={labelStyle}>
-              الوزن (كجم)
-              <span style={optionalLabelStyle}>(اختياري)</span>
-              <input
-                style={inputBase}
-                type="number"
-                min={0}
-                step="0.01"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                dir="ltr"
-              />
-            </label>
-          </div>
-
-          <p style={sectionHeadingStyle}>بيانات الدفع</p>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: "0.75rem",
-            }}
-          >
-            <label style={labelStyle}>
-              الإجمالي الفرعي
-              <span style={optionalLabelStyle}>(اختياري)</span>
-              <input
-                style={inputStyle("subTotal")}
-                type="number"
-                min={0}
-                step="0.01"
-                value={subTotal}
-                onChange={(e) => {
-                  setSubTotal(e.target.value);
-                  clearFieldError("subTotal");
-                }}
-                dir="ltr"
-              />
-              {errors.subTotal && (
-                <span style={errorTextStyle}>{errors.subTotal}</span>
-              )}
-            </label>
-
-            <label style={labelStyle}>
-              نسبة الضريبة (%)
-              <span style={optionalLabelStyle}>(اختياري)</span>
-              <input
-                style={inputStyle("vatRate")}
-                type="number"
-                min={0}
-                step="0.01"
-                value={vatRate}
-                onChange={(e) => {
-                  setVatRate(e.target.value);
-                  clearFieldError("vatRate");
-                }}
-                dir="ltr"
-              />
-              {errors.vatRate && (
-                <span style={errorTextStyle}>{errors.vatRate}</span>
-              )}
-            </label>
-
-            <label style={labelStyle}>
-              طريقة الدفع
-              <span style={optionalLabelStyle}>(اختياري)</span>
-              <select
-                style={{ ...inputBase, cursor: "pointer" }}
-                value={paymentMethod}
-                onChange={(e) =>
-                  setPaymentMethod(e.target.value as PaymentMethod | "")
-                }
-                dir="rtl"
-              >
-                <option value="">اختر الطريقة</option>
-                <option value="Cash">نقداً</option>
-                <option value="Card">بطاقة</option>
-                <option value="Prepaid">مدفوع مسبقاً</option>
-              </select>
-            </label>
-
-            {!isNew && (
-              <label style={labelStyle}>
-                حالة الدفع
-                <select
-                  style={{ ...inputBase, cursor: "pointer" }}
-                  value={paymentStatus}
-                  onChange={(e) =>
-                    setPaymentStatus(e.target.value as PaymentStatus | "")
-                  }
-                  dir="rtl"
-                >
-                  <option value="">—</option>
-                  <option value="Pending">معلَّق</option>
-                  <option value="Paid">مدفوع</option>
-                  <option value="Failed">فشل</option>
-                  <option value="Refunded">مُسترجع</option>
-                </select>
-              </label>
-            )}
-          </div>
-
-          <p style={sectionHeadingStyle}>عنوان التسليم</p>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: "0.75rem",
-            }}
-          >
-            <label style={labelStyle}>
-              المدينة
-              <span style={optionalLabelStyle}>(اختياري)</span>
-              <input
-                style={inputBase}
-                value={delCity}
-                onChange={(e) => setDelCity(e.target.value)}
-                placeholder="الرياض"
-                dir="rtl"
-              />
-            </label>
-            <label style={labelStyle}>
-              الحي
-              <span style={optionalLabelStyle}>(اختياري)</span>
-              <input
-                style={inputBase}
-                value={delDistrict}
-                onChange={(e) => setDelDistrict(e.target.value)}
-                placeholder="العليا"
-                dir="rtl"
-              />
-            </label>
-            <label style={labelStyle}>
-              الشارع
-              <span style={optionalLabelStyle}>(اختياري)</span>
-              <input
-                style={inputBase}
-                value={delStreet}
-                onChange={(e) => setDelStreet(e.target.value)}
-                placeholder="شارع الأمير محمد"
-                dir="rtl"
-              />
-            </label>
-            <label style={labelStyle}>
-              رقم المبنى
-              <span style={optionalLabelStyle}>(اختياري)</span>
-              <input
-                style={inputBase}
-                value={delBuildingNo}
-                onChange={(e) => setDelBuildingNo(e.target.value)}
-                placeholder="1234"
-                dir="ltr"
-              />
-            </label>
-            <label style={labelStyle}>
-              رقم الوحدة
-              <span style={optionalLabelStyle}>(اختياري)</span>
-              <input
-                style={inputBase}
-                value={delUnitNo}
-                onChange={(e) => setDelUnitNo(e.target.value)}
-                placeholder="56"
-                dir="ltr"
-              />
-            </label>
-            <label style={labelStyle}>
-              الرمز البريدي
-              <span style={optionalLabelStyle}>(اختياري)</span>
-              <input
-                style={inputBase}
-                value={delZipCode}
-                onChange={(e) => setDelZipCode(e.target.value)}
-                placeholder="12345"
-                dir="ltr"
-              />
-            </label>
-            <label style={labelStyle}>
-              خط الطول (Longitude) *
-              <input
-                style={inputBase}
-                type="number"
-                step="any"
-                value={delLng}
-                onChange={(e) => setDelLng(e.target.value)}
-                placeholder="46.6753"
-                dir="ltr"
-              />
-            </label>
-            <label style={labelStyle}>
-              خط العرض (Latitude) *
-              <input
-                style={inputBase}
-                type="number"
-                step="any"
-                value={delLat}
-                onChange={(e) => setDelLat(e.target.value)}
-                placeholder="24.7136"
-                dir="ltr"
-              />
-            </label>
-          </div>
-
-          <p style={sectionHeadingStyle}>عنوان الاستلام</p>
-
-          <div
-            style={{ display: "flex", gap: "0.5rem", marginBottom: "0.25rem" }}
-          >
-            {(["id", "new"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setPickupMode(m)}
-                style={{
-                  height: 32,
-                  padding: "0 0.875rem",
-                  borderRadius: "var(--radius-md)",
-                  border: `1px solid ${pickupMode === m ? "var(--color-brand-600)" : "var(--color-border)"}`,
-                  background:
-                    pickupMode === m
-                      ? "var(--color-brand-50, #EFF6FF)"
-                      : "var(--color-surface)",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color:
-                    pickupMode === m
-                      ? "var(--color-brand-600)"
-                      : "var(--color-text-secondary)",
-                  cursor: "pointer",
-                  fontFamily: "var(--font-sans)",
-                }}
-              >
-                {m === "id" ? "عنوان موجود (ID)" : "عنوان جديد"}
-              </button>
-            ))}
-          </div>
-
-          {pickupMode === "id" ? (
-            <label style={labelStyle}>
-              معرّف العنوان (MongoDB ID)
-              <input
-                style={inputBase}
-                value={pickupAddressId}
-                onChange={(e) => setPickupAddressId(e.target.value)}
-                placeholder="67a1b2c3d4e5f6a7b8c9d0e1"
-                dir="ltr"
-                autoComplete="off"
-              />
-            </label>
-          ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr",
-                gap: "0.75rem",
-              }}
+          {!isNew && (
+            <Select
+              id="order-paymentStatus"
+              label="حالة الدفع"
+              {...register("paymentStatus")}
+              dir="rtl"
+              style={{ cursor: "pointer" }}
             >
-              <label style={labelStyle}>
-                المدينة
-                <span style={optionalLabelStyle}>(اختياري)</span>
-                <input
-                  style={inputBase}
-                  value={pkpCity}
-                  onChange={(e) => setPkpCity(e.target.value)}
-                  placeholder="جدة"
-                  dir="rtl"
-                />
-              </label>
-              <label style={labelStyle}>
-                الحي
-                <span style={optionalLabelStyle}>(اختياري)</span>
-                <input
-                  style={inputBase}
-                  value={pkpDistrict}
-                  onChange={(e) => setPkpDistrict(e.target.value)}
-                  placeholder="الروضة"
-                  dir="rtl"
-                />
-              </label>
-              <label style={labelStyle}>
-                الشارع
-                <span style={optionalLabelStyle}>(اختياري)</span>
-                <input
-                  style={inputBase}
-                  value={pkpStreet}
-                  onChange={(e) => setPkpStreet(e.target.value)}
-                  placeholder="شارع التحلية"
-                  dir="rtl"
-                />
-              </label>
-              <label style={labelStyle}>
-                رقم المبنى
-                <span style={optionalLabelStyle}>(اختياري)</span>
-                <input
-                  style={inputBase}
-                  value={pkpBuildingNo}
-                  onChange={(e) => setPkpBuildingNo(e.target.value)}
-                  placeholder="4321"
-                  dir="ltr"
-                />
-              </label>
-              <label style={labelStyle}>
-                رقم الوحدة
-                <span style={optionalLabelStyle}>(اختياري)</span>
-                <input
-                  style={inputBase}
-                  value={pkpUnitNo}
-                  onChange={(e) => setPkpUnitNo(e.target.value)}
-                  placeholder="12"
-                  dir="ltr"
-                />
-              </label>
-              <label style={labelStyle}>
-                الرمز البريدي
-                <span style={optionalLabelStyle}>(اختياري)</span>
-                <input
-                  style={inputBase}
-                  value={pkpZipCode}
-                  onChange={(e) => setPkpZipCode(e.target.value)}
-                  placeholder="23456"
-                  dir="ltr"
-                />
-              </label>
-              <label style={labelStyle}>
-                خط الطول (Longitude)
-                <span style={optionalLabelStyle}>(اختياري)</span>
-                <input
-                  style={inputBase}
-                  type="number"
-                  step="any"
-                  value={pkpLng}
-                  onChange={(e) => setPkpLng(e.target.value)}
-                  placeholder="46.6753"
-                  dir="ltr"
-                />
-              </label>
-              <label style={labelStyle}>
-                خط العرض (Latitude)
-                <span style={optionalLabelStyle}>(اختياري)</span>
-                <input
-                  style={inputBase}
-                  type="number"
-                  step="any"
-                  value={pkpLat}
-                  onChange={(e) => setPkpLat(e.target.value)}
-                  placeholder="24.7136"
-                  dir="ltr"
-                />
-              </label>
-            </div>
+              <option value="">—</option>
+              <option value="Pending">معلَّق</option>
+              <option value="Paid">مدفوع</option>
+              <option value="Failed">فشل</option>
+              <option value="Refunded">مُسترجع</option>
+            </Select>
           )}
+        </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "0.5rem",
-              justifyContent: "flex-end",
-              paddingTop: "0.5rem",
-            }}
-          >
-            <button
+        <p style={sectionHeadingStyle}>عنوان التسليم</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+          <Input
+            id="delivery-city"
+            label="المدينة (اختياري)"
+            {...register("deliveryAddress.details.city")}
+            placeholder="الرياض"
+            dir="rtl"
+          />
+          <Input
+            id="delivery-district"
+            label="الحي (اختياري)"
+            {...register("deliveryAddress.details.district")}
+            placeholder="العليا"
+            dir="rtl"
+          />
+          <Input
+            id="delivery-street"
+            label="الشارع (اختياري)"
+            {...register("deliveryAddress.details.street")}
+            placeholder="شارع الأمير محمد"
+            dir="rtl"
+          />
+          <Input
+            id="delivery-buildingNo"
+            label="رقم المبنى (اختياري)"
+            {...register("deliveryAddress.details.buildingNo")}
+            placeholder="1234"
+            dir="ltr"
+          />
+          <Input
+            id="delivery-unitNo"
+            label="رقم الوحدة (اختياري)"
+            {...register("deliveryAddress.details.unitNo")}
+            placeholder="56"
+            dir="ltr"
+          />
+          <Input
+            id="delivery-zipCode"
+            label="الرمز البريدي (اختياري)"
+            {...register("deliveryAddress.details.zipCode")}
+            placeholder="12345"
+            dir="ltr"
+          />
+          <Input
+            id="delivery-lng"
+            label="خط الطول (Longitude) *"
+            type="number"
+            step="any"
+            error={deliveryErr?.location?.coordinates ? " " : undefined}
+            {...coordField("deliveryAddress.location.coordinates.0")}
+            placeholder="46.6753"
+            dir="ltr"
+          />
+          <Input
+            id="delivery-lat"
+            label="خط العرض (Latitude) *"
+            type="number"
+            step="any"
+            error={deliveryErr?.location?.coordinates?.message}
+            {...coordField("deliveryAddress.location.coordinates.1")}
+            placeholder="24.7136"
+            dir="ltr"
+          />
+        </div>
+
+        <p style={sectionHeadingStyle}>عنوان الاستلام</p>
+
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.25rem" }}>
+          {(["id", "new"] as const).map((m) => (
+            <Button
+              key={m}
               type="button"
-              onClick={onClose}
-              disabled={saving}
-              style={{
-                height: 40,
-                padding: "0 1.25rem",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--color-border)",
-                background: "var(--color-surface)",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--color-text-secondary)",
-                cursor: saving ? "not-allowed" : "pointer",
-                fontFamily: "var(--font-sans)",
-              }}
+              size="sm"
+              variant={pickupMode === m ? "primary" : "secondary"}
+              onClick={() => setPickupMode(m)}
             >
-              إلغاء
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              
-              style={{
-                height: 40,
-                padding: "0 1.5rem",
-                borderRadius: "var(--radius-md)",
-                border: "none",
-                background: saving
-                  ? "var(--color-brand-400)"
-                  : "var(--color-brand-600)",
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#FFF",
-                cursor: saving ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontFamily: "var(--font-sans)",
-              }}
-            >
-              {saving && <Spinner size="sm" className="text-white" />}
-              {saving ? "جارٍ الحفظ…" : isNew ? "إنشاء الطلب" : "حفظ التغييرات"}
-            </button>
+              {m === "id" ? "عنوان موجود (ID)" : "عنوان جديد"}
+            </Button>
+          ))}
+        </div>
+
+        {pickupMode === "id" ? (
+          <Input
+            id="pickup-addressId"
+            label="معرّف العنوان (MongoDB ID)"
+            {...register("pickupAddressId")}
+            placeholder="67a1b2c3d4e5f6a7b8c9d0e1"
+            dir="ltr"
+            autoComplete="off"
+          />
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+            <Input
+              id="pickup-city"
+              label="المدينة (اختياري)"
+              {...register("pickupAddress.details.city")}
+              placeholder="جدة"
+              dir="rtl"
+            />
+            <Input
+              id="pickup-district"
+              label="الحي (اختياري)"
+              {...register("pickupAddress.details.district")}
+              placeholder="الروضة"
+              dir="rtl"
+            />
+            <Input
+              id="pickup-street"
+              label="الشارع (اختياري)"
+              {...register("pickupAddress.details.street")}
+              placeholder="شارع التحلية"
+              dir="rtl"
+            />
+            <Input
+              id="pickup-buildingNo"
+              label="رقم المبنى (اختياري)"
+              {...register("pickupAddress.details.buildingNo")}
+              placeholder="4321"
+              dir="ltr"
+            />
+            <Input
+              id="pickup-unitNo"
+              label="رقم الوحدة (اختياري)"
+              {...register("pickupAddress.details.unitNo")}
+              placeholder="12"
+              dir="ltr"
+            />
+            <Input
+              id="pickup-zipCode"
+              label="الرمز البريدي (اختياري)"
+              {...register("pickupAddress.details.zipCode")}
+              placeholder="23456"
+              dir="ltr"
+            />
+            <Input
+              id="pickup-lng"
+              label="خط الطول (Longitude) (اختياري)"
+              type="number"
+              step="any"
+              error={pickupErr?.location?.coordinates ? " " : undefined}
+              {...coordField("pickupAddress.location.coordinates.0")}
+              placeholder="46.6753"
+              dir="ltr"
+            />
+            <Input
+              id="pickup-lat"
+              label="خط العرض (Latitude) (اختياري)"
+              type="number"
+              step="any"
+              error={pickupErr?.location?.coordinates?.message}
+              {...coordField("pickupAddress.location.coordinates.1")}
+              placeholder="24.7136"
+              dir="ltr"
+            />
           </div>
-        </form>
-      </div>
-    </div>
+        )}
+      </form>
+    </Modal>
   );
 }
+
+// Re-exported for callers that only need the empty-address shape (e.g. tests).
+export { emptyAddress as emptyOrderAddress };

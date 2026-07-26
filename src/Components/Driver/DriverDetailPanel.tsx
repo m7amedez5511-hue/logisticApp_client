@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Spinner } from "../UI";
+import { Alert, Button, Spinner } from "../UI";
 import { driverService } from "@/src/services/driver.service";
 import { getStoredToken } from "@/src/lib/auth";
 import { DriverReportPanel } from "../Driver_Report/driverReport";
@@ -306,18 +306,7 @@ export function DriverDetailPanel({
             </div>
           )}
 
-          {error && (
-            <div style={{
-              borderRadius: "var(--radius-md)",
-              background: "#FEF2F2",
-              border: "1px solid #FECACA",
-              padding: "0.75rem 1rem",
-              fontSize: 13,
-              color: "#DC2626",
-            }}>
-              ⚠ {error}
-            </div>
-          )}
+          {error && <Alert type="error" message={error} />}
 
           {driver && !loading && (
             <>
@@ -462,55 +451,21 @@ export function DriverDetailPanel({
               flexShrink: 0,
             }}
           >
-            <button
-              type="button"
-              onClick={() => onDelete(driver)}
-              style={{
-                height: 40, padding: "0 1rem",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid #FECACA",
-                background: "#FEF2F2",
-                fontSize: 13, fontWeight: 700, color: "#DC2626",
-                cursor: "pointer", fontFamily: "var(--font-sans)",
-              }}
-            >
+            <Button type="button" variant="danger" onClick={() => onDelete(driver)}>
               حذف
-            </button>
+            </Button>
 
-            <button
-              type="button"
-              onClick={() => onEdit(driver)}
-              style={{
-                height: 40, padding: "0 1rem",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--color-brand-200)",
-                background: "var(--color-brand-50, #EFF6FF)",
-                fontSize: 13, fontWeight: 700, color: "var(--color-brand-600)",
-                cursor: "pointer", fontFamily: "var(--font-sans)",
-                display: "flex", alignItems: "center", gap: 6,
-              }}
-            >
+            <Button type="button" variant="secondary" onClick={() => onEdit(driver)}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
               </svg>
               تعديل
-            </button>
+            </Button>
 
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                flex: 1, height: 40,
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--color-border)",
-                background: "var(--color-surface)",
-                fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)",
-                cursor: "pointer", fontFamily: "var(--font-sans)",
-              }}
-            >
+            <Button type="button" variant="secondary" fullWidth onClick={onClose}>
               إغلاق
-            </button>
+            </Button>
           </div>
         )}
       </aside>

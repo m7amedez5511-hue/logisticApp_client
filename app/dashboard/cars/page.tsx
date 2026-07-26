@@ -41,6 +41,10 @@ function CarToast({ notification }: { notification: ToastMsg | null }) {
 }
 
 // ── CarCard ───────────────────────────────────────────────────────────────────
+// NOTE: hover/lift affordance is implemented via Tailwind `hover:`/`focus-visible:`
+// classes instead of onMouseEnter/onMouseLeave DOM mutation, so keyboard users
+// (tabbing to this card, which is already role="button" tabIndex={0}) get the
+// same visual feedback as mouse users via the native :focus-visible pseudo-class.
 
 function CarCard({
   car,
@@ -73,23 +77,7 @@ function CarCard({
       tabIndex={0}
       onKeyDown={e => { if (e.key === "Enter" || e.key === " ") onClick(); }}
       aria-label={`${car.manufacturer} ${car.model} — ${car.plateLetters} ${car.plateNumber}`}
-      style={{
-        borderRadius: "var(--radius-xl)",
-        border: "1px solid var(--color-border)",
-        background: "var(--color-surface)",
-        overflow: "hidden",
-        boxShadow: "var(--shadow-card)",
-        cursor: "pointer",
-        transition: "box-shadow 200ms, transform 200ms",
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(37,99,235,.12)";
-        (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-card)";
-        (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-      }}
+      className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden shadow-[var(--shadow-card)] cursor-pointer outline-none transition-all duration-200 hover:shadow-[0_8px_24px_rgba(37,99,235,.12)] hover:-translate-y-0.5 focus-visible:shadow-[0_8px_24px_rgba(37,99,235,.12)] focus-visible:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-600)] focus-visible:ring-offset-2"
     >
       {/* Colour accent bar by status */}
       <div style={{
@@ -425,6 +413,14 @@ export default function CarsPage() {
             gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
             gap: "1rem",
           }}>
+            {/* PERF NOTE: Cards are rendered inline via .map() below. At the
+                current pagination size (10-12 items) this is not a bottleneck.
+                If page size increases (e.g. "show all" mode, a larger
+                page-size selector, or removal of server-side pagination),
+                extract <CarCard> is already its own component above — wrap
+                it in React.memo at that point, and make sure onClick /
+                onSendToMaintenance passed to it are stable (useCallback)
+                so memoization is actually effective. */}
             {cars.map((car) => (
               <CarCard
                 key={car.id}

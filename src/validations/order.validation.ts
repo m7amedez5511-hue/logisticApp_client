@@ -3,6 +3,41 @@ import * as yup from "yup";
 // ── Saudi mobile regex (05xxxxxxxx) ─────────────────────────────────────────
 const SAUDI_PHONE_RE = /^(05\d{8}|009665\d{8}|\+9665\d{8})$/;
 
+// ── Coordinates sub-schema (shared by delivery & pickup) ────────────────────
+// OrderFormModal always sends coordinates as a 2-element array —
+// `[undefined, undefined]` when the user hasn't touched the lng/lat inputs,
+// NOT `undefined` itself. A plain `.of(yup.number().required())` therefore
+// fails on every order whose address has no coordinates yet, even though
+// the array itself is `.optional()` — the array being *present* is enough
+// to make yup walk into `.required()` on each (undefined) element.
+// (Same root cause as the deliveryAddress bug documented below: yup
+// validates whatever *is* there, regardless of what the outer field's
+// optionality implies.)
+//
+// Fix: a custom `.test()` that treats "both lng and lat are empty" as a
+// valid "no coordinates provided" state, and only fails when exactly one
+// of the two is filled in (genuinely incomplete input).
+const coordinatesSchema = yup
+  .array()
+  .of(yup.number().typeError("الإحداثيات يجب أن تكون أرقامًا"))
+  .test(
+    "coords-both-or-none",
+    "الإحداثيات يجب أن تكون [خط الطول, خط العرض]",
+    (value) => {
+      // Field never sent at all — fine.
+      if (!value) return true;
+      const [lng, lat] = value;
+      const lngEmpty = lng === undefined || lng === null || Number.isNaN(lng);
+      const latEmpty = lat === undefined || lat === null || Number.isNaN(lat);
+      // Untouched [undefined, undefined] from defaultValues — treat as
+      // "no coordinates provided", not a validation error.
+      if (lngEmpty && latEmpty) return true;
+      // Only one of the two filled in — genuinely incomplete, block submit.
+      return !lngEmpty && !latEmpty;
+    },
+  )
+  .optional();
+
 // ── Address sub-schemas (mirrors backend orderAddressSchema) ─────────────────
 
 // Delivery address — coordinates SHOULD be required by the backend (MongoDB
@@ -30,11 +65,7 @@ const deliveryAddressSchema = yup.object({
     zipCode:    yup.string().trim().optional(),
   }).optional(),
   location: yup.object({
-    coordinates: yup
-      .array()
-      .of(yup.number().required())
-      .length(2, "الإحداثيات يجب أن تكون [خط الطول, خط العرض]")
-      .optional(),
+    coordinates: coordinatesSchema,
   }).optional(),
 }).optional();
 
@@ -50,11 +81,7 @@ const pickupAddressSchema = yup.object({
     zipCode:    yup.string().trim().optional(),
   }).optional(),
   location: yup.object({
-    coordinates: yup
-      .array()
-      .of(yup.number().required())
-      .length(2, "الإحداثيات يجب أن تكون [خط الطول, خط العرض]")
-      .optional(),
+    coordinates: coordinatesSchema,
   }).optional(),
 }).optional();
 

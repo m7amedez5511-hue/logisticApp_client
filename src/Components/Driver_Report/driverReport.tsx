@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Spinner } from "../UI";
+import { Alert, Button, Input } from "../UI";
 import { driverService } from "@/src/services/driver.service";
 import { getStoredToken } from "@/src/lib/auth";
 
@@ -65,20 +65,8 @@ export function DriverReportPanel({ driverId }: DriverReportPanelProps) {
         }}
       >
         <div style={{ flex: 1, minWidth: 140 }}>
-          <label
-            htmlFor="report-date"
-            style={{
-              display: "block",
-              fontSize: 11,
-              fontWeight: 600,
-              color: "var(--color-text-muted)",
-              marginBottom: 4,
-            }}
-          >
-            تاريخ التقرير
-          </label>
-          <input
-            id="report-date"
+          <Input
+            label="تاريخ التقرير"
             type="date"
             value={date}
             max={today}
@@ -86,64 +74,21 @@ export function DriverReportPanel({ driverId }: DriverReportPanelProps) {
               setDate(e.target.value);
               setError(null);
             }}
-            style={{
-              width: "100%",
-              height: 38,
-              padding: "0 0.625rem",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              fontSize: 13,
-              color: "var(--color-text-primary)",
-              outline: "none",
-              fontFamily: "var(--font-sans)",
-            }}
           />
         </div>
 
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={loading || !date}
-          style={{
-            height: 38,
-            padding: "0 1rem",
-            borderRadius: "var(--radius-md)",
-            border: "none",
-            fontSize: 13,
-            fontWeight: 700,
-            color: "#FFF",
-            background: !date || loading
-              ? "var(--color-brand-400)"
-              : "var(--color-brand-600)",
-            cursor: !date || loading ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontFamily: "var(--font-sans)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {loading && <Spinner size="sm" className="text-white" />}
+        <Button onClick={handleGenerate} disabled={!date} loading={loading}>
           {loading ? "جارٍ الإنشاء…" : "إنشاء التقرير"}
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div
-          style={{
-            marginTop: "0.75rem",
-            borderRadius: "var(--radius-md)",
-            background: "#FEF2F2",
-            border: "1px solid #FECACA",
-            padding: "0.625rem 0.875rem",
-            fontSize: 12,
-            color: "#DC2626",
-            fontWeight: 500,
-          }}
-        >
-          ⚠ {error}
-        </div>
+        <Alert
+          type="error"
+          message={error}
+          onClose={() => setError(null)}
+          className="mt-3"
+        />
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 // Accessible labelled input with error and hint state.
 
+import { forwardRef } from "react";
 import { cn } from "@/src/lib/utils";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -29,7 +30,10 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
  *   hint="At least 8 characters"
  * />
  */
-export function Input({ label, error, hint, id, icon, className, ...rest }: InputProps) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { label, error, hint, id, icon, className, ...rest },
+  ref,
+) {
   const inputId = id ?? `input-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const errorId = `${inputId}-error`;
   const hintId  = `${inputId}-hint`;
@@ -54,6 +58,7 @@ export function Input({ label, error, hint, id, icon, className, ...rest }: Inpu
         )}
 
         <input
+          ref={ref}
           id={inputId}
           aria-invalid={!!error}
           aria-describedby={
@@ -88,4 +93,4 @@ export function Input({ label, error, hint, id, icon, className, ...rest }: Inpu
       )}
     </div>
   );
-}
+});

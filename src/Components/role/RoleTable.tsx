@@ -1,10 +1,11 @@
 "use client";
 
 import { Role } from "@/src/types/role";
-import { Spinner } from "../UI";
-
+import { Button, EmptyState, IconBtn, Spinner } from "../UI";
 
 // ── Status badge ──────────────────────────────────────────────────────────────
+// Kept custom rather than swapped for <Badge/>: Badge only renders a label
+// pill (no dot indicator), and the pulse-dot is the whole point of this chip.
 function StatusBadge({ active }: { active: boolean }) {
   return (
     <span style={{
@@ -22,23 +23,7 @@ function StatusBadge({ active }: { active: boolean }) {
   );
 }
 
-// ── Icon button ───────────────────────────────────────────────────────────────
-function IconBtn({ onClick, title, color, bg, borderColor, children }: {
-  onClick: () => void; title: string; color: string; bg: string; borderColor: string; children: React.ReactNode;
-}) {
-  return (
-    <button type="button" title={title} aria-label={title}
-      onClick={e => { e.stopPropagation(); onClick(); }}
-      style={{
-        width: 32, height: 32, borderRadius: "var(--radius-md)",
-        border: `1px solid ${borderColor}`, background: bg, color,
-        cursor: "pointer", display: "inline-flex", alignItems: "center",
-        justifyContent: "center", transition: "opacity 150ms",
-      }}>
-      {children}
-    </button>
-  );
-}
+
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const cardStyle: React.CSSProperties = {
@@ -90,21 +75,18 @@ export function RoleTable({
         </div>
       ) : roles.length === 0 ? (
         /* Empty state */
-        <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🛡️</div>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text-primary)", margin: "0 0 8px" }}>
-            {search ? `لا توجد نتائج لـ "${search}"` : "لا توجد أدوار لعرضها"}
-          </p>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "0 0 16px" }}>
-            {!search && "ابدأ بإنشاء أول دور في النظام"}
-          </p>
-          {!search && (
-            <button type="button" onClick={onAddFirst}
-              style={{ fontSize: 13, fontWeight: 600, color: "var(--color-brand-600)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-              إضافة أول دور
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon="🛡️"
+          title={search ? `لا توجد نتائج لـ "${search}"` : "لا توجد أدوار لعرضها"}
+          description={!search ? "ابدأ بإنشاء أول دور في النظام" : undefined}
+          action={
+            !search && (
+              <Button type="button" variant="ghost" size="sm" onClick={onAddFirst}>
+                إضافة أول دور
+              </Button>
+            )
+          }
+        />
       ) : (
         /* Data rows */
         <ul dir="rtl" style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -166,15 +148,24 @@ export function RoleTable({
             صفحة <strong style={{ color: "var(--color-text-primary)" }}>{page}</strong> من <strong style={{ color: "var(--color-text-primary)" }}>{pages}</strong>
           </span>
           <div style={{ display: "flex", gap: "0.5rem" }}>
-            {[
-              { label: "السابق", action: () => onPageChange(Math.max(1, page - 1)),     disabled: page === 1     },
-              { label: "التالي", action: () => onPageChange(Math.min(pages, page + 1)), disabled: page === pages },
-            ].map(btn => (
-              <button key={btn.label} type="button" onClick={btn.action} disabled={btn.disabled}
-                style={{ borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border)", background: "var(--color-surface-muted)", padding: "0.375rem 0.875rem", fontSize: 12, color: "var(--color-text-secondary)", cursor: btn.disabled ? "not-allowed" : "pointer", opacity: btn.disabled ? 0.4 : 1 }}>
-                {btn.label}
-              </button>
-            ))}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onPageChange(Math.max(1, page - 1))}
+              disabled={page === 1}
+            >
+              السابق
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onPageChange(Math.min(pages, page + 1))}
+              disabled={page === pages}
+            >
+              التالي
+            </Button>
           </div>
         </div>
       )}

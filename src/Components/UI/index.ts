@@ -24,3 +24,5 @@ export { EmptyState } from "./EmptyState";
 export { Badge } from "./Badge";
 
 export { ArchiveButton } from "./ArchiveButton"
+export { FileInput } from "./FailInput"
+export {IconBtn} from "./IconBtn"

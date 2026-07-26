@@ -161,6 +161,7 @@ export interface ArchivedDriver {
   driverType?: string | null;
   createdAt: string;
   updatedAt: string;
+  statusHistory?: DriverStatusHistoryEntry[];
 }
 
 // GET /driver/archived

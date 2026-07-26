@@ -1,7 +1,7 @@
 "use client";
 
-import { Spinner } from "../../UI";
-import { ORDER_STATUS_MAP } from "../OrderDetailBanel";
+import { Button, EmptyState, IconBtn, Spinner } from "../../UI";
+import { ORDER_STATUS_MAP } from "../OrderDetailModel";
 import type { ArchivedOrder } from "@/src/types/order";
 
 
@@ -51,11 +51,10 @@ export function ArchivedOrderTable({ orders, loading, search, page, pages, onVie
           <span style={{ fontSize: 13 }}>جارٍ التحميل…</span>
         </div>
       ) : orders.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-            {search ? `لا توجد نتائج لـ "${search}"` : "لا توجد طلبات في الأرشيف."}
-          </p>
-        </div>
+        <EmptyState
+          icon="🗄️"
+          title={search ? `لا توجد نتائج لـ "${search}"` : "لا توجد طلبات في الأرشيف."}
+        />
       ) : (
         <ul dir="rtl" style={{ listStyle: "none", margin: 0, padding: 0 }}>
           {orders.map((o, i) => {
@@ -88,14 +87,12 @@ export function ArchivedOrderTable({ orders, loading, search, page, pages, onVie
                   {s.label}
                 </span>
                 <div style={{ display: "flex", justifyContent: "center" }}>
-                  <button type="button" title={`عرض ${o.shipmentNumber}`} aria-label={`عرض ${o.shipmentNumber}`}
-                    onClick={e => { e.stopPropagation(); onView(o); }}
-                    style={{ width: 32, height: 32, borderRadius: "var(--radius-md)", border: "1px solid #A7F3D0", background: "#ECFDF5", color: "#059669", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <IconBtn title={`عرض ${o.shipmentNumber}`} color="#059669" bg="#ECFDF5" borderColor="#A7F3D0" onClick={() => onView(o)}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                       <circle cx="12" cy="12" r="3" />
                     </svg>
-                  </button>
+                  </IconBtn>
                 </div>
               </li>
             );
@@ -109,15 +106,24 @@ export function ArchivedOrderTable({ orders, loading, search, page, pages, onVie
             صفحة <strong style={{ color: "var(--color-text-primary)" }}>{page}</strong> من <strong style={{ color: "var(--color-text-primary)" }}>{pages}</strong>
           </span>
           <div style={{ display: "flex", gap: "0.5rem" }}>
-            {[
-              { label: "السابق", action: () => onPageChange(Math.max(1, page - 1)),     disabled: page === 1     },
-              { label: "التالي", action: () => onPageChange(Math.min(pages, page + 1)), disabled: page === pages },
-            ].map(btn => (
-              <button key={btn.label} type="button" onClick={btn.action} disabled={btn.disabled}
-                style={{ borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border)", background: "var(--color-surface-muted)", padding: "0.375rem 0.875rem", fontSize: 12, color: "var(--color-text-secondary)", cursor: btn.disabled ? "not-allowed" : "pointer", opacity: btn.disabled ? 0.4 : 1, fontFamily: "var(--font-sans)" }}>
-                {btn.label}
-              </button>
-            ))}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onPageChange(Math.max(1, page - 1))}
+              disabled={page === 1}
+            >
+              السابق
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onPageChange(Math.min(pages, page + 1))}
+              disabled={page === pages}
+            >
+              التالي
+            </Button>
           </div>
         </div>
       )}

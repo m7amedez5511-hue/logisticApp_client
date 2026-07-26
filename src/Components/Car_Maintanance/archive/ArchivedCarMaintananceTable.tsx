@@ -1,6 +1,6 @@
 "use client";
 
-import { Spinner } from "../../UI";
+import { Button, EmptyState, IconBtn, Spinner } from "../../UI";
 import { fmtDateShort, fmtCost } from "@/src/types/carMaintanance";
 import type { CarMaintenance } from "@/src/types/carMaintanance";
 
@@ -14,17 +14,6 @@ const thStyle: React.CSSProperties = {
   color: "var(--color-text-muted)", background: "var(--color-surface-muted)",
   borderBottom: "1px solid var(--color-border)",
 };
-
-function IconBtn({ onClick, title, color, bg, borderColor, children }: {
-  onClick: () => void; title: string; color: string; bg: string; borderColor: string; children: React.ReactNode;
-}) {
-  return (
-    <button type="button" title={title} aria-label={title} onClick={e => { e.stopPropagation(); onClick(); }}
-      style={{ width: 32, height: 32, borderRadius: "var(--radius-md)", border: `1px solid ${borderColor}`, background: bg, color, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "opacity 150ms" }}>
-      {children}
-    </button>
-  );
-}
 
 interface ArchivedCarMaintenanceTableProps {
   records:      CarMaintenance[];
@@ -60,11 +49,10 @@ export function ArchivedCarMaintenanceTable({
           <span style={{ fontSize: 13 }}>جارٍ التحميل…</span>
         </div>
       ) : records.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-            {search ? `لا توجد نتائج لـ "${search}"` : "لا توجد سجلات صيانة في الأرشيف."}
-          </p>
-        </div>
+        <EmptyState
+          icon="🔧"
+          title={search ? `لا توجد نتائج لـ "${search}"` : "لا توجد سجلات صيانة في الأرشيف."}
+        />
       ) : (
         <ul dir="rtl" style={{ listStyle: "none", margin: 0, padding: 0 }}>
           {records.map((r, i) => (
@@ -114,10 +102,9 @@ export function ArchivedCarMaintenanceTable({
               { label: "السابق", action: () => onPageChange(Math.max(1, page - 1)),     disabled: page === 1     },
               { label: "التالي", action: () => onPageChange(Math.min(pages, page + 1)), disabled: page === pages },
             ].map(btn => (
-              <button key={btn.label} type="button" onClick={btn.action} disabled={btn.disabled}
-                style={{ borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border)", background: "var(--color-surface-muted)", padding: "0.375rem 0.875rem", fontSize: 12, color: "var(--color-text-secondary)", cursor: btn.disabled ? "not-allowed" : "pointer", opacity: btn.disabled ? 0.4 : 1, fontFamily: "var(--font-sans)" }}>
+              <Button key={btn.label} type="button" variant="secondary" size="sm" onClick={btn.action} disabled={btn.disabled}>
                 {btn.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>

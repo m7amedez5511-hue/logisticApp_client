@@ -16,6 +16,8 @@ interface ModalProps {
   subtitle?: string;
   /** ARIA role for the dialog panel — "alertdialog" for destructive/confirm flows */
   role?: "dialog" | "alertdialog";
+  /** Stacking order — bump this for a modal nested inside another modal (default 50) */
+  zIndex?: number;
 }
 
 const MODAL_SIZES: Record<NonNullable<ModalProps["size"]>, string> = {
@@ -33,6 +35,7 @@ export function Modal({
   size = "md",
   subtitle,
   role = "dialog",
+  zIndex = 50,
 }: ModalProps) {
   // Escape key to close
   useEffect(() => {
@@ -47,7 +50,7 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex }}>
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-[var(--color-slate-900)]/50 backdrop-blur-sm"

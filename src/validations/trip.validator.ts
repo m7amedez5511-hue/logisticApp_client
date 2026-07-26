@@ -86,11 +86,13 @@ export const createTripSchema = yup.object({
 
   notes: yup
     .string()
+    .transform((value) => (value === "" ? undefined : value))
     .min(2, "الملاحظات يجب أن تكون حرفين على الأقل") // doc
     .optional(),
 
   endReason: yup
     .string()
+    .transform((value) => (value === "" ? undefined : value))
     .min(2, "سبب الانتهاء يجب أن يكون حرفين على الأقل") // doc
     .optional(),
 });
@@ -159,11 +161,13 @@ export const updateTripSchema = yup.object({
 
   notes: yup
     .string()
+    .transform((value) => (value === "" ? undefined : value))
     .min(2, "الملاحظات يجب أن تكون حرفين على الأقل")
     .optional(),
 
   endReason: yup
     .string()
+    .transform((value) => (value === "" ? undefined : value))
     .min(2, "سبب الانتهاء يجب أن يكون حرفين على الأقل")
     .optional(),
 

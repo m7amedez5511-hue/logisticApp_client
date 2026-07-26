@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Spinner } from "../UI";
+import { Alert, Badge, Button, IconBtn, Spinner } from "../UI";
 import { CarImageGallery } from "./CarImageGallery";
 import { useCarDetail } from "@/src/hooks/useCars";
 import { STATUS_MAP, INS_MAP, fmtDate, isExpiringSoon } from "@/src/types/car";
@@ -17,7 +17,7 @@ interface CarDetailPanelProps {
   onDelete: (car: Car) => void;
 }
 
-// ── Row component ─────────────────────────────────────────────────────────────
+// ── Row component (no template exists for a plain label/value row) ────────────
 
 function DetailRow({ label, value, mono = false, warn = false }: {
   label: string; value: string; mono?: boolean; warn?: boolean;
@@ -65,7 +65,9 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
         }}
       />
 
-      {/* Panel */}
+      {/* Panel — a side drawer, not a centered dialog, so it's kept as a
+          custom <aside> rather than the shared <Modal/> (which is
+          centered-only and has no drawer variant). */}
       <aside
         aria-label="تفاصيل المركبة"
         style={{
@@ -96,10 +98,15 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
                 </h2>
               )}
             </div>
-            <button type="button" onClick={onClose} aria-label="إغلاق"
-              style={{ width: 34, height: 34, borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface)", cursor: "pointer", fontSize: 18, color: "var(--color-text-muted)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              ×
-            </button>
+            <IconBtn
+              title="إغلاق"
+              color="var(--color-text-muted)"
+              bg="var(--color-surface)"
+              borderColor="var(--color-border)"
+              onClick={onClose}
+            >
+              <span style={{ fontSize: 18, lineHeight: 1 }}>×</span>
+            </IconBtn>
           </div>
         </div>
 
@@ -112,16 +119,14 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
             </div>
           )}
 
-          {error && (
-            <div style={{ borderRadius: "var(--radius-md)", background: "#FEF2F2", border: "1px solid #FECACA", padding: "0.75rem 1rem", fontSize: 13, color: "#DC2626" }}>
-              ⚠ {error}
-            </div>
-          )}
+          {error && <Alert type="error" message={error} />}
 
           {car && !loading && (
             <>
               {/* Status badges */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: "1.25rem" }}>
+                {/* Dynamic per-status colors come from STATUS_MAP / INS_MAP, which
+                    don't map cleanly onto the fixed Badge color palette — kept custom. */}
                 {(() => {
                   const s = STATUS_MAP[car.currentStatus];
                   return (
@@ -138,11 +143,7 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
                     </span>
                   );
                 })()}
-                {!car.isActive && (
-                  <span style={{ borderRadius: "var(--radius-full)", border: "1px solid #FECACA", background: "#FEF2F2", padding: "0.3rem 0.875rem", fontSize: 12, fontWeight: 700, color: "#DC2626" }}>
-                    محذوف
-                  </span>
-                )}
+                {!car.isActive && <Badge label="محذوف" color="red" />}
               </div>
 
               {/* Section: Basic Info */}
@@ -227,38 +228,39 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
           }}>
             {/* Row 1: secondary views */}
             <div style={{ display: "flex", gap: "0.75rem" }}>
-              <button type="button" onClick={() => setGallery(true)}
-                style={{ flex: 1, height: 40, borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface)", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "var(--font-sans)" }}>
+              <Button type="button" variant="secondary" style={{ flex: 1 }} onClick={() => setGallery(true)}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" />
                   <circle cx="8.5" cy="8.5" r="1.5" />
                   <polyline points="21 15 16 10 5 21" />
                 </svg>
                 الصور
-              </button>
-              <button type="button" onClick={() => router.push(`/dashboard/cars/${car.id}/maintenance`)}
-                style={{ flex: 1, height: 40, borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface)", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "var(--font-sans)" }}>
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                style={{ flex: 1 }}
+                onClick={() => router.push(`/dashboard/cars/${car.id}/maintenance`)}
+              >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
                 </svg>
                 عرض تاريخ الصيانة
-              </button>
+              </Button>
             </div>
 
             {/* Row 2: primary edit / delete */}
             <div style={{ display: "flex", gap: "0.75rem" }}>
-              <button type="button" onClick={() => onEdit(car)}
-                style={{ flex: 2, height: 40, borderRadius: "var(--radius-md)", border: "none", background: "var(--color-brand-600)", fontSize: 13, fontWeight: 700, color: "#FFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "var(--font-sans)" }}>
+              <Button type="button" variant="primary" style={{ flex: 2 }} onClick={() => onEdit(car)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
                 تعديل
-              </button>
-              <button type="button" onClick={() => onDelete(car)}
-                style={{ height: 40, padding: "0 1rem", borderRadius: "var(--radius-md)", border: "1px solid #FECACA", background: "#FEF2F2", fontSize: 13, fontWeight: 700, color: "#DC2626", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+              </Button>
+              <Button type="button" variant="danger" onClick={() => onDelete(car)}>
                 حذف
-              </button>
+              </Button>
             </div>
           </div>
         )}

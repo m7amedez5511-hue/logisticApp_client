@@ -4,7 +4,7 @@
 
 import { useState, useCallback } from "react";
 import { Alert, Spinner, Toast, ArchiveButton, ConfirmDialog } from "@/src/Components/UI";
-import {  ORDER_STATUS_MAP } from "@/src/Components/Order/OrderDetailBanel";
+import {  ORDER_STATUS_MAP } from "@/src/Components/Order/OrderDetailModel";
 import { ArchivedOrdersModal } from "@/src/Components/Order/archive/ArchivedOrdersModal";
 import { useOrders } from "@/src/hooks/useOrder";
 import type { CreateOrderPayload, Order, UpdateOrderPayload } from "@/src/types/order";
@@ -276,6 +276,14 @@ export default function OrderComponent() {
             </p>
           ) : (
             <ul dir="rtl" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              {/* PERF NOTE: Rows are rendered inline via .map() below. At the
+                  current pagination size (10-12 items) this is not a
+                  bottleneck. If page size increases (e.g. "show all" mode,
+                  a larger page-size selector, or removal of server-side
+                  pagination), extract an <OrderRow> component into
+                  src/Components/Order/ and wrap it in React.memo, passing
+                  only primitives and useCallback-stabilized handlers so
+                  memoization is actually effective. */}
               {orders.map((o, i) => {
                 const statusCfg = ORDER_STATUS_MAP[o.currentStatus] ?? ORDER_STATUS_MAP.Created;
 
@@ -283,19 +291,19 @@ export default function OrderComponent() {
                   <li
                     key={o.id}
                     onClick={() => setSelectedOrderId(o.id)}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: ROW_GRID_COLUMNS,
-                      alignItems: "center", gap: "0.5rem",
-                      padding: "0.875rem 1.5rem",
-                      borderBottom: "1px solid var(--color-border)",
-                      background: i % 2 !== 0 ? "var(--color-surface-muted)" : "transparent",
-                      fontSize: 13,
-                      cursor: "pointer",
-                      transition: "background 0.15s",
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedOrderId(o.id);
+                      }
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-hover, #F8FAFC)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 !== 0 ? "var(--color-surface-muted)" : "transparent")}
+                    aria-label={`عرض تفاصيل الطلب ${o.shipmentNumber}`}
+                    className={`grid items-center gap-2 px-6 py-3.5 text-[13px] border-b border-[var(--color-border)] cursor-pointer outline-none transition-colors duration-150 hover:bg-[var(--color-surface-hover,#F8FAFC)] focus-visible:bg-[var(--color-surface-hover,#F8FAFC)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-brand-600)] ${
+                      i % 2 !== 0 ? "bg-[var(--color-surface-muted)]" : "bg-transparent"
+                    }`}
+                    style={{ gridTemplateColumns: ROW_GRID_COLUMNS }}
                   >
                     <div>
                       <p style={{ fontWeight: 600, fontFamily: "var(--font-mono)", color: "#2563EB", margin: 0 }}>{o.shipmentNumber}</p>
@@ -324,9 +332,9 @@ export default function OrderComponent() {
 
                     {/* ── Inline row actions: edit / delete ──
                          stopPropagation is required on both buttons so the
-                         click doesn't bubble up to the <li> onClick and
-                         open the detail panel as well. */}
-                    <div style={{ display: "flex", gap: "0.4rem" }}>
+                         click doesn't bubble up to the row and open the
+                         detail panel as well. */}
+                    <div style={{ display: "flex", gap: "0.4rem" }} onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
                         aria-label="تعديل الطلب"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { orderService } from "@/src/services/order.service";
 import type {
   Order,
@@ -64,10 +64,20 @@ export function useOrders() {
   const [statusFilter, setStatusFilter] = useState("");
   const [notification, setNotification] = useState<ToastNotification | null>(null);
 
+  // Ref so the dismiss timer can be cleared if a new notification arrives
+  // before the previous one expires — prevents stale-closure memory leaks
+  // and premature/duplicate toast dismissal on rapid successive calls.
+  // Pattern copied from useTrip.ts for consistency across list hooks.
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const notify = useCallback((n: ToastNotification) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
     setNotification(n);
-    setTimeout(() => setNotification(null), 4000);
+    timerRef.current = setTimeout(() => setNotification(null), 4000);
   }, []);
+
+  // Clear pending timer on unmount
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   // ── Fetch orders ───────────────────────────────────────────────────────
   const loadOrders = useCallback(async (p: number, q: string, status: string) => {

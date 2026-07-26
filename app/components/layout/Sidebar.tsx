@@ -146,7 +146,20 @@ const GRAD = "linear-gradient(175deg, #1E3A8A 0%, #1D4ED8 60%, #1565C0 100%)";
 ══════════════════════════════════════════ */
 export function Sidebar() {
   const pathname = usePathname();
-  const user = getStoredUser();
+
+  // ⚠️ التقاط اليوزر بعد الـ mount بس، عشان أول render على الكلاينت
+  // يتطابق مع السيرفر (فاضي) ويتجنب hydration mismatch
+  const [user, setUser] = useState<ReturnType<typeof getStoredUser>>(null);
+
+  useEffect(() => {
+    setUser(getStoredUser());
+  }, []);
+
+  // إعادة القراءة بعد أي navigation (زي بعد الحفظ لو الصلاحيات اتغيرت)
+  useEffect(() => {
+    setUser(getStoredUser());
+  }, [pathname]);
+
   const permissions = user?.permissions ?? [];
   const { open, setOpen } = useSidebarDrawer();
 
@@ -363,7 +376,6 @@ function SidebarContent({
                   pathname.startsWith(item.href + "/"));
               return (
                 <Link
-                suppressHydrationWarning
                   key={item.href}
                   href={item.href}
                   title={compact ? item.label : undefined}

@@ -1,10 +1,13 @@
 "use client";
 
-import { Spinner } from "../../UI";
+import { Button, EmptyState, IconBtn, Spinner } from "../../UI";
 import { DRIVER_STATUS_MAP } from "@/src/types/driver";
 import type { ArchivedDriver } from "@/src/types/driver";
 
 // ── status badge ─────────────────────────────────────────────────────────────
+// Kept custom rather than swapped for <Badge/>: colors come dynamically from
+// DRIVER_STATUS_MAP (multiple statuses, each with its own color+dot), which
+// the shared Badge component's fixed palette doesn't cover.
 function StatusBadge({ status }: { status: ArchivedDriver["status"] }) {
   const cfg = DRIVER_STATUS_MAP[status] ?? DRIVER_STATUS_MAP.Inactive;
   return (
@@ -12,16 +15,6 @@ function StatusBadge({ status }: { status: ArchivedDriver["status"] }) {
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot }} />
       {cfg.label}
     </span>
-  );
-}
-
-// ── icon button ──────────────────────────────────────────────────────────────
-function IconBtn({ onClick, title, color, bg, borderColor, children }: { onClick: () => void; title: string; color: string; bg: string; borderColor: string; children: React.ReactNode }) {
-  return (
-    <button type="button" title={title} aria-label={title} onClick={e => { e.stopPropagation(); onClick(); }}
-      style={{ width: 32, height: 32, borderRadius: "var(--radius-md)", border: `1px solid ${borderColor}`, background: bg, color, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "opacity 150ms" }}>
-      {children}
-    </button>
   );
 }
 
@@ -75,11 +68,10 @@ export function ArchivedDriverTable({ drivers, loading, search, page, pages, onV
         </div>
       ) : drivers.length === 0 ? (
         /* empty state */
-        <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-            {search ? `لا توجد نتائج لـ "${search}"` : "لا يوجد سائقون في الأرشيف."}
-          </p>
-        </div>
+        <EmptyState
+          icon="🗄️"
+          title={search ? `لا توجد نتائج لـ "${search}"` : "لا يوجد سائقون في الأرشيف."}
+        />
       ) : (
         /* data rows */
         <ul dir="rtl" style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -124,15 +116,24 @@ export function ArchivedDriverTable({ drivers, loading, search, page, pages, onV
             صفحة <strong style={{ color: "var(--color-text-primary)" }}>{page}</strong> من <strong style={{ color: "var(--color-text-primary)" }}>{pages}</strong>
           </span>
           <div style={{ display: "flex", gap: "0.5rem" }}>
-            {[
-              { label: "السابق", action: () => onPageChange(Math.max(1, page - 1)),     disabled: page === 1     },
-              { label: "التالي", action: () => onPageChange(Math.min(pages, page + 1)), disabled: page === pages },
-            ].map(btn => (
-              <button key={btn.label} type="button" onClick={btn.action} disabled={btn.disabled}
-                style={{ borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border)", background: "var(--color-surface-muted)", padding: "0.375rem 0.875rem", fontSize: 12, color: "var(--color-text-secondary)", cursor: btn.disabled ? "not-allowed" : "pointer", opacity: btn.disabled ? 0.4 : 1, fontFamily: "var(--font-sans)" }}>
-                {btn.label}
-              </button>
-            ))}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onPageChange(Math.max(1, page - 1))}
+              disabled={page === 1}
+            >
+              السابق
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onPageChange(Math.min(pages, page + 1))}
+              disabled={page === pages}
+            >
+              التالي
+            </Button>
           </div>
         </div>
       )}

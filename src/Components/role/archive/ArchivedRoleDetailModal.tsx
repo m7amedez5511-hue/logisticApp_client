@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Spinner } from "../../UI";
+import { Alert, Button, Modal, Spinner } from "../../UI";
 import { getStoredToken } from "@/src/lib/auth";
 import { archivedRoleService } from "@/src/services/archive/archivedRole.service";
 import type { ArchivedRole } from "@/src/types/role";
@@ -12,6 +12,8 @@ interface ArchivedRoleDetailModalProps {
 }
 
 // ── small helper components ───────────────────────────────────────────────────
+// (No equivalents in the shared UI kit — purpose-built layouts, not generic
+// form/action controls, so they stay custom.)
 function DetailRow({ label, value }: { label: string; value?: string | null }) {
   return (
     <div style={{
@@ -29,6 +31,8 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
+// Kept custom rather than swapped for <Badge/>: Badge only renders a label
+// pill (no dot indicator), and the pulse-dot is the whole point of this chip.
 function StatusBadge({ active }: { active: boolean }) {
   return (
     <span style={{
@@ -69,29 +73,22 @@ export function ArchivedRoleDetailModal({ roleId, onClose }: ArchivedRoleDetailM
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
-  // close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
-
   // fetch archived role details on mount
   useEffect(() => {
-  let cancelled = false;
-  (async () => {
-    try {
-      const token = getStoredToken();
-      const data = await archivedRoleService.getByIdUnwrapped(roleId, token);
-      if (!cancelled) setRole(data);
-    } catch {
-      if (!cancelled) setError("تعذّر تحميل بيانات الدور المؤرشف. يرجى المحاولة لاحقاً.");
-    } finally {
-      if (!cancelled) setLoading(false);
-    }
-  })();
-  return () => { cancelled = true; };
-}, [roleId]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = getStoredToken();
+        const data = await archivedRoleService.getByIdUnwrapped(roleId, token);
+        if (!cancelled) setRole(data);
+      } catch {
+        if (!cancelled) setError("تعذّر تحميل بيانات الدور المؤرشف. يرجى المحاولة لاحقاً.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [roleId]);
 
   // ── helpers ───────────────────────────────────────────────────────────────
   const fmt = (iso?: string | null) =>
@@ -99,135 +96,59 @@ export function ArchivedRoleDetailModal({ roleId, onClose }: ArchivedRoleDetailM
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
-    <div
-      role="dialog" aria-modal="true" aria-labelledby="archived-role-detail-title"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 55,
-        background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem",
-      }}
+    <Modal
+      open
+      title={role?.name ?? "عرض الدور"}
+      subtitle="دور مؤرشف"
+      onClose={onClose}
+      zIndex={60}
+      size="md"
+      footer={
+        <Button type="button" variant="secondary" onClick={onClose}>
+          إغلاق
+        </Button>
+      }
     >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: 480,
-          background: "var(--color-surface)",
-          borderRadius: "var(--radius-2xl)",
-          border: "1px solid var(--color-border)",
-          boxShadow: "0 24px 64px rgba(0,0,0,.18)",
-          overflow: "hidden",
-          display: "flex", flexDirection: "column",
-        }}
-      >
-        {/* ── header ── */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "1.25rem 1.5rem",
-          borderBottom: "1px solid var(--color-border)",
-          background: "var(--color-surface-muted)",
-        }}>
-          <div>
-            <p style={{ fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", color: "#EA580C", fontWeight: 600, margin: 0 }}>
-              دور مؤرشف
-            </p>
-            <h2 id="archived-role-detail-title" style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text-primary)", margin: "4px 0 0" }}>
-              {role?.name ?? "عرض الدور"}
-            </h2>
-          </div>
-          <button
-            type="button" onClick={onClose} aria-label="إغلاق"
-            style={{
-              width: 34, height: 34, borderRadius: "var(--radius-md)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              cursor: "pointer", fontSize: 18,
-              color: "var(--color-text-muted)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >
-            ×
-          </button>
+      {/* loading */}
+      {loading && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "3rem 0", color: "var(--color-text-muted)" }}>
+          <Spinner size="sm" className="text-blue-600" />
+          <span style={{ fontSize: 13 }}>جارٍ التحميل…</span>
         </div>
+      )}
 
-        {/* ── body ── */}
-        <div style={{ padding: "1.5rem", overflowY: "auto", maxHeight: "70vh" }}>
+      {/* error — fallback UI on API failure */}
+      {!loading && error && <Alert type="error" message={error} />}
 
-          {/* loading */}
-          {loading && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "3rem 0", color: "var(--color-text-muted)" }}>
-              <Spinner size="sm" className="text-blue-600" />
-              <span style={{ fontSize: 13 }}>جارٍ التحميل…</span>
-            </div>
-          )}
+      {/* content */}
+      {!loading && role && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }} dir="rtl">
 
-          {/* error — fallback UI on API failure */}
-          {!loading && error && (
-            <div style={{
-              padding: "1rem 1.25rem",
-              borderRadius: "var(--radius-lg)",
-              background: "#FEF2F2", border: "1px solid #FECACA",
-              fontSize: 13, color: "#991B1B", fontWeight: 500,
-              textAlign: "center",
-            }}>
-              {error}
-            </div>
-          )}
-
-          {/* content */}
-          {!loading && role && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 0 }} dir="rtl">
-
-              {/* icon + name + status row */}
-              <div style={{
-                display: "flex", alignItems: "center", gap: "1rem",
-                padding: "0 0 1.25rem",
-                borderBottom: "1px solid var(--color-border)",
-                marginBottom: "0.25rem",
-              }}>
-                <RoleIcon />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text-primary)", margin: 0 }}>{role.name}</p>
-                  <p style={{ marginTop: 3, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-text-muted)" }}>
-                    #{role.id}
-                  </p>
-                  <div style={{ marginTop: 8 }}>
-                    <StatusBadge active={role.isActive} />
-                  </div>
-                </div>
+          {/* icon + name + status row */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: "1rem",
+            padding: "0 0 1.25rem",
+            borderBottom: "1px solid var(--color-border)",
+            marginBottom: "0.25rem",
+          }}>
+            <RoleIcon />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text-primary)", margin: 0 }}>{role.name}</p>
+              <p style={{ marginTop: 3, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-text-muted)" }}>
+                #{role.id}
+              </p>
+              <div style={{ marginTop: 8 }}>
+                <StatusBadge active={role.isActive} />
               </div>
-
-              {/* detail rows */}
-              <DetailRow label="الوصف"          value={role.description} />
-              <DetailRow label="تاريخ الإنشاء"   value={fmt(role.createdAt)} />
-              <DetailRow label="آخر تحديث"       value={fmt(role.updatedAt)} />
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* ── footer ── */}
-        <div style={{
-          padding: "1rem 1.5rem",
-          borderTop: "1px solid var(--color-border)",
-          background: "var(--color-surface-muted)",
-          display: "flex", justifyContent: "flex-end",
-        }}>
-          <button
-            type="button" onClick={onClose}
-            style={{
-              height: 40, padding: "0 1.5rem",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              fontSize: 13, fontWeight: 600,
-              color: "var(--color-text-secondary)",
-              cursor: "pointer", fontFamily: "var(--font-sans)",
-            }}
-          >
-            إغلاق
-          </button>
+          {/* detail rows */}
+          <DetailRow label="الوصف"          value={role.description} />
+          <DetailRow label="تاريخ الإنشاء"   value={fmt(role.createdAt)} />
+          <DetailRow label="آخر تحديث"       value={fmt(role.updatedAt)} />
         </div>
-      </div>
-    </div>
+      )}
+    </Modal>
   );
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { archivedDriverService } from "@/src/services/archive/archivedDriver.service";
 import type { ArchivedDriver } from "@/src/types/driver";
+import type { ToastNotification } from "@/src/Components/UI";
 
 /**
  * Loads and paginates the archived drivers list, mirroring useArchivedUsers.
@@ -14,7 +15,12 @@ export function useArchivedDrivers() {
   const [pages, setPages] = useState(1);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<ToastNotification | null>(null);
+
+  const notify = useCallback((n: ToastNotification) => {
+    setNotification(n);
+    setTimeout(() => setNotification(null), 4000);
+  }, []);
 
   /** Fetches the current page/search slice of archived drivers from the API. */
   const load = useCallback(async () => {
@@ -25,13 +31,12 @@ export function useArchivedDrivers() {
       setDrivers(res.data.data);
       setTotal(res.data.meta.total);
       setPages(res.data.meta.totalPages);
-      setError(null);
     } catch {
-      setError("تعذّر تحميل قائمة السائقين المؤرشفين. يرجى المحاولة لاحقاً.");
+      notify({ type: "error", message: "تعذّر تحميل قائمة السائقين المؤرشفين. يرجى المحاولة لاحقاً." });
     } finally {
       setLoading(false);
     }
-  }, [page, search]);
+  }, [page, search, notify]);
 
   useEffect(() => { queueMicrotask(load); }, [load]);
 
@@ -42,8 +47,9 @@ export function useArchivedDrivers() {
   };
 
   return {
-    drivers, loading, total, pages, page, search, error,
-    setPage, handleSearch, clearError: () => setError(null),
+    drivers, loading, total, pages, page, search,
+    notification,
+    setPage, handleSearch, clearNotification: () => setNotification(null),
     refresh: load,
   };
 }

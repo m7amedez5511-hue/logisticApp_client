@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Spinner ,Toast} from "../UI";
+import { Button, Toast } from "../UI";
 import { tripService } from "@/src/services/trip.service";
 import { getStoredToken } from "@/src/lib/auth";
 import type { TripNotification } from "@/src/hooks/useTrip";
@@ -78,30 +78,9 @@ export function TripReportPanel({ tripId }: TripReportPanelProps) {
           إنشاء تقرير الرحلة
         </p>
 
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={loading}
-          style={{
-            height: 38,
-            padding: "0 1.25rem",
-            borderRadius: "var(--radius-md)",
-            border: "none",
-            fontSize: 13,
-            fontWeight: 700,
-            color: "#FFF",
-            background: loading ? "var(--color-brand-400)" : "var(--color-brand-600)",
-            cursor: loading ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontFamily: "var(--font-sans)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {loading && <Spinner size="sm" className="text-white" />}
+        <Button type="button" onClick={handleGenerate} loading={loading}>
           {loading ? "جارٍ الإنشاء…" : "إنشاء تقرير البيان"}
-        </button>
+        </Button>
       </div>
 
       <Toast

@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { Alert, Spinner } from "../UI";
+import { Alert, Button, Input, Modal } from "../UI";
 import {
   createAddressSchema,
   updateAddressSchema,
@@ -13,32 +12,9 @@ import {
 import type { ClientAddress } from "@/src/types/client_adresses";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
+// Only section-title styling is left here — every input/label/error visual
+// is now owned by the shared <Input /> component.
 const S = {
-  input: {
-    width: "100%",
-    height: 40,
-    padding: "0 0.75rem",
-    borderRadius: "var(--radius-md)",
-    border: "1px solid var(--color-border)",
-    background: "var(--color-surface)",
-    fontSize: 13,
-    color: "var(--color-text-primary)",
-    outline: "none",
-    fontFamily: "var(--font-sans)",
-  } as React.CSSProperties,
-  label: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: 6,
-    fontSize: 12,
-    fontWeight: 600,
-    color: "var(--color-text-secondary)",
-  } as React.CSSProperties,
-  errorText: {
-    fontSize: 11,
-    color: "var(--color-danger)",
-    fontWeight: 500,
-  } as React.CSSProperties,
   sectionTitle: {
     fontSize: 11,
     fontWeight: 700,
@@ -50,11 +26,7 @@ const S = {
   } as React.CSSProperties,
 };
 
-const withError = (hasError: boolean): React.CSSProperties => ({
-  ...S.input,
-  border: hasError ? "1px solid var(--color-danger)" : "1px solid var(--color-border)",
-  background: hasError ? "#FEF2F2" : S.input.background,
-});
+const FORM_ID = "address-form";
 
 // ── Props ──────────────────────────────────────────────────────────────────
 interface AddressFormModalProps {
@@ -138,12 +110,6 @@ export function AddressFormModal({ editAddress, onClose, onSubmit }: AddressForm
     location: locationErr = {},
   } = errors as AddressErrors;
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
-
   const submitHandler = async (data: CreateAddressFormValues | UpdateAddressFormValues) => {
     const ok = await onSubmit(data);
     if (ok) {
@@ -154,260 +120,178 @@ export function AddressFormModal({ editAddress, onClose, onSubmit }: AddressForm
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="addr-modal-title"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 50,
-        background: "rgba(15,23,42,0.55)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1rem",
-      }}
+    <Modal
+      open
+      title={isNew ? "عنوان جديد" : editAddress?.label ?? ""}
+      subtitle={isNew ? "إضافة عنوان" : "تعديل عنوان"}
+      onClose={onClose}
+      size="md"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={isSubmitting}>
+            إلغاء
+          </Button>
+          <Button type="submit" form={FORM_ID} loading={isSubmitting}>
+            {isNew ? "إضافة العنوان" : "حفظ التغييرات"}
+          </Button>
+        </>
+      }
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 560,
-          maxHeight: "90vh",
-          background: "var(--color-surface)",
-          borderRadius: "var(--radius-2xl)",
-          border: "1px solid var(--color-border)",
-          boxShadow: "0 24px 64px rgba(0,0,0,.18)",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
+      <form
+        id={FORM_ID}
+        onSubmit={handleSubmit(submitHandler)}
+        noValidate
+        style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
       >
-        {/* Header */}
-        <div
-          style={{
-            flexShrink: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "1.25rem 1.5rem",
-            borderBottom: "1px solid var(--color-border)",
-            background: "var(--color-surface-muted)",
-          }}
-        >
-          <div>
-            <p style={{ fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", color: "#2563EB", fontWeight: 600, margin: 0 }}>
-              {isNew ? "إضافة عنوان" : "تعديل عنوان"}
-            </p>
-            <h2
-              id="addr-modal-title"
-              style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text-primary)", margin: "4px 0 0" }}
-            >
-              {isNew ? "عنوان جديد" : editAddress?.label}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="إغلاق"
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              cursor: "pointer",
-              fontSize: 18,
-              color: "var(--color-text-muted)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            ×
-          </button>
+        {errors.label?.type === "manual" && (
+          <Alert type="error" message={errors.label.message ?? ""} onClose={() => {}} />
+        )}
+
+        {/* Address Meta */}
+        <p style={S.sectionTitle}>بيانات العنوان</p>
+
+        <Input
+          label={`نوع العنوان${isNew ? " *" : ""}`}
+          {...register("label")}
+          error={errors.label && errors.label.type !== "manual" ? errors.label.message : undefined}
+          placeholder="مثال: منزل / مكتب / شحن"
+          dir="rtl"
+        />
+
+        <Input
+          label="اسم الفرع (اختياري)"
+          {...register("branchName")}
+          placeholder="فرع الرياض"
+          dir="rtl"
+        />
+
+        {/* Address Details */}
+        <p style={S.sectionTitle}>تفاصيل العنوان</p>
+
+        <Input
+          label={`الشارع / العنوان التفصيلي${isNew ? " *" : ""}`}
+          {...register("details.street")}
+          error={detailsErr.street?.message}
+          placeholder="شارع الملك فهد، مبنى 12"
+          dir="rtl"
+        />
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <Input
+            label={`المدينة${isNew ? " *" : ""}`}
+            {...register("details.city")}
+            error={detailsErr.city?.message}
+            placeholder="الرياض"
+            dir="rtl"
+          />
+          <Input
+            label="المنطقة"
+            {...register("details.state")}
+            error={detailsErr.state?.message}
+            placeholder="منطقة الرياض"
+            dir="rtl"
+          />
         </div>
 
-        {/* Scrollable body */}
-        <div style={{ overflowY: "auto", flex: 1 }}>
-          <form
-            onSubmit={handleSubmit(submitHandler)}
-            noValidate
-            style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}
-          >
-            {errors.label?.type === "manual" && (
-              <Alert type="error" message={errors.label.message ?? ""} onClose={() => {}} />
-            )}
-
-            {/* Address Meta */}
-            <p style={S.sectionTitle}>بيانات العنوان</p>
-
-            <label style={S.label}>
-              نوع العنوان
-              <input
-                {...register("label")}
-                style={withError(!!errors.label && errors.label.type !== "manual")}
-                placeholder="مثال: منزل / مكتب / شحن"
-                dir="rtl"
-              />
-              {errors.label && errors.label.type !== "manual" && (
-                <span style={S.errorText}>{errors.label.message}</span>
-              )}
-            </label>
-
-            <label style={S.label}>
-              اسم الفرع (اختياري)
-              <input {...register("branchName")} style={S.input} placeholder="فرع الرياض" dir="rtl" />
-            </label>
-
-            {/* Address Details */}
-            <p style={S.sectionTitle}>تفاصيل العنوان</p>
-
-            <label style={S.label}>
-              الشارع / العنوان التفصيلي {isNew && "*"}
-              <input
-                {...register("details.street")}
-                style={withError(!!detailsErr.street)}
-                placeholder="شارع الملك فهد، مبنى 12"
-                dir="rtl"
-              />
-              {detailsErr.street && <span style={S.errorText}>{detailsErr.street.message}</span>}
-            </label>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-              <label style={S.label}>
-                المدينة {isNew && "*"}
-                <input {...register("details.city")} style={withError(!!detailsErr.city)} placeholder="الرياض" dir="rtl" />
-                {detailsErr.city && <span style={S.errorText}>{detailsErr.city.message}</span>}
-              </label>
-              <label style={S.label}>
-                المنطقة
-                <input {...register("details.state")} style={withError(!!detailsErr.state)} placeholder="منطقة الرياض" dir="rtl" />
-                {detailsErr.state && <span style={S.errorText}>{detailsErr.state.message}</span>}
-              </label>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-              <label style={S.label}>
-                الحي (اختياري)
-                <input {...register("details.district")} style={S.input} placeholder="حي العليا" dir="rtl" />
-              </label>
-              <label style={S.label}>
-                رقم المبنى (اختياري)
-                <input {...register("details.buildingNo")} style={S.input} placeholder="1234" dir="ltr" />
-              </label>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-              <label style={S.label}>
-                رقم الوحدة (اختياري)
-                <input {...register("details.unitNo")} style={S.input} placeholder="5678" dir="ltr" />
-              </label>
-              <label style={S.label}>
-                الرقم الإضافي (اختياري)
-                <input {...register("details.additionalNo")} style={S.input} placeholder="0000" dir="ltr" />
-              </label>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-              <label style={S.label}>
-                الرمز البريدي (اختياري)
-                <input {...register("details.zipCode")} style={withError(!!detailsErr.zipCode)} placeholder="11564" dir="ltr" />
-                {detailsErr.zipCode && <span style={S.errorText}>{detailsErr.zipCode.message}</span>}
-              </label>
-              <label style={S.label}>
-                الدولة
-                <input {...register("details.country")} style={withError(!!detailsErr.country)} placeholder="SA" dir="ltr" />
-                {detailsErr.country && <span style={S.errorText}>{detailsErr.country.message}</span>}
-              </label>
-            </div>
-
-            <label style={S.label}>
-              الشقة / الطابق (اختياري)
-              <input {...register("details.apartment")} style={S.input} placeholder="الطابق الثالث" dir="rtl" />
-            </label>
-
-            {/* Contact Person */}
-            <p style={S.sectionTitle}>جهة الاتصال (اختياري)</p>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-              <label style={S.label}>
-                الاسم
-                <input {...register("contactPerson.name")} style={withError(!!contactErr.name)} placeholder="أحمد محمد" dir="rtl" />
-                {contactErr.name && <span style={S.errorText}>{contactErr.name.message}</span>}
-              </label>
-              <label style={S.label}>
-                رقم الهاتف
-                <input {...register("contactPerson.phone")} style={withError(!!contactErr.phone)} type="tel" placeholder="05xxxxxxxx" dir="ltr" />
-                {contactErr.phone && <span style={S.errorText}>{contactErr.phone.message}</span>}
-              </label>
-            </div>
-
-            {/* Coordinates */}
-            <p style={S.sectionTitle}>الإحداثيات الجغرافية {isNew && "*"}</p>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-              <label style={S.label}>
-                خط الطول (Longitude) {isNew && "*"}
-                <input {...register("location.coordinates.0" as never)} style={withError(!!locationErr.coordinates)} type="number" step="any" placeholder="46.6753" dir="ltr" />
-              </label>
-              <label style={S.label}>
-                خط العرض (Latitude) {isNew && "*"}
-                <input {...register("location.coordinates.1" as never)} style={withError(!!locationErr.coordinates)} type="number" step="any" placeholder="24.7136" dir="ltr" />
-                {locationErr.coordinates && <span style={S.errorText}>{locationErr.coordinates.message}</span>}
-              </label>
-            </div>
-
-            {/* Actions */}
-            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", paddingTop: "0.5rem" }}>
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                style={{
-                  height: 40,
-                  padding: "0 1.25rem",
-                  borderRadius: "var(--radius-md)",
-                  border: "1px solid var(--color-border)",
-                  background: "var(--color-surface)",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "var(--color-text-secondary)",
-                  cursor: isSubmitting ? "not-allowed" : "pointer",
-                  fontFamily: "var(--font-sans)",
-                }}
-              >
-                إلغاء
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                style={{
-                  height: 40,
-                  padding: "0 1.5rem",
-                  borderRadius: "var(--radius-md)",
-                  border: "none",
-                  background: isSubmitting ? "var(--color-brand-400)" : "var(--color-brand-600)",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: "#FFF",
-                  cursor: isSubmitting ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontFamily: "var(--font-sans)",
-                }}
-              >
-                {isSubmitting && <Spinner size="sm" className="text-white" />}
-                {isSubmitting ? "جارٍ الحفظ…" : isNew ? "إضافة العنوان" : "حفظ التغييرات"}
-              </button>
-            </div>
-          </form>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <Input
+            label="الحي (اختياري)"
+            {...register("details.district")}
+            placeholder="حي العليا"
+            dir="rtl"
+          />
+          <Input
+            label="رقم المبنى (اختياري)"
+            {...register("details.buildingNo")}
+            placeholder="1234"
+            dir="ltr"
+          />
         </div>
-      </div>
-    </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <Input
+            label="رقم الوحدة (اختياري)"
+            {...register("details.unitNo")}
+            placeholder="5678"
+            dir="ltr"
+          />
+          <Input
+            label="الرقم الإضافي (اختياري)"
+            {...register("details.additionalNo")}
+            placeholder="0000"
+            dir="ltr"
+          />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <Input
+            label="الرمز البريدي (اختياري)"
+            {...register("details.zipCode")}
+            error={detailsErr.zipCode?.message}
+            placeholder="11564"
+            dir="ltr"
+          />
+          <Input
+            label="الدولة"
+            {...register("details.country")}
+            error={detailsErr.country?.message}
+            placeholder="SA"
+            dir="ltr"
+          />
+        </div>
+
+        <Input
+          label="الشقة / الطابق (اختياري)"
+          {...register("details.apartment")}
+          placeholder="الطابق الثالث"
+          dir="rtl"
+        />
+
+        {/* Contact Person */}
+        <p style={S.sectionTitle}>جهة الاتصال (اختياري)</p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <Input
+            label="الاسم"
+            {...register("contactPerson.name")}
+            error={contactErr.name?.message}
+            placeholder="أحمد محمد"
+            dir="rtl"
+          />
+          <Input
+            label="رقم الهاتف"
+            {...register("contactPerson.phone")}
+            error={contactErr.phone?.message}
+            type="tel"
+            placeholder="05xxxxxxxx"
+            dir="ltr"
+          />
+        </div>
+
+        {/* Coordinates */}
+        <p style={S.sectionTitle}>الإحداثيات الجغرافية{isNew ? " *" : ""}</p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <Input
+            label={`خط الطول (Longitude)${isNew ? " *" : ""}`}
+            {...register("location.coordinates.0" as never)}
+            error={locationErr.coordinates?.message}
+            type="number"
+            step="any"
+            placeholder="46.6753"
+            dir="ltr"
+          />
+          <Input
+            label={`خط العرض (Latitude)${isNew ? " *" : ""}`}
+            {...register("location.coordinates.1" as never)}
+            error={locationErr.coordinates?.message}
+            type="number"
+            step="any"
+            placeholder="24.7136"
+            dir="ltr"
+          />
+        </div>
+      </form>
+    </Modal>
   );
 }

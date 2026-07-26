@@ -3,4 +3,3 @@
 export { ClientFormModal }    from "./Clientformmodal";
 export { ClientTable }        from "./Clienttable";
 export { AddressFormModal }   from "../Client_Adress/Addressformmodal";
-export { Toast } from "./Toast";

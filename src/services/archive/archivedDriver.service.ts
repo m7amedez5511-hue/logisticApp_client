@@ -2,7 +2,6 @@ import { get } from "../api";
 import type {
   ArchivedDriverListResponse,
   ArchivedDriverResponse,
-  ArchivedDriverStatusHistoryResponse,
 } from "@/src/types/driver";
 
 /**
@@ -36,17 +35,9 @@ export const archivedDriverService = {
   getById: (id: string, token: string | null) =>
     get<ArchivedDriverResponse>(`driver/archived/${id}`, token),
 
-  /**
-   * Fetches the status history for an archived driver.
-   * @param id - archived driver id
-   * @param token - auth token, or null if unauthenticated
-   */
-  getStatusHistory: (id: string, token: string | null) =>
-    get<ArchivedDriverStatusHistoryResponse>(`driver/archived/driverStatus/${id}`, token),
-  getAllUnwrapped: async (page, search, token) => {
+  getAllUnwrapped: async (page: number, search: string, token: string | null) => {
   const res = await archivedDriverService.getAll(page, search, token);
   return { items: res.data.data, total: res.data.meta.total, pages: res.data.meta.totalPages };
 },
-getByIdUnwrapped: async (id, token) => (await archivedDriverService.getById(id, token)).data,
-getStatusHistoryUnwrapped: async (id, token) => (await archivedDriverService.getStatusHistory(id, token)).data ?? [],
+getByIdUnwrapped: async (id: string, token: string | null) => (await archivedDriverService.getById(id, token)).data,
 };
