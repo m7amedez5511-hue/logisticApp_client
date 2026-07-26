@@ -421,9 +421,7 @@ export default function ClientAddressesPage() {
             onClick={() => router.push("/dashboard/clients")}
             style={{ marginBottom: 12 }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
+            <i className="ti ti-chevron-left" style={{ fontSize: 14 }} aria-hidden="true" />
             جميع العملاء
           </Button>
 
@@ -447,20 +445,14 @@ export default function ClientAddressesPage() {
               {/* CHANGE: custom <button> → Button variant="secondary" */}
               {client && (
                 <Button type="button" variant="secondary" onClick={() => setEditingClient(true)}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
+                  <i className="ti ti-edit" style={{ fontSize: 13 }} aria-hidden="true" />
                   تعديل بيانات العميل
                 </Button>
               )}
 
               {/* CHANGE: custom <button> → Button variant="primary" */}
               <Button type="button" variant="primary" onClick={() => setAddrFormTarget(null)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
+                <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
                 إضافة عنوان
               </Button>
             </div>

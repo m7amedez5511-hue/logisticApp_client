@@ -120,18 +120,7 @@ function PhotoCard({ url, label }: { url?: string | null; label: string }) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--color-text-hint)"
-            strokeWidth="1.5"
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21 15 16 10 5 21" />
-          </svg>
+          <i className="ti ti-photo" style={{ fontSize: 28, color: "var(--color-text-hint)" }} aria-hidden="true" />
         )}
       </div>
       {url && !imgError && (
@@ -456,10 +445,7 @@ export function DriverDetailPanel({
             </Button>
 
             <Button type="button" variant="secondary" onClick={() => onEdit(driver)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
+              <i className="ti ti-edit" style={{ fontSize: 14 }} aria-hidden="true" />
               تعديل
             </Button>
 

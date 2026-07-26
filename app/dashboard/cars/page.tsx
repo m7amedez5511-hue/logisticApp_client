@@ -182,9 +182,7 @@ function CarCard({
             fontFamily: "var(--font-sans)",
           }}
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-          </svg>
+          <i className="ti ti-tool" style={{ fontSize: 13 }} aria-hidden="true" />
           إرسال للصيانة
         </button>
 
@@ -319,10 +317,11 @@ export default function CarsPage() {
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
               {/* Search */}
               <div style={{ position: "relative", width: 256 }}>
-                <svg style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: "var(--color-text-hint)", pointerEvents: "none" }}
-                  fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-                </svg>
+                <i
+                  className="ti ti-search"
+                  aria-hidden="true"
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 16, color: "var(--color-text-hint)", pointerEvents: "none" }}
+                />
                 <input
                   type="text"
                   placeholder="بحث بالماركة أو اللوحة..."
@@ -357,9 +356,7 @@ export default function CarsPage() {
                   whiteSpace: "nowrap",
                 }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
+                <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
                 إضافة مركبة
               </button>
             </div>

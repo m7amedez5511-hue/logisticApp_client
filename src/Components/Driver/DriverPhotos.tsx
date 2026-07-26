@@ -79,18 +79,7 @@ export function PhotoCard({
             />
           </>
         ) : (
-          <svg
-            width="32"
-            height="32"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--color-text-hint)"
-            strokeWidth="1.5"
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21 15 16 10 5 21" />
-          </svg>
+          <i className="ti ti-photo" style={{ fontSize: 32, color: "var(--color-text-hint)" }} aria-hidden="true" />
         )}
       </div>
       {url && !imgError && (
@@ -110,4 +99,4 @@ export function PhotoCard({
       )}
     </div>
   );
-}
+} 

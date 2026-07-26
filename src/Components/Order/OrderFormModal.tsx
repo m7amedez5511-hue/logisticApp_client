@@ -372,10 +372,7 @@ export function OrderFormModal({
               ))}
             </Select>
             <Link href="/dashboard/clients" style={createLinkStyle} tabIndex={-1}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
+              <i className="ti ti-plus" style={{ fontSize: 11 }} aria-hidden="true" />
               إنشاء عميل جديد
             </Link>
           </div>
@@ -418,10 +415,7 @@ export function OrderFormModal({
               ))}
             </Select>
             <Link href="/dashboard/trips" style={createLinkStyle} tabIndex={-1}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
+              <i className="ti ti-plus" style={{ fontSize: 11 }} aria-hidden="true" />
               إنشاء رحلة جديدة
             </Link>
           </div>

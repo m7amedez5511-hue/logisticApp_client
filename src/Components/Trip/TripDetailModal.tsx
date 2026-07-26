@@ -1,8 +1,5 @@
 "use client";
 
-// src/Components/Trip/TripDetailModal.tsx
-// New — split out of the old single-file Trip module, mirroring
-// UserDetailModal.tsx / ArchivedDriverDetailModal.tsx for consistency.
 
 import { useEffect, useState } from "react";
 import { Alert, Button, Modal, Spinner } from "../UI";

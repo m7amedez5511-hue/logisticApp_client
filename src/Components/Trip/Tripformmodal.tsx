@@ -1,17 +1,5 @@
 "use client";
 
-// src/Components/Trip/TripFormModal.tsx
-// CHANGE: renamed from Tripformmodal.tsx (proper PascalCase, matches
-// UserFormModal.tsx / DriverFormModal.tsx). Split out of the old single-file
-// Trip module into TripFormModal.tsx / TripTable.tsx / TripDetailModal.tsx.
-// FIX 1: notes/endReason schema — empty string now transforms to undefined
-// before .min() runs, so leaving them blank on create no longer fails
-// validation despite .optional() (see trip.validator.ts).
-// FIX 2: edit-mode defaultValues now fall back to the nested driver/car/branch
-// ids, and setValue() re-applies the saved id once each dropdown's options
-// actually load — previously the <select> had no matching <option> yet when
-// defaultValues were first applied, so the old selection silently reset to "".
-
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";

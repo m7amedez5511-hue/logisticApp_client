@@ -1,9 +1,6 @@
 "use client";
 
-// src/Components/Trip/archive/ArchivedTripModal.tsx
-// Split out of the old ArchivedTripList.tsx — this is the top-level modal
-// wrapper (search bar + ArchivedTripTable + opens ArchivedTripDetailModal),
-// mirroring ArchivedDrivers.tsx / ArchivedUsersModal.tsx.
+
 
 import { useState } from "react";
 import { Alert, Input, Modal } from "@/src/Components/UI";
@@ -16,18 +13,7 @@ interface ArchivedTripModalProps {
 }
 
 const searchIcon = (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    aria-hidden="true"
-  >
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.35-4.35" />
-  </svg>
+  <i className="ti ti-search" style={{ fontSize: 16 }} aria-hidden="true" />
 );
 
 /**

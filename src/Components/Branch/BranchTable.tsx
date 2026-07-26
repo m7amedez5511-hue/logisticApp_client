@@ -1,134 +1,96 @@
 "use client";
 
-import { Badge, Button, EmptyState, IconBtn, Spinner } from "../UI";
+// src/Components/Branch/BranchTable.tsx
+// MIGRATED to ReusableTable + ActionButtons — same props, same visual
+// result as the original hand-rolled version. No changes required in
+// app/dashboard/branches/page.tsx.
+
+import { Badge, Button, ReusableTable, ActionButtons } from "../UI";
+import type { TableColumn } from "@/src/types/models";
 import type { Branch } from "@/src/types/branch";
 
-// ── card / header styles ─────────────────────────────────────────────────────
-const cardStyle: React.CSSProperties = {
-  borderRadius: "var(--radius-xl)", border: "1px solid var(--color-border)",
-  background: "var(--color-surface)", overflow: "hidden", boxShadow: "var(--shadow-card)",
-};
-const thStyle: React.CSSProperties = {
-  padding: "0.75rem 1.5rem", fontSize: 11, fontWeight: 700,
-  textTransform: "uppercase", letterSpacing: "0.2em",
-  color: "var(--color-text-muted)", background: "var(--color-surface-muted)",
-  borderBottom: "1px solid var(--color-border)",
-};
-
-// ── Props ────────────────────────────────────────────────────────────────────
 interface BranchTableProps {
-  branches:     Branch[];
-  loading:      boolean;
-  search:       string;
-  page:         number;
-  pages:        number;
-  onEdit:       (branch: Branch) => void;
-  onDelete:     (branch: Branch) => void;
-  onView:       (branch: Branch) => void;
-  onAddFirst:   () => void;
+  branches: Branch[];
+  loading: boolean;
+  search: string;
+  page: number;
+  pages: number;
+  onEdit: (branch: Branch) => void;
+  onDelete: (branch: Branch) => void;
+  onView: (branch: Branch) => void;
+  onAddFirst: () => void;
   onPageChange: (p: number) => void;
 }
 
-// ── main table ───────────────────────────────────────────────────────────────
-export function BranchTable({ branches, loading, search, page, pages, onEdit, onDelete, onView, onAddFirst, onPageChange }: BranchTableProps) {
+export function BranchTable({
+  branches, loading, search, page, pages,
+  onEdit, onDelete, onView, onAddFirst, onPageChange,
+}: BranchTableProps) {
+  const columns: TableColumn<Branch>[] = [
+    {
+      key: "name",
+      header: "اسم الفرع",
+      width: "2fr",
+      render: (b) => (
+        <div>
+          <p style={{ fontWeight: 600, color: "var(--color-text-primary)", margin: 0 }}>{b.name}</p>
+          <p style={{ marginTop: 2, fontSize: 11, color: "var(--color-text-muted)" }}>{b.street}</p>
+        </div>
+      ),
+    },
+    { key: "city", header: "المدينة", width: "1.5fr", render: (b) => b.city || "—" },
+    {
+      key: "phone",
+      header: "رقم الجوال",
+      width: "1.5fr",
+      render: (b) => (
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-text-secondary)" }}>
+          {b.phone ?? "—"}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "الحالة",
+      width: "1fr",
+      render: (b) => <Badge label={b.isActive ? "Active" : "Disabled"} color={b.isActive ? "green" : "red"} />,
+    },
+    {
+      key: "createdAt",
+      header: "تاريخ الانشاء",
+      width: "1fr",
+      align: "center",
+      render: (b) =>
+        new Date(b.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+    },
+  ];
+
   return (
-    <div style={cardStyle}>
-      {/* column headers */}
-      <div dir="rtl" style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 1.5fr 1fr 1fr 100px", ...thStyle }}>
-        <span>الفرع</span>
-        <span>المدينة</span>
-        <span>الهاتف</span>
-        <span>الحالة</span>
-        <span style={{ textAlign: "center" }}>تاريخ الإنشاء</span>
-        <span style={{ textAlign: "center" }}>إجراءات</span>
-      </div>
-
-      {/* loading state */}
-      {loading ? (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: "4rem 0", color: "var(--color-text-muted)" }}>
-          <Spinner size="sm" className="text-blue-600" />
-          <span style={{ fontSize: 13 }}>جارٍ التحميل…</span>
-        </div>
-      ) : branches.length === 0 ? (
-        /* empty state */
-        <EmptyState
-          icon="🏢"
-          title={search ? `لا توجد نتائج لـ "${search}"` : "لا توجد فروع لعرضها."}
-          action={
-            !search && (
-              <Button type="button" variant="ghost" size="sm" onClick={onAddFirst}>
-                أضف أول فرع
-              </Button>
-            )
-          }
+    <ReusableTable
+      columns={columns}
+      data={branches}
+      loading={loading}
+      search={search}
+      page={page}
+      pages={pages}
+      onPageChange={onPageChange}
+      emptyIcon="🏢"
+      emptyDescription={!search ? "No branches to display." : undefined}
+      emptyAction={
+        !search && (
+          <Button type="button" variant="ghost" size="sm" onClick={onAddFirst}>
+            Add first branch
+          </Button>
+        )
+      }
+      renderActions={(b) => (
+        <ActionButtons
+          itemLabel={b.name}
+          onView={() => onView(b)}
+          onEdit={() => onEdit(b)}
+          onDelete={() => onDelete(b)}
         />
-      ) : (
-        /* data rows */
-        <ul dir="rtl" style={{ listStyle: "none", margin: 0, padding: 0 }}>
-          {branches.map((b, i) => (
-            <li key={b.id} style={{
-              display: "grid", gridTemplateColumns: "2fr 1.5fr 1.5fr 1fr 1fr 100px",
-              alignItems: "center", gap: "0.5rem", padding: "0.875rem 1.5rem",
-              borderBottom: "1px solid var(--color-border)",
-              background: i % 2 !== 0 ? "var(--color-surface-muted)" : "transparent",
-              fontSize: 13,
-            }}>
-              <div>
-                <p style={{ fontWeight: 600, color: "var(--color-text-primary)", margin: 0 }}>{b.name}</p>
-                <p style={{ marginTop: 2, fontSize: 11, color: "var(--color-text-muted)" }}>{b.street}</p>
-              </div>
-              <span style={{ color: "var(--color-text-secondary)" }}>{b.city || "—"}</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-text-secondary)" }}>{b.phone ?? "—"}</span>
-              <Badge label={b.isActive ? "نشط" : "معطل"} color={b.isActive ? "green" : "red"} />
-              <span style={{ textAlign: "center", fontSize: 11, color: "var(--color-text-muted)" }}>
-                {new Date(b.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" })}
-              </span>
-              <div style={{ display: "flex", justifyContent: "center", gap: 4 }}>
-                {/* view */}
-                <IconBtn title={`عرض ${b.name}`} color="#059669" bg="#ECFDF5" borderColor="#A7F3D0" onClick={() => onView(b)}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                </IconBtn>
-                {/* edit */}
-                <IconBtn title={`تعديل ${b.name}`} color="#1D4ED8" bg="#EFF6FF" borderColor="#BFDBFE" onClick={() => onEdit(b)}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </IconBtn>
-                {/* delete */}
-                <IconBtn title={`حذف ${b.name}`} color="#DC2626" bg="#FEF2F2" borderColor="#FECACA" onClick={() => onDelete(b)}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                  </svg>
-                </IconBtn>
-              </div>
-            </li>
-          ))}
-        </ul>
       )}
-
-      {/* pagination */}
-      {pages > 1 && (
-        <div dir="rtl" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid var(--color-border)", padding: "0.875rem 1.5rem" }}>
-          <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-            صفحة <strong style={{ color: "var(--color-text-primary)" }}>{page}</strong> من <strong style={{ color: "var(--color-text-primary)" }}>{pages}</strong>
-          </span>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            {[
-              { label: "السابق", action: () => onPageChange(Math.max(1, page - 1)),     disabled: page === 1     },
-              { label: "التالي", action: () => onPageChange(Math.min(pages, page + 1)), disabled: page === pages },
-            ].map(btn => (
-              <Button key={btn.label} type="button" variant="secondary" size="sm" onClick={btn.action} disabled={btn.disabled}>
-                {btn.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+    />
   );
 }

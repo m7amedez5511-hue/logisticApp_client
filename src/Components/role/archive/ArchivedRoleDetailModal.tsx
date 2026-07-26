@@ -59,10 +59,7 @@ function RoleIcon() {
       flexShrink: 0,
       boxShadow: "0 4px 12px rgba(234,88,12,.3)",
     }}>
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="2">
-        <path d="M12 2 3 7v6c0 5 4 9 9 9s9-4 9-9V7l-9-5z" />
-        <path d="m9 12 2 2 4-4" />
-      </svg>
+      <i className="ti ti-shield-check" style={{ fontSize: 26, color: "#FFF" }} aria-hidden="true" />
     </div>
   );
 }

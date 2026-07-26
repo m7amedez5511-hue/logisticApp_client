@@ -26,3 +26,6 @@ export { Badge } from "./Badge";
 export { ArchiveButton } from "./ArchiveButton"
 export { FileInput } from "./FailInput"
 export {IconBtn} from "./IconBtn"
+export { ReusableTable } from "./ReusableTable";
+export { ActionButtons } from "./ActionButtons";
+export { ModelCard } from "./ModelCard";

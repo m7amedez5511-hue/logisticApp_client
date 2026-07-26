@@ -229,11 +229,7 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
             {/* Row 1: secondary views */}
             <div style={{ display: "flex", gap: "0.75rem" }}>
               <Button type="button" variant="secondary" style={{ flex: 1 }} onClick={() => setGallery(true)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
+                <i className="ti ti-photo" style={{ fontSize: 16 }} aria-hidden="true" />
                 الصور
               </Button>
               <Button
@@ -242,9 +238,7 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
                 style={{ flex: 1 }}
                 onClick={() => router.push(`/dashboard/cars/${car.id}/maintenance`)}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                </svg>
+                <i className="ti ti-tool" style={{ fontSize: 16 }} aria-hidden="true" />
                 عرض تاريخ الصيانة
               </Button>
             </div>
@@ -252,10 +246,7 @@ export function CarDetailPanel({ carId, onClose, onEdit, onDelete }: CarDetailPa
             {/* Row 2: primary edit / delete */}
             <div style={{ display: "flex", gap: "0.75rem" }}>
               <Button type="button" variant="primary" style={{ flex: 2 }} onClick={() => onEdit(car)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
+                <i className="ti ti-edit" style={{ fontSize: 14 }} aria-hidden="true" />
                 تعديل
               </Button>
               <Button type="button" variant="danger" onClick={() => onDelete(car)}>

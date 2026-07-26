@@ -1,13 +1,6 @@
 "use client";
 
-// app/dashboard/trips/[tripId]/page.tsx
-// CHANGE: TripFormModal now imported from the barrel (@/src/Components/Trip)
-// instead of a direct path — avoids the Tripformmodal.tsx case-sensitivity
-// mismatch that breaks on case-sensitive filesystems (Linux/Docker builds).
-// CHANGE: loadTrip's catch block now uses the same extractApiMessage helper
-// already defined in this file (and used by handleEditSubmit/handleConfirmDelete)
-// instead of `err instanceof Error ? err.message : ...` — so backend
-// validation messages surface correctly here too, not just on edit/delete.
+
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -336,9 +329,7 @@ export default function TripDetailPage() {
             onClick={() => router.back()}
             style={{ height: "auto", padding: 0, background: "none", marginBottom: "1rem" }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M19 12H5M12 5l-7 7 7 7" />
-            </svg>
+            <i className="ti ti-arrow-left" style={{ fontSize: 14 }} aria-hidden="true" />
             العودة إلى قائمة الرحلات
           </Button>
 
@@ -437,10 +428,7 @@ export default function TripDetailPage() {
                   fontFamily: "var(--font-sans)",
                 }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
+                <i className="ti ti-edit" style={{ fontSize: 14 }} aria-hidden="true" />
                 تعديل الرحلة
               </button>
             </div>

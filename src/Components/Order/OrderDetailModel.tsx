@@ -222,10 +222,7 @@ export function OrderDetailPanel({
                   justifyContent: "center",
                 }}
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand-600)" strokeWidth="2">
-                  <rect x="2" y="7" width="20" height="14" rx="2"/>
-                  <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                </svg>
+                <i className="ti ti-package" style={{ fontSize: 24, color: "var(--color-brand-600)" }} aria-hidden="true" />
               </div>
 
               <div>
@@ -460,10 +457,7 @@ export function OrderDetailPanel({
             </Button>
 
             <Button type="button" variant="secondary" onClick={() => onEdit(order)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
+              <i className="ti ti-edit" style={{ fontSize: 14 }} aria-hidden="true" />
               تعديل
             </Button>
 

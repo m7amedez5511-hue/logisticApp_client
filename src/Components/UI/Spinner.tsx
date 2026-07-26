@@ -7,10 +7,11 @@ export interface SpinnerProps {
   className?: string;
 }
 
+// Font size (px) for each spinner size — replaces the old h-*/w-* SVG classes.
 const sizeMap: Record<NonNullable<SpinnerProps["size"]>, string> = {
-  sm: "h-4 w-4",
-  md: "h-6 w-6",
-  lg: "h-10 w-10 border-4",
+  sm: "16px",
+  md: "24px",
+  lg: "40px",
 };
 
 /**
@@ -26,32 +27,15 @@ const sizeMap: Record<NonNullable<SpinnerProps["size"]>, string> = {
  */
 export function Spinner({ size = "md", className }: SpinnerProps) {
   return (
-    <svg
+    <i
       role="status"
       aria-label="Loading"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
       className={cn(
-        "motion-safe:animate-spin text-[var(--color-brand-600)] shrink-0",
-        sizeMap[size],
+        "ti ti-loader-2 motion-safe:animate-spin text-[var(--color-brand-600)] shrink-0",
         className,
       )}
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8v8H4z"
-      />
-    </svg>
+      style={{ fontSize: sizeMap[size], lineHeight: 1 }}
+    />
   );
 }
 

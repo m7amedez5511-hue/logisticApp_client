@@ -73,24 +73,21 @@ function MaintenanceCard({
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-          <Button variant="secondary" size="sm" fullWidth onClick={onView}>
-            إظهار التفاصيل
-          </Button>
-          <Button variant="secondary" size="sm" onClick={onEdit}>
-            تعديل
-          </Button>
-          {/* inline style keeps the original light-red look; Button's own
-              variant="danger" is solid red and would change the visual */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onDelete}
-            style={{ background: "#FEF2F2", borderColor: "#FECACA", color: "#DC2626" }}
-          >
-            أرشفة
-          </Button>
-        </div>
+  <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
+  <Button variant="secondary" size="sm" onClick={onEdit}>
+    تعديل
+  </Button>
+  {/* inline style keeps the original light-red look; Button's own
+      variant="danger" is solid red and would change the visual */}
+  <Button
+    variant="secondary"
+    size="sm"
+    onClick={onDelete}
+    style={{ background: "#FEF2F2", borderColor: "#FECACA", color: "#DC2626" }}
+  >
+    أرشفة
+  </Button>
+</div>
       </div>
     </article>
   );
@@ -163,9 +160,7 @@ export default function CarMaintenancePage() {
           backLabel="المركبات"
           action={
             <Button onClick={() => setFormTarget(null)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
+              <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
               إضافة سجل صيانة
             </Button>
           }

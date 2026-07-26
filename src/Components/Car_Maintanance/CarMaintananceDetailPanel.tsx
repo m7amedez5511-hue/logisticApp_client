@@ -1,7 +1,3 @@
-// src/Components/Car_Maintanance/CarMaintananceDetailPanel.tsx
-// CHANGE: replaced CarMaintenanceDeleteModal with ConfirmDialog per Issue 1.
-// Description string rebuilt inline using fmtCost, matching the original
-// modal's wording exactly (see Issue 1 edge-case note on preserving fmtCost formatting).
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -252,9 +248,7 @@ export function CarMaintenanceDetailPanel({ carId, carLabel, onClose, onCarStatu
         <div style={{ padding: "1rem 1.5rem", borderTop: "1px solid var(--color-border)", background: "var(--color-surface-muted)", flexShrink: 0 }}>
           <button type="button" onClick={() => setFormTarget(null)}
             style={{ width: "100%", height: 40, borderRadius: "var(--radius-md)", border: "none", background: "var(--color-brand-600)", fontSize: 13, fontWeight: 700, color: "#FFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "var(--font-sans)" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+            <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
             إضافة سجل صيانة
           </button>
         </div>

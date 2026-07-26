@@ -39,10 +39,7 @@ function BranchIcon() {
       flexShrink: 0,
       boxShadow: "0 4px 12px rgba(37,99,235,.3)",
     }}>
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="2">
-        <path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-4" />
-        <path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01" />
-      </svg>
+      <i className="ti ti-building" style={{ fontSize: 26, color: "#FFF" }} aria-hidden="true" />
     </div>
   );
 }
