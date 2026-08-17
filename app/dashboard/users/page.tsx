@@ -65,6 +65,11 @@ export default function UsersPage() {
       {/* Create / Edit modal */}
       {formTarget !== false && (
         <UserFormModal
+          // CHANGE: added key — forces a full remount when switching between
+          // "new" and different edit targets, so useForm's defaultValues
+          // (roleId/branchId included) always reflect the correct user
+          // instead of possibly reusing stale state from a previous instance.
+          key={formTarget === null ? "new" : formTarget.id}
           editUser={formTarget}
           roles={roles}
           branches={branches}

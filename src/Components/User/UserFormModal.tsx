@@ -1,11 +1,11 @@
 "use client";
-
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import type { Resolver } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Alert, Button, Input, Select } from "../UI";
 import { createUserSchema, updateUserSchema } from "@/src/validations/user.validator";
+import { useEditFormSync } from "@/src/hooks/useEditFormSync"; // CHANGE: added hook — fixes roleId/branchId not pre-selecting on edit
 import type { Branch } from "@/src/types/branch";
 import type { Role } from "@/src/types/role";
 import type { User, UserFormData } from "@/src/types/user";
@@ -30,11 +30,6 @@ export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: 
   const resolver: Resolver<UserFormData> = async (values, context, options) => {
     const schema = isNew ? createUserSchema : updateUserSchema;
     const data = !isNew && !values.password ? { ...values, password: undefined } : values;
-    // Cast both the schema argument and yupResolver's own return value — same
-    // fix already applied in TripFormModal/DriverFormModal/CarFormModal:
-    // passing an explicit <UserFormData> generic here forces a structural
-    // comparison between yup's inferred optional-field shape and
-    // UserFormData that fails the same way it did for those forms.
     return (yupResolver(schema as any) as any)(data as UserFormData, context, options);
   };
 
@@ -56,25 +51,26 @@ export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: 
     },
   });
 
-  // roles/branches are passed in as props rather than fetched inside this
-  // modal (unlike Trip/Driver/Car), but the same timing issue applies if the
-  // parent still has them loading when the modal first mounts: defaultValues
-  // are applied before the matching <option> exists, so the <select>
-  // silently falls back to "". Reapply the saved id once each list actually
-  // contains it.
+  // CHANGE: replaced the two manual useEffect blocks with useEditFormSync —
+  // same behavior (re-apply saved id once its option list contains it),
+  // reused across Driver/Car/Trip forms that have the same bug pattern.
+  useEditFormSync(setValue, "roleId", editUser?.role?.id, roles);
+  useEditFormSync(setValue, "branchId", editUser?.branch?.id, branches);
+
+  // CHANGE: surface an inline error if the saved role/branch no longer
+  // exists in the fetched list, instead of silently falling back to the
+  // placeholder with no explanation.
   useEffect(() => {
-    const savedRoleId = editUser?.role?.id;
-    if (savedRoleId && roles.some(r => r.id === savedRoleId)) {
-      setValue("roleId", savedRoleId);
+    if (editUser?.role?.id && roles.length && !roles.some(r => r.id === editUser.role!.id)) {
+      setError("roleId", { message: "الدور المحفوظ لم يعد متاحًا، الرجاء اختيار دور آخر" });
     }
-  }, [roles, editUser, setValue]);
+  }, [roles, editUser, setError]);
 
   useEffect(() => {
-    const savedBranchId = editUser?.branch?.id;
-    if (savedBranchId && branches.some(b => b.id === savedBranchId)) {
-      setValue("branchId", savedBranchId);
+    if (editUser?.branch?.id && branches.length && !branches.some(b => b.id === editUser.branch!.id)) {
+      setError("branchId", { message: "الفرع المحفوظ لم يعد متاحًا، الرجاء اختيار فرع آخر" });
     }
-  }, [branches, editUser, setValue]);
+  }, [branches, editUser, setError]);
 
   const submitHandler = async (data: UserFormData) => {
     const payload: Partial<UserFormData> = { ...data };
@@ -136,7 +132,17 @@ export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: 
         </div>
 
         {/* body */}
-        <form onSubmit={handleSubmit(submitHandler)} noValidate style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {/* CHANGE: added suppressHydrationWarning — form elements are the
+            most common target for browser-extension-injected attributes
+            (e.g. bis_skin_checked from Bitdefender), which caused the
+            hydration mismatch error on Save. See ExtensionAttributeCleanup
+            for the global fix; this is a scoped safety net. */}
+        <form
+          onSubmit={handleSubmit(submitHandler)}
+          noValidate
+          suppressHydrationWarning
+          style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}
+        >
           {errors.name?.type === "manual" && (
             <Alert type="error" message={errors.name.message ?? ""} onClose={() => {}} />
           )}
