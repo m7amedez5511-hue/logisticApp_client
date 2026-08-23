@@ -82,7 +82,7 @@ useEffect(() => {
   }, [page, search, loadUsers]);
 
   // create new user
- const createUser = useCallback(async (data: UserFormData): Promise<boolean> => {
+const createUser = useCallback(async (data: UserFormData): Promise<boolean> => {
   try {
     const token = getStoredToken();
     const user = await userService.create(data as UserFormData & { password: string }, token);
@@ -100,7 +100,7 @@ useEffect(() => {
     try {
       const token = getStoredToken();
       const res   = await userService.update(id, data, token);
-      dispatch({ type: "UPDATE", user: res?.data });
+      dispatch({ type: "UPDATE", user: res });
       notify({ type: "success", message: "تم تحديث بيانات المستخدم بنجاح." });
       return true;
     } catch (err) {

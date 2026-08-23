@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Alert, Button, Input, Modal, Select } from "../UI";
 import { getStoredToken } from "@/src/lib/auth";
+import { useEditFormSync } from "@/src/hooks/useEditFormSync";
 import {
   createCarSchema,
   updateCarSchema,
@@ -134,38 +135,31 @@ export function CarFormModal({
     },
   });
 
-  // ── Local branches (auto-fetched if prop is empty) ─────────────────────────
-  const [branches, setBranches] = useState<Branch[]>(branchesProp);
-  const loadBranches = useCallback(() => {
-    // defaultValues.branchId was applied before this list existed, so the
-    // <select> had no matching <option> yet and silently fell back to "" —
-    // reapply the saved id now that the option actually exists in the DOM.
-    const savedBranchId = editCar?.branch?.id;
+ // ── Local branches (auto-fetched if prop is empty) ─────────────────────────
+const [branches, setBranches] = useState<Branch[]>(branchesProp);
+const loadBranches = useCallback(() => {
+  if (branchesProp.length > 0) {
+    queueMicrotask(() => setBranches(branchesProp));
+    return;
+  }
+  const token = getStoredToken();
+  branchService
+    .getOptions(token)
+    .then((list) => {
+      queueMicrotask(() => setBranches(list as unknown as Branch[]));
+    })
+    .catch(() => {
+      /* silently ignore */
+    });
+}, [branchesProp]);
 
-    if (branchesProp.length > 0) {
-      queueMicrotask(() => {
-        setBranches(branchesProp);
-        if (savedBranchId) setValue("branchId", savedBranchId);
-      });
-      return;
-    }
-    const token = getStoredToken();
-    branchService
-      .getOptions(token)
-      .then((list) => {
-        queueMicrotask(() => {
-          setBranches(list as unknown as Branch[]);
-          if (savedBranchId) setValue("branchId", savedBranchId);
-        });
-      })
-      .catch(() => {
-        /* silently ignore */
-      });
-  }, [branchesProp, editCar, setValue]);
+useEffect(() => {
+  loadBranches();
+}, [loadBranches]);
 
-  useEffect(() => {
-    loadBranches();
-  }, [loadBranches]);
+// CHANGE: replaced the manual `if (savedBranchId) setValue("branchId", ...)`
+// calls above with useEditFormSync.
+useEditFormSync(setValue, "branchId", editCar?.branch?.id, branches);
 
   const [apiError, setApiError] = useState("");
 

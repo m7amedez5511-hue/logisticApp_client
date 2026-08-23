@@ -3,40 +3,69 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ConfirmDialog, Spinner, Button, Toast } from "@/src/Components/UI";
-import { DriverFormModal , PhotoCard } from "@/src/Components/Driver";
+import { DriverFormModal, PhotoCard } from "@/src/Components/Driver";
 import { DriverReportPanel } from "@/src/Components/Driver_Report/driverReport";
-import type { Driver, CreateDriverPayload, UpdateDriverPayload } from "@/src/types/driver";
-import { DRIVER_STATUS_MAP, DRIVER_CARD_TYPE_MAP, NATIONAL_ID_TYPE_MAP } from "@/src/types/driver";
+import type {
+  Driver,
+  CreateDriverPayload,
+  UpdateDriverPayload,
+} from "@/src/types/driver";
+import {
+  DRIVER_STATUS_MAP,
+  DRIVER_CARD_TYPE_MAP,
+  NATIONAL_ID_TYPE_MAP,
+} from "@/src/types/driver";
 import { driverService } from "@/src/services";
 import { getStoredToken } from "@/src/lib/auth";
 
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("ar-SA", {
-    year: "numeric", month: "long", day: "numeric",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 }
 
 function isExpiringSoon(iso?: string | null): boolean {
   if (!iso) return false;
-  return (new Date(iso).getTime() - Date.now()) <= 90 * 86_400_000;
+  return new Date(iso).getTime() - Date.now() <= 90 * 86_400_000;
 }
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div style={{
-      borderRadius: "var(--radius-xl)",
-      border: "1px solid var(--color-border)",
-      background: "var(--color-surface)",
-      overflow: "hidden",
-      boxShadow: "var(--shadow-card)",
-    }}>
-      <div style={{
-        padding: "0.875rem 1.5rem",
-        borderBottom: "1px solid var(--color-border)",
-        background: "var(--color-surface-muted)",
-      }}>
-        <p style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: "var(--color-text-hint)", fontWeight: 700, margin: 0 }}>
+    <div
+      style={{
+        borderRadius: "var(--radius-xl)",
+        border: "1px solid var(--color-border)",
+        background: "var(--color-surface)",
+        overflow: "hidden",
+        boxShadow: "var(--shadow-card)",
+      }}
+    >
+      <div
+        style={{
+          padding: "0.875rem 1.5rem",
+          borderBottom: "1px solid var(--color-border)",
+          background: "var(--color-surface-muted)",
+        }}
+      >
+        <p
+          style={{
+            fontSize: 11,
+            letterSpacing: "0.25em",
+            textTransform: "uppercase",
+            color: "var(--color-text-hint)",
+            fontWeight: 700,
+            margin: 0,
+          }}
+        >
           {title}
         </p>
       </div>
@@ -45,50 +74,82 @@ function SectionCard({ title, children }: { title: string; children: React.React
   );
 }
 
-function DetailRow({ label, value, mono = false, warn = false }: {
-  label: string; value: string; mono?: boolean; warn?: boolean;
+function DetailRow({
+  label,
+  value,
+  mono = false,
+  warn = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  warn?: boolean;
 }) {
   return (
-    <div style={{
-      display: "flex", justifyContent: "space-between", alignItems: "baseline",
-      padding: "0.55rem 0", borderBottom: "1px solid var(--color-border)",
-    }}>
-      <span style={{ fontSize: 12, color: "var(--color-text-muted)", fontWeight: 600 }}>{label}</span>
-      <span style={{
-        fontSize: 13,
-        fontFamily: mono ? "var(--font-mono)" : "var(--font-sans)",
-        color: warn ? "#D97706" : "var(--color-text-primary)",
-        fontWeight: warn ? 600 : 400,
-        maxWidth: "60%", textAlign: "left", wordBreak: "break-word",
-      }}>
-        {warn && value !== "—" ? "⚠ " : ""}{value}
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        padding: "0.55rem 0",
+        borderBottom: "1px solid var(--color-border)",
+      }}
+    >
+      <span
+        style={{
+          fontSize: 12,
+          color: "var(--color-text-muted)",
+          fontWeight: 600,
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontSize: 13,
+          fontFamily: mono ? "var(--font-mono)" : "var(--font-sans)",
+          color: warn ? "#D97706" : "var(--color-text-primary)",
+          fontWeight: warn ? 600 : 400,
+          maxWidth: "60%",
+          textAlign: "left",
+          wordBreak: "break-word",
+        }}
+      >
+        {warn && value !== "—" ? "⚠ " : ""}
+        {value}
       </span>
     </div>
   );
 }
 
 export default function DriverDetailPage() {
-  const params   = useParams();
-  const router   = useRouter();
+  const params = useParams();
+  const router = useRouter();
   const driverId = params?.driverId as string;
 
-  const [driver, setDriver]           = useState<Driver | null>(null);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState<string | null>(null);
+  const [driver, setDriver] = useState<Driver | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState(false);
   useEffect(() => {
     queueMicrotask(() => setAvatarError(false));
   }, [driver?.photoUrl]);
-  const [toast, setToast]             = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [toast, setToast] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
-  const [editOpen, setEditOpen]     = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleting, setDeleting]     = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const showToast = useCallback((type: "success" | "error", message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
-  }, []);
+  const showToast = useCallback(
+    (type: "success" | "error", message: string) => {
+      setToast({ type, message });
+      setTimeout(() => setToast(null), 4000);
+    },
+    [],
+  );
 
   const loadDriver = useCallback(async () => {
     if (!driverId) return;
@@ -99,23 +160,34 @@ export default function DriverDetailPage() {
       const data = await driverService.getById(driverId, token);
       setDriver(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "تعذّر تحميل بيانات السائق.");
+      setError(
+        err instanceof Error ? err.message : "تعذّر تحميل بيانات السائق.",
+      );
     } finally {
       setLoading(false);
     }
   }, [driverId]);
 
-  useEffect(() => { queueMicrotask(loadDriver); }, [loadDriver]);
+  useEffect(() => {
+    queueMicrotask(loadDriver);
+  }, [loadDriver]);
 
   const handleEditSubmit = useCallback(
-    async (payload: CreateDriverPayload | UpdateDriverPayload): Promise<boolean> => {
+    async (
+      payload: CreateDriverPayload | UpdateDriverPayload,
+    ): Promise<boolean> => {
       if (!driver) return false;
       try {
         const token = getStoredToken();
         const typedPayload = payload as UpdateDriverPayload & {
-          photo?: File; nationalPhoto?: File; driverCardPhoto?: File;
+          photo?: File;
+          nationalPhoto?: File;
+          driverCardPhoto?: File;
         };
-        const hasFiles = typedPayload.photo || typedPayload.nationalPhoto || typedPayload.driverCardPhoto;
+        const hasFiles =
+          typedPayload.photo ||
+          typedPayload.nationalPhoto ||
+          typedPayload.driverCardPhoto;
 
         if (hasFiles) {
           await driverService.updateWithImages(driver.id, typedPayload, token);
@@ -127,7 +199,8 @@ export default function DriverDetailPage() {
         showToast("success", "تم تحديث بيانات السائق بنجاح.");
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "تعذّر تحديث بيانات السائق.";
+        const message =
+          err instanceof Error ? err.message : "تعذّر تحديث بيانات السائق.";
         showToast("error", message);
         return false;
       }
@@ -153,7 +226,16 @@ export default function DriverDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: "6rem 0", color: "var(--color-text-muted)" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 12,
+          padding: "6rem 0",
+          color: "var(--color-text-muted)",
+        }}
+      >
         <Spinner size="sm" className="text-blue-600" />
         <span style={{ fontSize: 14 }}>جارٍ التحميل…</span>
       </div>
@@ -162,9 +244,26 @@ export default function DriverDetailPage() {
 
   if (error || !driver) {
     return (
-      <div style={{ maxWidth: 480, margin: "4rem auto", borderRadius: "var(--radius-xl)", border: "1px solid #FECACA", background: "#FEF2F2", padding: "1.5rem", textAlign: "center" }}>
-        <p style={{ fontSize: 14, color: "#DC2626", fontWeight: 600 }}>⚠ {error ?? "السائق غير موجود"}</p>
-        <Button variant="secondary" size="sm" onClick={() => router.back()} className="mt-4">
+      <div
+        style={{
+          maxWidth: 480,
+          margin: "4rem auto",
+          borderRadius: "var(--radius-xl)",
+          border: "1px solid #FECACA",
+          background: "#FEF2F2",
+          padding: "1.5rem",
+          textAlign: "center",
+        }}
+      >
+        <p style={{ fontSize: 14, color: "#DC2626", fontWeight: 600 }}>
+          ⚠ {error ?? "السائق غير موجود"}
+        </p>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => router.back()}
+          className="mt-4"
+        >
           ← رجوع
         </Button>
       </div>
@@ -173,50 +272,159 @@ export default function DriverDetailPage() {
 
   return (
     <>
-      <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-
+      <section
+        style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
+      >
         <Toast notification={toast} onDismiss={() => setToast(null)} />
 
-        <header style={{
-          borderRadius: "var(--radius-xl)", border: "1px solid var(--color-border)",
-          background: "var(--color-surface)", padding: "1.5rem 2rem", boxShadow: "var(--shadow-card)",
-        }}>
-          <Button variant="ghost" size="sm" onClick={() => router.back()} className="mb-4 !px-0">
-            <i className="ti ti-arrow-left" style={{ fontSize: 14 }} aria-hidden="true" />
+        <header
+          style={{
+            borderRadius: "var(--radius-xl)",
+            border: "1px solid var(--color-border)",
+            background: "var(--color-surface)",
+            padding: "1.5rem 2rem",
+            boxShadow: "var(--shadow-card)",
+          }}
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="mb-4 !px-0"
+          >
+            <i
+              className="ti ti-arrow-left"
+              style={{ fontSize: 14 }}
+              aria-hidden="true"
+            />
             العودة إلى قائمة السائقين
           </Button>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "1rem",
+            }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{
-                width: 72, height: 72, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
-                border: "2px solid var(--color-brand-200)", background: "var(--color-surface-muted)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
+              <div
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: "50%",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                  border: "2px solid var(--color-brand-200)",
+                  background: "var(--color-surface-muted)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
                 {driver.photoUrl && !avatarError ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={driver.photoUrl} alt={driver.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setAvatarError(true)} />
+                  <img
+                    src={driver.photoUrl}
+                    alt={driver.name}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                    onError={() => setAvatarError(true)}
+                  />
                 ) : (
-                  <span style={{ fontSize: 28, fontWeight: 700, color: "var(--color-brand-600)" }}>{driver.name.charAt(0)}</span>
+                  <span
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 700,
+                      color: "var(--color-brand-600)",
+                    }}
+                  >
+                    {driver.name.charAt(0)}
+                  </span>
                 )}
               </div>
 
               <div>
-                <p style={{ fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", color: "#2563EB", fontWeight: 600, margin: 0 }}>ملف السائق</p>
-                <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-text-primary)", margin: "4px 0 0" }}>{driver.name}</h1>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
+                <p
+                  style={{
+                    fontSize: 11,
+                    letterSpacing: "0.3em",
+                    textTransform: "uppercase",
+                    color: "#2563EB",
+                    fontWeight: 600,
+                    margin: 0,
+                  }}
+                >
+                  ملف السائق
+                </p>
+                <h1
+                  style={{
+                    fontSize: "1.5rem",
+                    fontWeight: 700,
+                    color: "var(--color-text-primary)",
+                    margin: "4px 0 0",
+                  }}
+                >
+                  {driver.name}
+                </h1>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    marginTop: 6,
+                    flexWrap: "wrap",
+                  }}
+                >
                   {driver.userName && (
-                    <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--color-text-muted)" }}>@{driver.userName}</span>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontFamily: "var(--font-mono)",
+                        color: "var(--color-text-muted)",
+                      }}
+                    >
+                      @{driver.userName}
+                    </span>
                   )}
-                  <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--color-text-muted)" }}>{driver.phone}</span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontFamily: "var(--font-mono)",
+                      color: "var(--color-text-muted)",
+                    }}
+                  >
+                    {driver.phone}
+                  </span>
                   {statusConfig && (
-                    <span style={{
-                      borderRadius: "var(--radius-full)", border: `1px solid ${statusConfig.border}`,
-                      background: statusConfig.bg, padding: "0.2rem 0.625rem",
-                      fontSize: 11, fontWeight: 700, color: statusConfig.color,
-                      display: "inline-flex", alignItems: "center", gap: 5,
-                    }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: statusConfig.dot, flexShrink: 0 }} />
+                    <span
+                      style={{
+                        borderRadius: "var(--radius-full)",
+                        border: `1px solid ${statusConfig.border}`,
+                        background: statusConfig.bg,
+                        padding: "0.2rem 0.625rem",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: statusConfig.color,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: statusConfig.dot,
+                          flexShrink: 0,
+                        }}
+                      />
                       {statusConfig.label}
                     </span>
                   )}
@@ -229,65 +437,153 @@ export default function DriverDetailPage() {
                 حذف السائق
               </Button>
               <Button variant="primary" onClick={() => setEditOpen(true)}>
-                <i className="ti ti-edit" style={{ fontSize: 14 }} aria-hidden="true" />
+                <i
+                  className="ti ti-edit"
+                  style={{ fontSize: 14 }}
+                  aria-hidden="true"
+                />
                 تعديل السائق
               </Button>
             </div>
           </div>
         </header>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "1.5rem",
+          }}
+        >
           <SectionCard title="البيانات الشخصية">
-            <DetailRow label="الاسم الكامل"     value={driver.name} />
-            <DetailRow label="رقم الجوال"        value={driver.phone} mono />
+            <DetailRow label="الاسم الكامل" value={driver.name} />
+            <DetailRow label="رقم الجوال" value={driver.phone} mono />
             <DetailRow label="البريد الإلكتروني" value={driver.email ?? "—"} />
-            <DetailRow label="العنوان"           value={driver.address ?? "—"} />
-            <DetailRow label="الجنسية"           value={driver.nationality ?? "—"} />
-            <DetailRow label="الفرع"             value={driver.branch?.name ?? "—"} />
-            <DetailRow label="نوع السائق"        value={driver.driverType ?? "—"} />
+            <DetailRow label="العنوان" value={driver.address ?? "—"} />
+            <DetailRow label="الجنسية" value={driver.nationality ?? "—"} />
+            <DetailRow label="الفرع" value={driver.branch?.name ?? "—"} />
+            <DetailRow label="نوع السائق" value={driver.driverType ?? "—"} />
           </SectionCard>
 
           <SectionCard title="الهوية والتأمينات">
-            <DetailRow label="نوع الهوية" value={driver.nationalIdType ? NATIONAL_ID_TYPE_MAP[driver.nationalIdType] : "—"} />
-            <DetailRow label="رقم الهوية" value={driver.nationalId ?? "—"} mono />
-            <DetailRow label="انتهاء الهوية" value={fmtDate(driver.nationalIdExpiry)} warn={isExpiringSoon(driver.nationalIdExpiry)} />
+            <DetailRow
+              label="نوع الهوية"
+              value={
+                driver.nationalIdType
+                  ? NATIONAL_ID_TYPE_MAP[driver.nationalIdType]
+                  : "—"
+              }
+            />
+            <DetailRow
+              label="رقم الهوية"
+              value={driver.nationalId ?? "—"}
+              mono
+            />
+            <DetailRow
+              label="انتهاء الهوية"
+              value={fmtDate(driver.nationalIdExpiry)}
+              warn={isExpiringSoon(driver.nationalIdExpiry)}
+            />
             <DetailRow label="رقم GOSI" value={driver.gosiNumber ?? "—"} mono />
           </SectionCard>
 
           <SectionCard title="بيانات رخصة القيادة">
-            <DetailRow label="رقم الرخصة" value={driver.licenseNumber ?? "—"} mono />
+            <DetailRow
+              label="رقم الرخصة"
+              value={driver.licenseNumber ?? "—"}
+              mono
+            />
             <DetailRow label="نوع الرخصة" value={driver.licenseType ?? "—"} />
-            <DetailRow label="انتهاء الرخصة" value={fmtDate(driver.licenseExpiry)} warn={isExpiringSoon(driver.licenseExpiry)} />
+            <DetailRow
+              label="انتهاء الرخصة"
+              value={fmtDate(driver.licenseExpiry)}
+              warn={isExpiringSoon(driver.licenseExpiry)}
+            />
           </SectionCard>
 
           <SectionCard title="بطاقة السائق">
-            <DetailRow label="رقم البطاقة" value={driver.driverCardNumber ?? "—"} mono />
-            <DetailRow label="نوع البطاقة" value={driver.driverCardType ? DRIVER_CARD_TYPE_MAP[driver.driverCardType] : "—"} />
-            <DetailRow label="انتهاء البطاقة" value={fmtDate(driver.driverCardExpiry)} warn={isExpiringSoon(driver.driverCardExpiry)} />
+            <DetailRow
+              label="رقم البطاقة"
+              value={driver.driverCardNumber ?? "—"}
+              mono
+            />
+            <DetailRow
+              label="نوع البطاقة"
+              value={
+                driver.driverCardType
+                  ? DRIVER_CARD_TYPE_MAP[driver.driverCardType]
+                  : "—"
+              }
+            />
+            <DetailRow
+              label="انتهاء البطاقة"
+              value={fmtDate(driver.driverCardExpiry)}
+              warn={isExpiringSoon(driver.driverCardExpiry)}
+            />
           </SectionCard>
 
           <SectionCard title="معلومات النظام">
-            <DetailRow label="اسم المستخدم"  value={driver.userName ?? "—"} mono />
-            <DetailRow label="تاريخ الإضافة" value={fmtDate(driver.createdAt)} />
-            <DetailRow label="آخر تحديث"     value={fmtDate(driver.updatedAt)} />
+            <DetailRow
+              label="اسم المستخدم"
+              value={driver.userName ?? "—"}
+              mono
+            />
+            <DetailRow
+              label="تاريخ الإضافة"
+              value={fmtDate(driver.createdAt)}
+            />
+            <DetailRow label="آخر تحديث" value={fmtDate(driver.updatedAt)} />
           </SectionCard>
 
           {driver.statusHistory && driver.statusHistory.length > 0 && (
             <SectionCard title="سجل الحالات">
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {driver.statusHistory.map((h) => {
-                  const s = DRIVER_STATUS_MAP[h.status] ?? DRIVER_STATUS_MAP.Active;
+                  const s =
+                    DRIVER_STATUS_MAP[h.status] ?? DRIVER_STATUS_MAP.Active;
                   return (
-                    <div key={h.id} style={{
-                      display: "flex", justifyContent: "space-between", alignItems: "center",
-                      borderRadius: "var(--radius-md)", border: `1px solid ${s.border}`,
-                      background: s.bg, padding: "0.5rem 0.875rem",
-                    }}>
+                    <div
+                      key={h.id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        borderRadius: "var(--radius-md)",
+                        border: `1px solid ${s.border}`,
+                        background: s.bg,
+                        padding: "0.5rem 0.875rem",
+                      }}
+                    >
                       <div>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: s.color }}>{s.label}</span>
-                        {h.reason && <span style={{ fontSize: 11, color: "var(--color-text-muted)", marginRight: 8 }}>— {h.reason}</span>}
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: s.color,
+                          }}
+                        >
+                          {s.label}
+                        </span>
+                        {h.reason && (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: "var(--color-text-muted)",
+                              marginRight: 8,
+                            }}
+                          >
+                            — {h.reason}
+                          </span>
+                        )}
                       </div>
-                      <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{fmtDate(h.createdAt)}</span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: "var(--color-text-muted)",
+                        }}
+                      >
+                        {fmtDate(h.createdAt)}
+                      </span>
                     </div>
                   );
                 })}
@@ -297,23 +593,42 @@ export default function DriverDetailPage() {
         </div>
 
         <SectionCard title="الصور والمستندات">
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.25rem" }}>
-            <PhotoCard url={driver.photoUrl}           label="صورة السائق" />
-            <PhotoCard url={driver.nationalPhotoUrl}   label="صورة الهوية" />
-            <PhotoCard url={driver.driverCardPhotoUrl} label="صورة بطاقة السائق" />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "1.25rem",
+            }}
+          >
+            <PhotoCard url={driver.photoUrl} label="صورة السائق" />
+            <PhotoCard url={driver.nationalPhotoUrl} label="صورة الهوية" />
+            <PhotoCard
+              url={driver.driverCardPhotoUrl}
+              label="صورة بطاقة السائق"
+            />
           </div>
         </SectionCard>
 
-        <div style={{
-          borderRadius: "var(--radius-xl)", border: "1px solid var(--color-border)",
-          background: "var(--color-surface)", boxShadow: "var(--shadow-card)", padding: "1.5rem",
-        }}>
+        <div
+          style={{
+            borderRadius: "var(--radius-xl)",
+            border: "1px solid var(--color-border)",
+            background: "var(--color-surface)",
+            boxShadow: "var(--shadow-card)",
+            padding: "1.5rem",
+          }}
+        >
           <DriverReportPanel driverId={driver.id} />
         </div>
       </section>
 
       {editOpen && (
         <DriverFormModal
+          // CHANGE: added key — this page only ever edits a single driver
+          // (driverId from the route), but the key still protects against a
+          // remount bug if driver data is refetched with a new object identity
+          // after loadDriver() runs.
+          key={driver.id}
           editDriver={driver}
           branches={[]}
           onClose={() => setEditOpen(false)}

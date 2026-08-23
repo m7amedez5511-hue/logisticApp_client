@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Alert, Button, Input, Modal, Select, Textarea } from "../UI";
 import { getStoredToken } from "@/src/lib/auth";
+import { useEditFormSync } from "@/src/hooks/useEditFormSync";
 import {
   createTripSchema,
   updateTripSchema,
@@ -126,30 +127,25 @@ export function TripFormModal({
     },
   });
 
-  useEffect(() => {
-    const token = getStoredToken();
+ // ── Fetch dropdown options once on mount ────────────────────────────────────
+// CHANGE: split fetching from syncing — fetching stays a plain useEffect,
+// syncing the saved id back into the form is now handled by useEditFormSync
+// below, once per field, instead of being inlined into each .then().
+useEffect(() => {
+  const token = getStoredToken();
 
-    driverService.getActiveOptions(token).then((list) => {
-      setDrivers(list);
-      // defaultValues were applied before this list existed, so the <select>
-      // had no matching <option> yet and silently fell back to "" — reapply
-      // the saved id now that the option actually exists in the DOM.
-      const savedDriverId = editTrip?.driverId ?? editTrip?.driver?.id;
-      if (savedDriverId) setValue("driverId", savedDriverId);
-    }).catch(() => {});
+  driverService.getActiveOptions(token).then(setDrivers).catch(() => {});
+  carService.getActiveOptions(token).then(setCars).catch(() => {});
+  branchService.getOptions(token).then(setBranches).catch(() => {});
+}, []);
 
-    carService.getActiveOptions(token).then((list) => {
-      setCars(list);
-      const savedCarId = editTrip?.carId ?? editTrip?.car?.id;
-      if (savedCarId) setValue("carId", savedCarId);
-    }).catch(() => {});
-
-    branchService.getOptions(token).then((list) => {
-      setBranches(list);
-      const savedBranchId = editTrip?.branchId ?? editTrip?.branch?.id;
-      if (savedBranchId) setValue("branchId", savedBranchId);
-    }).catch(() => {});
-  }, [editTrip, setValue]);
+// CHANGE: replaced the three manual `if (savedXId) setValue(...)` calls
+// (previously inlined inside each .then() above) with useEditFormSync —
+// each hook call re-applies the saved id once its matching option list
+// has loaded, regardless of which fetch resolves first.
+useEditFormSync(setValue, "driverId", editTrip?.driverId ?? editTrip?.driver?.id, drivers);
+useEditFormSync(setValue, "carId", editTrip?.carId ?? editTrip?.car?.id, cars);
+useEditFormSync(setValue, "branchId", editTrip?.branchId ?? editTrip?.branch?.id, branches);
 
   const [apiError, setApiError] = useState("");
 

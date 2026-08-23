@@ -8,14 +8,43 @@ import { useEffect } from "react";
 // React hydrates the page. This causes a harmless but noisy hydration
 // mismatch warning. This component strips those attributes after mount
 // and keeps watching for re-injection, without disabling SSR/hydration.
-const WATCHED_ATTRS = ["bis_skin_checked", "bis_register", "__processed_by_bitdefender__"];
+export const WATCHED_ATTRS = [
+  "bis_skin_checked",
+  "bis_register",
+  "__processed_by_bitdefender__",
+] as const;
 
 export function ExtensionAttributeCleanup() {
   useEffect(() => {
+    if (typeof document === "undefined" || typeof MutationObserver === "undefined") {
+      return;
+    }
+
+    const selector = WATCHED_ATTRS.map((attr) => `[${attr}]`).join(",");
+
     function strip() {
-      const selector = WATCHED_ATTRS.map(a => `[${a}]`).join(",");
+      const rootElements = [document.documentElement, document.body].filter(
+        (element): element is HTMLElement => element !== null,
+      );
+
+      rootElements.forEach((element) => {
+        WATCHED_ATTRS.forEach((attr) => element.removeAttribute(attr));
+      });
+
       document.querySelectorAll(selector).forEach(el => {
         WATCHED_ATTRS.forEach(attr => el.removeAttribute(attr));
+      });
+    }
+
+    let frameId: number | null = null;
+    function scheduleStrip() {
+      if (frameId !== null) {
+        return;
+      }
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null;
+        strip();
       });
     }
 
@@ -25,14 +54,19 @@ export function ExtensionAttributeCleanup() {
     // Extensions can re-inject the attribute after every re-render
     // (e.g. after clicking Save, which re-renders the form), so keep
     // watching instead of running once.
-    const observer = new MutationObserver(strip);
-    observer.observe(document.body, {
+    const observer = new MutationObserver(scheduleStrip);
+    observer.observe(document.documentElement, {
       attributes: true,
       subtree: true,
-      attributeFilter: WATCHED_ATTRS,
+      attributeFilter: [...WATCHED_ATTRS],
     });
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
   }, []);
 
   // Renders nothing — side-effect-only component

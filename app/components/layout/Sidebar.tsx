@@ -325,7 +325,7 @@ function SidebarContent({
           justifyContent: compact ? "center" : "flex-start",
         }}
       >
-        {compact ? <BrandIcon size={36} /> : <Logo white />}
+        {compact ? <BrandIcon size={36} /> : <Logo white href="/dashboard" />}
       </div>
 
       <nav

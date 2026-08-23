@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, ConfirmDialog, Spinner } from "@/src/Components/UI";
@@ -9,7 +7,11 @@ import { TripFormModal } from "@/src/Components/Trip";
 import { TripReportPanel } from "@/src/Components/Trip_Report/Tripreportpanel";
 import { tripService } from "@/src/services/trip.service";
 import { getStoredToken } from "@/src/lib/auth";
-import type { Trip, CreateTripPayload, UpdateTripPayload } from "@/src/types/trip";
+import type {
+  Trip,
+  CreateTripPayload,
+  UpdateTripPayload,
+} from "@/src/types/trip";
 import { TRIP_STATUS_MAP } from "@/src/types/trip";
 import { Toast, type ToastNotification } from "@/src/Components/UI/Toast";
 
@@ -22,14 +24,20 @@ function extractApiMessage(err: unknown, fallback: string): string {
 
   if (err && typeof err === "object") {
     const e = err as Record<string, unknown>;
-    const responseData = (e["response"] as Record<string, unknown> | undefined)?.["data"];
+    const responseData = (
+      e["response"] as Record<string, unknown> | undefined
+    )?.["data"];
     if (responseData && typeof responseData === "object") {
       const rd = responseData as Record<string, unknown>;
-      if (typeof rd["message"] === "string" && rd["message"].trim()) return rd["message"];
-      if (Array.isArray(rd["message"])) return (rd["message"] as string[]).join(" — ");
-      if (typeof rd["error"] === "string" && rd["error"].trim()) return rd["error"];
+      if (typeof rd["message"] === "string" && rd["message"].trim())
+        return rd["message"];
+      if (Array.isArray(rd["message"]))
+        return (rd["message"] as string[]).join(" — ");
+      if (typeof rd["error"] === "string" && rd["error"].trim())
+        return rd["error"];
     }
-    if (typeof e["message"] === "string" && e["message"].trim()) return e["message"];
+    if (typeof e["message"] === "string" && e["message"].trim())
+      return e["message"];
   }
 
   return fallback;
@@ -119,7 +127,13 @@ function DetailRow({
         borderBottom: "1px solid var(--color-border)",
       }}
     >
-      <span style={{ fontSize: 12, color: "var(--color-text-muted)", fontWeight: 600 }}>
+      <span
+        style={{
+          fontSize: 12,
+          color: "var(--color-text-muted)",
+          fontWeight: 600,
+        }}
+      >
         {label}
       </span>
       <span
@@ -162,10 +176,24 @@ function StatCard({
         gap: 4,
       }}
     >
-      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          color: "var(--color-text-muted)",
+          letterSpacing: "0.05em",
+        }}
+      >
         {label}
       </span>
-      <span style={{ fontSize: 22, fontWeight: 800, color, fontFamily: "var(--font-mono)" }}>
+      <span
+        style={{
+          fontSize: 22,
+          fontWeight: 800,
+          color,
+          fontFamily: "var(--font-mono)",
+        }}
+      >
         {value}
       </span>
     </div>
@@ -179,17 +207,19 @@ export default function TripDetailPage() {
   const router = useRouter();
   const tripId = params?.tripId as string;
 
-  const [trip, setTrip]       = useState<Trip | null>(null);
+  const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // ── Modal state ───────────────────────────────────────────────────────────
-  const [editOpen, setEditOpen]     = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleting, setDeleting]     = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // ── Notifications (standalone — no longer borrowed from the list hook) ───
-  const [notification, setNotification] = useState<ToastNotification | null>(null);
+  const [notification, setNotification] = useState<ToastNotification | null>(
+    null,
+  );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const notify = useCallback((n: ToastNotification) => {
@@ -203,7 +233,12 @@ export default function TripDetailPage() {
     setNotification(null);
   }, []);
 
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    [],
+  );
 
   // ── Load trip ─────────────────────────────────────────────────────────────
   const loadTrip = useCallback(async () => {
@@ -232,12 +267,19 @@ export default function TripDetailPage() {
       if (!trip) return false;
       try {
         const token = getStoredToken();
-        const updated = await tripService.update(trip.id, payload as UpdateTripPayload, token);
+        const updated = await tripService.update(
+          trip.id,
+          payload as UpdateTripPayload,
+          token,
+        );
         setTrip(updated);
         notify({ type: "success", message: "تم تحديث بيانات الرحلة بنجاح." });
         return true;
       } catch (err) {
-        notify({ type: "error", message: extractApiMessage(err, "تعذّر تحديث الرحلة.") });
+        notify({
+          type: "error",
+          message: extractApiMessage(err, "تعذّر تحديث الرحلة."),
+        });
         return false;
       }
     },
@@ -253,7 +295,10 @@ export default function TripDetailPage() {
       await tripService.delete(trip.id, token);
       router.push("/dashboard/trips");
     } catch (err) {
-      notify({ type: "error", message: extractApiMessage(err, "تعذّر حذف الرحلة.") });
+      notify({
+        type: "error",
+        message: extractApiMessage(err, "تعذّر حذف الرحلة."),
+      });
       setDeleting(false);
     }
   }, [trip, router, notify]);
@@ -297,7 +342,12 @@ export default function TripDetailPage() {
         <p style={{ fontSize: 14, color: "#DC2626", fontWeight: 600 }}>
           ⚠ {error ?? "الرحلة غير موجودة"}
         </p>
-        <Button variant="secondary" size="sm" onClick={() => router.back()} style={{ marginTop: "1rem" }}>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => router.back()}
+          style={{ marginTop: "1rem" }}
+        >
           ← رجوع
         </Button>
       </div>
@@ -310,8 +360,9 @@ export default function TripDetailPage() {
       {/* ── Toast notification ── */}
       <Toast notification={notification} onDismiss={dismissNotification} />
 
-      <section style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-
+      <section
+        style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
+      >
         {/* ── Page header ── */}
         <header
           style={{
@@ -327,13 +378,30 @@ export default function TripDetailPage() {
             variant="ghost"
             size="sm"
             onClick={() => router.back()}
-            style={{ height: "auto", padding: 0, background: "none", marginBottom: "1rem" }}
+            style={{
+              height: "auto",
+              padding: 0,
+              background: "none",
+              marginBottom: "1rem",
+            }}
           >
-            <i className="ti ti-arrow-left" style={{ fontSize: 14 }} aria-hidden="true" />
+            <i
+              className="ti ti-arrow-left"
+              style={{ fontSize: 14 }}
+              aria-hidden="true"
+            />
             العودة إلى قائمة الرحلات
           </Button>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "1rem",
+            }}
+          >
             {/* Icon + title */}
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div
@@ -350,20 +418,56 @@ export default function TripDetailPage() {
                   justifyContent: "center",
                 }}
               >
-                <span style={{ fontSize: 28, fontWeight: 700, color: "var(--color-brand-600)" }}>
+                <span
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 700,
+                    color: "var(--color-brand-600)",
+                  }}
+                >
                   {trip.title.charAt(0)}
                 </span>
               </div>
 
               <div>
-                <p style={{ fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", color: "#2563EB", fontWeight: 600, margin: 0 }}>
+                <p
+                  style={{
+                    fontSize: 11,
+                    letterSpacing: "0.3em",
+                    textTransform: "uppercase",
+                    color: "#2563EB",
+                    fontWeight: 600,
+                    margin: 0,
+                  }}
+                >
                   ملف الرحلة
                 </p>
-                <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-text-primary)", margin: "4px 0 0" }}>
+                <h1
+                  style={{
+                    fontSize: "1.5rem",
+                    fontWeight: 700,
+                    color: "var(--color-text-primary)",
+                    margin: "4px 0 0",
+                  }}
+                >
                   {trip.title}
                 </h1>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--color-text-muted)" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    marginTop: 6,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontFamily: "var(--font-mono)",
+                      color: "var(--color-text-muted)",
+                    }}
+                  >
                     #{trip.tripNumber}
                   </span>
                   {statusConfig && (
@@ -381,7 +485,15 @@ export default function TripDetailPage() {
                         gap: 5,
                       }}
                     >
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: statusConfig.dot, flexShrink: 0 }} />
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: statusConfig.dot,
+                          flexShrink: 0,
+                        }}
+                      />
                       {statusConfig.label}
                     </span>
                   )}
@@ -428,7 +540,11 @@ export default function TripDetailPage() {
                   fontFamily: "var(--font-sans)",
                 }}
               >
-                <i className="ti ti-edit" style={{ fontSize: 14 }} aria-hidden="true" />
+                <i
+                  className="ti ti-edit"
+                  style={{ fontSize: 14 }}
+                  aria-hidden="true"
+                />
                 تعديل الرحلة
               </button>
             </div>
@@ -436,13 +552,35 @@ export default function TripDetailPage() {
         </header>
 
         {/* ── Stats row ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "0.75rem" }}>
-          <StatCard label="المجمّع" value={trip.collectedCount} color="var(--color-brand-600)" />
-          <StatCard label="المُسلَّم" value={trip.deliveredCount} color="#16A34A" />
-          <StatCard label="المُرتجع" value={trip.returnedCount} color="#D97706" />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+            gap: "0.75rem",
+          }}
+        >
+          <StatCard
+            label="المجمّع"
+            value={trip.collectedCount}
+            color="var(--color-brand-600)"
+          />
+          <StatCard
+            label="المُسلَّم"
+            value={trip.deliveredCount}
+            color="#16A34A"
+          />
+          <StatCard
+            label="المُرتجع"
+            value={trip.returnedCount}
+            color="#D97706"
+          />
           <StatCard
             label="النقد المحصّل"
-            value={trip.totalCashCollected != null ? `${Number(trip.totalCashCollected).toLocaleString("ar-SA")} ر.س` : "—"}
+            value={
+              trip.totalCashCollected != null
+                ? `${Number(trip.totalCashCollected).toLocaleString("ar-SA")} ر.س`
+                : "—"
+            }
             color="#7C3AED"
           />
         </div>
@@ -457,45 +595,77 @@ export default function TripDetailPage() {
         >
           {/* Trip Info */}
           <SectionCard title="بيانات الرحلة">
-            <DetailRow label="وقت البدء"    value={fmtDateTime(trip.startTime)} />
+            <DetailRow label="وقت البدء" value={fmtDateTime(trip.startTime)} />
             <DetailRow label="وقت الانتهاء" value={fmtDateTime(trip.endTime)} />
-            <DetailRow label="الفرع"        value={trip.branch?.name ?? "—"} />
-            {trip.notes    && <DetailRow label="ملاحظات"    value={trip.notes} />}
-            {trip.endReason && <DetailRow label="سبب الإنهاء" value={trip.endReason} warn />}
+            <DetailRow label="الفرع" value={trip.branch?.name ?? "—"} />
+            {trip.notes && <DetailRow label="ملاحظات" value={trip.notes} />}
+            {trip.endReason && (
+              <DetailRow label="سبب الإنهاء" value={trip.endReason} warn />
+            )}
           </SectionCard>
 
           {/* Driver */}
           {trip.driver && (
             <SectionCard title="بيانات السائق">
-              <DetailRow label="الاسم"        value={trip.driver.name} />
-              <DetailRow label="الجوال"       value={trip.driver.phone} mono />
-              <DetailRow label="اسم المستخدم" value={trip.driver.userName ?? "—"} mono />
-              <DetailRow label="البريد"       value={trip.driver.email ?? "—"} />
-              <DetailRow label="الجنسية"      value={trip.driver.nationality ?? "—"} />
-              <DetailRow label="رخصة القيادة" value={trip.driver.licenseNumber ?? "—"} mono />
-              <DetailRow label="بطاقة السائق" value={trip.driver.driverCardNumber ?? "—"} mono />
-              <DetailRow label="رقم GOSI"     value={trip.driver.gosiNumber ?? "—"} mono />
+              <DetailRow label="الاسم" value={trip.driver.name} />
+              <DetailRow label="الجوال" value={trip.driver.phone} mono />
+              <DetailRow
+                label="اسم المستخدم"
+                value={trip.driver.userName ?? "—"}
+                mono
+              />
+              <DetailRow label="البريد" value={trip.driver.email ?? "—"} />
+              <DetailRow
+                label="الجنسية"
+                value={trip.driver.nationality ?? "—"}
+              />
+              <DetailRow
+                label="رخصة القيادة"
+                value={trip.driver.licenseNumber ?? "—"}
+                mono
+              />
+              <DetailRow
+                label="بطاقة السائق"
+                value={trip.driver.driverCardNumber ?? "—"}
+                mono
+              />
+              <DetailRow
+                label="رقم GOSI"
+                value={trip.driver.gosiNumber ?? "—"}
+                mono
+              />
             </SectionCard>
           )}
 
           {/* Car */}
           {trip.car && (
             <SectionCard title="بيانات السيارة">
-              <DetailRow label="الشركة"      value={trip.car.manufacturer} />
-              <DetailRow label="الموديل"     value={trip.car.model} />
-              <DetailRow label="السنة"       value={trip.car.year != null ? String(trip.car.year) : "—"} />
-              <DetailRow label="اللون"       value={trip.car.color ?? "—"} />
-              <DetailRow label="رقم اللوحة"  value={trip.car.plateNumber} mono />
-              <DetailRow label="حروف اللوحة" value={trip.car.plateLetters ?? "—"} mono />
-              <DetailRow label="رقم التسجيل" value={trip.car.registrationNumber ?? "—"} mono />
+              <DetailRow label="الشركة" value={trip.car.manufacturer} />
+              <DetailRow label="الموديل" value={trip.car.model} />
+              <DetailRow
+                label="السنة"
+                value={trip.car.year != null ? String(trip.car.year) : "—"}
+              />
+              <DetailRow label="اللون" value={trip.car.color ?? "—"} />
+              <DetailRow label="رقم اللوحة" value={trip.car.plateNumber} mono />
+              <DetailRow
+                label="حروف اللوحة"
+                value={trip.car.plateLetters ?? "—"}
+                mono
+              />
+              <DetailRow
+                label="رقم التسجيل"
+                value={trip.car.registrationNumber ?? "—"}
+                mono
+              />
             </SectionCard>
           )}
 
           {/* System Info */}
           <SectionCard title="معلومات النظام">
-            <DetailRow label="رقم الرحلة"    value={trip.tripNumber} mono />
+            <DetailRow label="رقم الرحلة" value={trip.tripNumber} mono />
             <DetailRow label="تاريخ الإنشاء" value={fmtDate(trip.createdAt)} />
-            <DetailRow label="آخر تحديث"     value={fmtDate(trip.updatedAt)} />
+            <DetailRow label="آخر تحديث" value={fmtDate(trip.updatedAt)} />
           </SectionCard>
         </div>
 
@@ -511,12 +681,14 @@ export default function TripDetailPage() {
         >
           <TripReportPanel tripId={trip.id} />
         </div>
-
       </section>
 
       {/* ── Edit modal ── */}
       {editOpen && (
         <TripFormModal
+          // CHANGE: added key — protects against stale form state if `trip`
+          // is refetched with a new object identity (e.g. after loadTrip()).
+          key={trip.id}
           editTrip={trip}
           onClose={() => setEditOpen(false)}
           onSubmit={handleEditSubmit}

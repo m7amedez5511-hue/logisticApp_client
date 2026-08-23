@@ -14,12 +14,14 @@ export function useCurrentUser() {
     setLoading(true);
     setError(null);
     try {
+      //1. get token from local storage
       const token = getStoredToken();
+      //2. call userService.getMe(token) to get the current user
       const res = await userService.getMe(token);
-      // ملاحظة: مبقاش بنعمل res.data ?? res هنا قبل التمرير.
-      // extractMeUser هي المسؤولة الوحيدة عن تفكيك شكل الـ response،
-      // فبنبعتلها الـ res زي ما هو عشان نتجنب تفكيك مزدوج.
+      // console.log("useCurrentUser: got me", res);
+      //3. extract the user from the response using extractMeUser(res)
       const u = extractMeUser(res);
+      //4. if user is null, throw an error
       if (!u) throw new Error("لا توجد بيانات");
       setUser(u as UserMe);
     } catch {

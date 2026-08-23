@@ -130,12 +130,7 @@ export default function HomePage() {
               >
                 تسجيل الدخول للوحة التحكم
               </Link>
-              <Link
-                href="/how_work"
-                className="inline-flex h-11 items-center rounded-xl bg-white px-5 text-[13px] font-semibold text-blue-700 shadow-md"
-              >
-                كيف تعمل المنصة؟
-              </Link>
+             
             </div>
           </article>
 
@@ -214,9 +209,7 @@ export default function HomePage() {
             })}
           </div>
           <div className="mt-6">
-            <Link href="/features/app" className="text-[13px] font-semibold text-blue-600 hover:text-blue-700">
-              عرض كل المميزات ←
-            </Link>
+            
           </div>
         </article>
       </section>
@@ -273,12 +266,7 @@ export default function HomePage() {
             >
               ابدأ الآن
             </Link>
-            <Link
-              href="/prices"
-              className="inline-flex h-11 items-center rounded-xl border border-white/30 bg-white/10 px-6 text-[13px] font-semibold text-white backdrop-blur"
-            >
-              عرض الأسعار
-            </Link>
+           
           </div>
         </article>
       </section>

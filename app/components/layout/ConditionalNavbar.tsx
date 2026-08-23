@@ -16,5 +16,5 @@ export default function ConditionalNavbar() {
   const isDashboardRoute = pathname?.startsWith("/dashboard");
   if (user || isDashboardRoute) return null;
 
-  return <Navbar />;
+  return "";
 }

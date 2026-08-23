@@ -6,7 +6,11 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { Alert, Button, FileInput, Input, Modal, Select } from "../UI";
 import { get } from "@/src/services/api";
 import { getStoredToken } from "@/src/lib/auth";
-import { createDriverSchema, updateDriverSchema } from "@/src/validations/driver.validator";
+import {
+  createDriverSchema,
+  updateDriverSchema,
+} from "@/src/validations/driver.validator";
+import { useEditFormSync } from "@/src/hooks/useEditFormSync";
 import type {
   Driver,
   CreateDriverPayload,
@@ -105,7 +109,9 @@ export function DriverFormModal({
     // have structurally different required fields (union type yupResolver's
     // single-schema signature won't accept), and yup's inferred type for
     // .optional() fields is structurally incompatible with DriverFormValues.
-    resolver: yupResolver((isNew ? createDriverSchema : updateDriverSchema) as any) as any,
+    resolver: yupResolver(
+      (isNew ? createDriverSchema : updateDriverSchema) as any,
+    ) as any,
     defaultValues: {
       name: editDriver?.name ?? "",
       phone: editDriver?.phone ?? "",
@@ -113,9 +119,12 @@ export function DriverFormModal({
       address: editDriver?.address ?? "",
       nationality: editDriver?.nationality ?? "",
       nationalIdType: editDriver?.nationalIdType ?? "",
-      nationalId: (editDriver as Driver & { nationalId?: string })?.nationalId ?? "",
+      nationalId:
+        (editDriver as Driver & { nationalId?: string })?.nationalId ?? "",
       nationalIdExpiry:
-        (editDriver as Driver & { nationalIdExpiry?: string })?.nationalIdExpiry?.slice(0, 10) ?? "",
+        (
+          editDriver as Driver & { nationalIdExpiry?: string }
+        )?.nationalIdExpiry?.slice(0, 10) ?? "",
       gosiNumber: editDriver?.gosiNumber ?? "",
       licenseNumber: editDriver?.licenseNumber ?? "",
       licenseType: editDriver?.licenseType ?? "",
@@ -135,29 +144,30 @@ export function DriverFormModal({
   // ── Local branches (auto-fetched if prop is empty) ─────────────────────────
   const [branches, setBranches] = useState<Branch[]>(branchesProp);
   useEffect(() => {
-    // defaultValues.branchId was applied before this list existed, so the
-    // <select> had no matching <option> yet and silently fell back to "" —
-    // reapply the saved id now that the option actually exists in the DOM.
-    const savedBranchId = (editDriver as Driver & { branchId?: string })?.branchId;
-
     if (branchesProp.length > 0) {
-      queueMicrotask(() => {
-        setBranches(branchesProp);
-        if (savedBranchId) setValue("branchId", savedBranchId);
-      });
+      queueMicrotask(() => setBranches(branchesProp));
       return;
     }
     const token = getStoredToken();
     get<{ data: { data: Branch[] } }>("branches?limit=100", token)
       .then((res) => {
-        const list = (res as unknown as { data: { data: Branch[] } }).data?.data ?? [];
+        const list =
+          (res as unknown as { data: { data: Branch[] } }).data?.data ?? [];
         setBranches(list);
-        if (savedBranchId) setValue("branchId", savedBranchId);
       })
       .catch(() => {
         /* silently ignore */
       });
-  }, [branchesProp, editDriver, setValue]);
+  }, [branchesProp]);
+
+  // CHANGE: replaced the manual `if (savedBranchId) setValue("branchId", ...)`
+  // calls above with useEditFormSync — same fix, shared implementation.
+  useEditFormSync(
+    setValue,
+    "branchId",
+    (editDriver as Driver & { branchId?: string })?.branchId,
+    branches,
+  );
 
   const [apiError, setApiError] = useState("");
 
@@ -171,20 +181,27 @@ export function DriverFormModal({
 
   const submitHandler = useCallback(
     async (data: DriverFormValues) => {
-      const payload: Record<string, unknown> = { name: data.name, phone: data.phone };
+      const payload: Record<string, unknown> = {
+        name: data.name,
+        phone: data.phone,
+      };
       if (data.email) payload.email = data.email;
       if (data.address) payload.address = data.address;
       if (data.nationality) payload.nationality = data.nationality;
       if (data.nationalIdType) payload.nationalIdType = data.nationalIdType;
       if (data.nationalId) payload.nationalId = data.nationalId;
-      if (data.nationalIdExpiry) payload.nationalIdExpiry = toIsoDateTime(data.nationalIdExpiry);
+      if (data.nationalIdExpiry)
+        payload.nationalIdExpiry = toIsoDateTime(data.nationalIdExpiry);
       if (data.gosiNumber) payload.gosiNumber = data.gosiNumber;
       if (data.licenseNumber) payload.licenseNumber = data.licenseNumber;
       if (data.licenseType) payload.licenseType = data.licenseType;
-      if (data.licenseExpiry) payload.licenseExpiry = toIsoDateTime(data.licenseExpiry);
-      if (data.driverCardNumber) payload.driverCardNumber = data.driverCardNumber;
+      if (data.licenseExpiry)
+        payload.licenseExpiry = toIsoDateTime(data.licenseExpiry);
+      if (data.driverCardNumber)
+        payload.driverCardNumber = data.driverCardNumber;
       if (data.driverCardType) payload.driverCardType = data.driverCardType;
-      if (data.driverCardExpiry) payload.driverCardExpiry = toIsoDateTime(data.driverCardExpiry);
+      if (data.driverCardExpiry)
+        payload.driverCardExpiry = toIsoDateTime(data.driverCardExpiry);
       if (data.driverType) payload.driverType = data.driverType;
       if (data.branchId) payload.branchId = data.branchId;
       if (!isNew) payload.status = data.status;
@@ -196,15 +213,23 @@ export function DriverFormModal({
 
       setApiError("");
       try {
-        const ok = await onSubmit(payload as unknown as CreateDriverPayload, isNew);
+        const ok = await onSubmit(
+          payload as unknown as CreateDriverPayload,
+          isNew,
+        );
         if (ok) {
           onClose();
         } else {
-          setError("name", { message: "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً." });
+          setError("name", {
+            message: "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.",
+          });
           setApiError("حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.");
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.";
+        const message =
+          err instanceof Error
+            ? err.message
+            : "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.";
         setError("name", { message });
         setApiError(message);
       }
@@ -220,10 +245,15 @@ export function DriverFormModal({
       onClose={onClose}
       size="lg"
       subtitle={isNew ? "إضافة سائق" : "تعديل سائق"}
-      title={isNew ? "سائق جديد" : editDriver?.name ?? ""}
+      title={isNew ? "سائق جديد" : (editDriver?.name ?? "")}
       footer={
         <>
-          <Button variant="secondary" type="button" onClick={onClose} disabled={isSubmitting}>
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             إلغاء
           </Button>
           <Button type="submit" form={FORM_ID} loading={isSubmitting}>
@@ -240,7 +270,11 @@ export function DriverFormModal({
         className="flex flex-col gap-4"
       >
         {errors.name?.type === "manual" && (
-          <Alert type="error" message={errors.name.message ?? ""} onClose={() => setApiError("")} />
+          <Alert
+            type="error"
+            message={errors.name.message ?? ""}
+            onClose={() => setApiError("")}
+          />
         )}
 
         {/* ── Section: Personal Info ── */}
@@ -252,7 +286,9 @@ export function DriverFormModal({
             placeholder="محمد عبدالله"
             dir="rtl"
             autoComplete="off"
-            error={errors.name?.type !== "manual" ? errors.name?.message : undefined}
+            error={
+              errors.name?.type !== "manual" ? errors.name?.message : undefined
+            }
             {...register("name")}
           />
 
@@ -404,7 +440,9 @@ export function DriverFormModal({
           >
             <option value="">اختر الفرع</option>
             {branches.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
             ))}
           </Select>
 
@@ -429,7 +467,14 @@ export function DriverFormModal({
 
         {/* ── Section: Photos ── */}
         <p style={sectionHeadingStyle}>الصور والمستندات</p>
-        <p style={{ fontSize: 11, color: "var(--color-text-hint)", margin: "0.25rem 0 0", fontWeight: 400 }}>
+        <p
+          style={{
+            fontSize: 11,
+            color: "var(--color-text-hint)",
+            margin: "0.25rem 0 0",
+            fontWeight: 400,
+          }}
+        >
           جميع حقول الصور اختيارية
         </p>
 
@@ -440,21 +485,33 @@ export function DriverFormModal({
             name="photo"
             control={control}
             render={({ field }) => (
-              <FileInput label="صورة السائق" current={field.value} onChange={field.onChange} />
+              <FileInput
+                label="صورة السائق"
+                current={field.value}
+                onChange={field.onChange}
+              />
             )}
           />
           <Controller
             name="nationalPhoto"
             control={control}
             render={({ field }) => (
-              <FileInput label="صورة الهوية" current={field.value} onChange={field.onChange} />
+              <FileInput
+                label="صورة الهوية"
+                current={field.value}
+                onChange={field.onChange}
+              />
             )}
           />
           <Controller
             name="driverCardPhoto"
             control={control}
             render={({ field }) => (
-              <FileInput label="صورة البطاقة" current={field.value} onChange={field.onChange} />
+              <FileInput
+                label="صورة البطاقة"
+                current={field.value}
+                onChange={field.onChange}
+              />
             )}
           />
         </div>

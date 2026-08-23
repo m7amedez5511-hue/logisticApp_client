@@ -15,8 +15,17 @@ import { useRouter } from "next/navigation";
 import { useTrips } from "@/src/hooks/useTrip";
 import { TripFormModal, TripTable } from "@/src/Components/Trip";
 import { ArchivedTripModal } from "@/src/Components/Trip/archive/ArchivedTripModal";
-import { Alert, ArchiveButton, ConfirmDialog, Toast } from "@/src/Components/UI";
-import type { Trip, CreateTripPayload, UpdateTripPayload } from "@/src/types/trip";
+import {
+  Alert,
+  ArchiveButton,
+  ConfirmDialog,
+  Toast,
+} from "@/src/Components/UI";
+import type {
+  Trip,
+  CreateTripPayload,
+  UpdateTripPayload,
+} from "@/src/types/trip";
 import Header from "@/src/Components/UI/Header";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -147,6 +156,9 @@ export default function TripsPage() {
       {/* ── Form modal ── */}
       {showForm && (
         <TripFormModal
+          // CHANGE: added key — ensures defaultValues reset correctly when
+          // switching between "add new trip" and editing different trips.
+          key={editTrip === null ? "new" : editTrip.id}
           editTrip={editTrip}
           onClose={() => setShowForm(false)}
           onSubmit={async (payload, isNew) => {
@@ -170,7 +182,9 @@ export default function TripsPage() {
       {/* ── Archive browser modal — now the split ArchivedTripModal directly,
            no local wrapper needed since it already ships its own search bar,
            table, and detail-view wiring. ── */}
-      {archiveOpen && <ArchivedTripModal onClose={() => setArchiveOpen(false)} />}
+      {archiveOpen && (
+        <ArchivedTripModal onClose={() => setArchiveOpen(false)} />
+      )}
 
       {/* ── Floating archive button — same component Driver page uses ── */}
       <ArchiveButton onClick={() => setArchiveOpen(true)} label="الأرشيف" />
