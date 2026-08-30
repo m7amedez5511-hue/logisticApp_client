@@ -54,14 +54,14 @@ export function OrderTable({
         </div>
       ),
     },
-    { key: "client", header: "العميل", width: "1.2fr", render: (o) => o.client?.name ?? "—" },
+    { key: "client", header: "العميل", width: "1.2fr", render: (o) => o.clientId ?? "—" },
     {
       key: "amount",
       header: "الكمية",
       width: "1.1fr",
       render: (o) => (
         <span style={{ fontWeight: 600, color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}>
-          {fmtAmount(o.totalPrice)}
+          {o.quantity ?? "—"}
         </span>
       ),
     },

@@ -79,8 +79,11 @@ export function useBranches() {
   const updateBranch = useCallback(async (id: string, data: BranchFormData): Promise<boolean> => {
     try {
       const token = getStoredToken();
-      const res   = await branchService.update(id, data, token);
-      dispatch({ type: "UPDATE", branch: res?.data });
+      const branch = await branchService.update(id, data, token);
+      if (!branch?.id) {
+        throw new Error("لم يُرجع الخادم بيانات الفرع المحدث.");
+      }
+      dispatch({ type: "UPDATE", branch });
       notify({ type: "success", message: "تم تحديث الفرع بنجاح." });
       return true;
     } catch (err) {

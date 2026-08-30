@@ -373,7 +373,7 @@ export function OrderFormModal({
             </Select>
             <Link href="/dashboard/clients" style={createLinkStyle} tabIndex={-1}>
               <i className="ti ti-plus" style={{ fontSize: 11 }} aria-hidden="true" />
-              إنشاء عميل جديد
+              إضافة عميل جديد
             </Link>
           </div>
 
