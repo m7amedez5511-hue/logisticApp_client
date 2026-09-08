@@ -181,7 +181,7 @@ export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: 
           </div>
 
           {/* password */}
-          <Input
+         {/* <Input
             label={isNew ? "كلمة المرور *" : "كلمة المرور الجديدة (اتركها فارغة إذا لا تريد تغييرها)"}
             type="password"
             {...register("password")}
@@ -189,7 +189,7 @@ export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: 
             placeholder="••••••••"
             autoComplete={isNew ? "new-password" : "off"}
             dir="ltr"
-          />
+          />*/}
 
           {/* role + branch */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>

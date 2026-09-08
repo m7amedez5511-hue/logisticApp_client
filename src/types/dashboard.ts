@@ -90,6 +90,10 @@ export type DashboardEntityKey =
   | "users" | "drivers" | "cars" | "trips" | "orders"
   | "clients" | "branches" | "roles" | "audit";
 
+// Step 6: Removed `active` and `pending` from EntityKpi — the stat cards
+// (KpiSection.tsx) no longer break totals down into active/pending, they
+// only display the total count, so the type no longer carries fields that
+// are never rendered.
 export interface EntityKpi {
   key: DashboardEntityKey;
   label: string;
@@ -99,18 +103,16 @@ export interface EntityKpi {
   accent: string;
   href: string;
   total: number;
-  active: number;
-  pending: number;
   anomaly: {
     severity: "warning" | "critical";
     message: string;
   } | null;
 }
 
-export const EMPTY_ENTITY_KPI: Pick<EntityKpi, "total" | "active" | "pending" | "anomaly"> = {
+// Step 7: EMPTY_ENTITY_KPI narrowed to match the trimmed EntityKpi shape —
+// only `total` and `anomaly` are defaultable now.
+export const EMPTY_ENTITY_KPI: Pick<EntityKpi, "total" | "anomaly"> = {
   total: 0,
-  active: 0,
-  pending: 0,
   anomaly: null,
 };
 

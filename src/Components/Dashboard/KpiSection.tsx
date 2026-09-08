@@ -29,26 +29,18 @@ function KpiAnomalyBadge({ anomaly }: { anomaly: EntityKpi["anomaly"] }) {
   );
 }
 
-function KpiCardCounts({ total, active, pending }: { total: number; active: number; pending: number }) {
+// Step 8: KpiCardCounts no longer takes/renders `active`/`pending` — it now
+
+// only receives and displays `total`. The active/pending mini-boxes (and
+// their inline styling) have been removed entirely; the total figure keeps
+// its original styling/position exactly as before, so the card's overall
+// layout is unchanged.
+function KpiCardCounts({ total }: { total: number }) {
   return (
     <div style={{ marginTop: "0.875rem" }}>
       <p style={{ fontSize: "2rem", fontWeight: 700, color: "var(--color-text-dark-primary)", fontFamily: "var(--font-mono)", margin: 0, textAlign: "start" }}>
         {total.toLocaleString("ar-SA")}
       </p>
-      <div style={{ marginTop: "0.625rem", display: "flex", gap: "0.75rem" }}>
-        <div style={{ flex: 1, borderRadius: "var(--radius-md)", background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.2)", padding: "0.375rem 0.625rem" }}>
-          <p style={{ fontSize: 10, color: "#6EE7B7", margin: 0 }}>نشط</p>
-          <p style={{ fontSize: 13, fontWeight: 700, color: "#A7F3D0", margin: 0, fontFamily: "var(--font-mono)" }}>
-            {active.toLocaleString("ar-SA")}
-          </p>
-        </div>
-        <div style={{ flex: 1, borderRadius: "var(--radius-md)", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", padding: "0.375rem 0.625rem" }}>
-          <p style={{ fontSize: 10, color: "#FCD34D", margin: 0 }}>معلَّق</p>
-          <p style={{ fontSize: 13, fontWeight: 700, color: "#FDE68A", margin: 0, fontFamily: "var(--font-mono)" }}>
-            {pending.toLocaleString("ar-SA")}
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
@@ -71,6 +63,7 @@ function KpiCard({ entity }: { entity: EntityKpi }) {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
+
           <div
             style={{
               width: 40, height: 40, borderRadius: "var(--radius-lg)",
@@ -87,7 +80,9 @@ function KpiCard({ entity }: { entity: EntityKpi }) {
         <i className="ti ti-chevron-left" style={{ fontSize: 14, color: "var(--color-text-dark-muted)" }} aria-hidden="true" />
       </div>
 
-      <KpiCardCounts total={entity.total} active={entity.active} pending={entity.pending} />
+      {/* Step 9: only `total` is passed now — `active`/`pending` props removed
+          from this call site along with the corresponding fields on EntityKpi. */}
+      <KpiCardCounts total={entity.total} />
       <KpiAnomalyBadge anomaly={entity.anomaly} />
     </Link>
   );
@@ -101,6 +96,7 @@ interface KpiSectionProps {
 export function KpiSection({ entities, loading }: KpiSectionProps) {
   // Before the overview resolves, render the static config as zeroed cards
   // so the grid never collapses to nothing.
+
   const list = entities.length > 0 ? entities : ENTITY_KPI_CONFIG.map((cfg) => ({ ...cfg, ...EMPTY_ENTITY_KPI }));
 
   return (
