@@ -30,6 +30,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 /* ══════════════════════════════════════════
    Nav items
 ══════════════════════════════════════════ */
+
 const navSections = [
   {
     label: "الرئيسية",
@@ -62,6 +63,7 @@ const navSections = [
         label: "السائقون",
         icon: "ti-steering-wheel",
         permission: "read-driver",
+
       },
       {
         href: "/dashboard/trips",
@@ -94,6 +96,7 @@ const navSections = [
       },
       {
         href: "/dashboard/roles",
+
         label: "الادوار",
         icon: "ti-shield",
         permission: "read-role",
@@ -126,6 +129,7 @@ export function BrandIconButton({ onClick }: { onClick: () => void }) {
         height: 36,
         padding: 2,
         display: "flex",
+
         alignItems: "center",
         justifyContent: "center",
         cursor: "pointer",
@@ -158,6 +162,7 @@ export function Sidebar() {
   // إعادة القراءة بعد أي navigation (زي بعد الحفظ لو الصلاحيات اتغيرت)
   useEffect(() => {
     setUser(getStoredUser());
+
   }, [pathname]);
 
   const permissions = user?.permissions ?? [];
@@ -190,6 +195,7 @@ export function Sidebar() {
           
         }}
       >
+
         <SidebarContent
           pathname={pathname}
           permissions={permissions}
@@ -222,6 +228,7 @@ export function Sidebar() {
           pathname={pathname}
           permissions={permissions}
           user={user}
+
           compact={true}
         />
       </aside>
@@ -254,6 +261,7 @@ export function Sidebar() {
           background: GRAD,
           flexDirection: "column" /* NO display property */,
           position: "fixed",
+
           top: 0,
           bottom: 0,
           right: 0,
@@ -286,6 +294,7 @@ export function Sidebar() {
             justifyContent: "center",
             cursor: "pointer",
             color: "#fff",
+
           }}
         >
           <i className="ti ti-x" style={{ fontSize: 13 }} aria-hidden="true" />
@@ -318,6 +327,7 @@ function SidebarContent({
 }) {
   return (
     <>
+
       <div
         style={{
           marginBottom: 28,
@@ -350,6 +360,7 @@ function SidebarContent({
                   fontWeight: 600,
                   textAlign: "start",
                   margin: 0,
+
                 }}
               >
                 {section.label}
@@ -359,15 +370,63 @@ function SidebarContent({
               const allowed =
                 item.permission === "read-dashboard" ||
                 permissions.includes(item.permission);
-              if (!allowed) return null;
               const active =
                 pathname === item.href ||
                 (item.href !== "/dashboard" &&
                   pathname.startsWith(item.href + "/"));
+
+              // CHANGE: unauthorized items are no longer hidden (return null).
+              // They stay in the layout but render as a disabled, non-clickable
+              // row with a lock icon and a tooltip explaining why — this keeps
+              // the sidebar's shape/design stable instead of collapsing it,
+              // and communicates the permission boundary instead of hiding it
+              // (standard dashboard UX, e.g. Linear/Notion-style nav gating).
+              if (!allowed) {
+                return (
+                  <span
+                    key={item.href}
+                    title="ليست لديك صلاحية الوصول لهذا القسم"
+                    aria-disabled="true"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: compact ? "center" : "flex-start",
+                      gap: 9,
+                      padding: compact ? "10px" : "7px 8px",
+
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 400,
+                      color: "rgba(255,255,255,0.28)",
+                      background: "transparent",
+                      cursor: "not-allowed",
+                      marginBottom: 2,
+                      textAlign: "start",
+                      userSelect: "none",
+                    }}
+                  >
+                    <i
+                      className={`ti ${item.icon}`}
+                      aria-hidden="true"
+                      style={{ fontSize: compact ? 18 : 16, flexShrink: 0 }}
+                    />
+                    {!compact && item.label}
+                    {!compact && (
+                      <i
+                        className="ti ti-lock"
+                        aria-hidden="true"
+                        style={{ fontSize: 11, marginInlineStart: "auto", opacity: 0.7 }}
+                      />
+                    )}
+                  </span>
+                );
+              }
+
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+
                   title={compact ? item.label : undefined}
                   aria-label={item.label}
                   style={{
@@ -400,6 +459,7 @@ function SidebarContent({
             })}
           </div>
         ))}
+
       </nav>
 
       {compact ? (
@@ -432,6 +492,7 @@ function SidebarContent({
             width: "100%",
           }}
         >
+
           <p
             suppressHydrationWarning
             style={{

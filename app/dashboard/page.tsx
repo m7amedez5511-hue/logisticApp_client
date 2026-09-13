@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { clearAuth, getStoredUser } from "@/src/lib/auth";
 import { Spinner, Alert } from "@/src/Components/UI";
 import { useDashboardOverview } from "@/src/hooks/useDashboardOverview";
+import { usePermissions } from "@/src/hooks/usePermissions"; // NEW
 import {
   KpiSection,
   AlertsSection,
@@ -13,9 +14,26 @@ import {
   QuickAccessFooter,
 } from "@/src/Components/Dashboard";
 
+// NEW: maps an EntityKpi.key (and DashboardAlert.entity, which uses the
+// same key set) to the permission slug that guards that section. Kept
+// local to this page — it's a purely presentational concern for filtering
+// dashboard cards/alerts, not a shared domain type.
+const ENTITY_PERMISSION_MAP: Record<string, string> = {
+  users:    "read-user",
+  cars:     "read-car",
+  drivers:  "read-driver",
+  trips:    "read-trip",
+  orders:   "read-order",
+  clients:  "read-client",
+  branches: "read-branch",
+  roles:    "read-role",
+  audit:    "read-audit",
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const { data, error, loading } = useDashboardOverview();
+  const { has } = usePermissions();
 
   useEffect(() => {
     const storedUser = getStoredUser();
@@ -26,7 +44,21 @@ export default function DashboardPage() {
     }
   }, [router]);
 
-  const activeTrips = data?.activeTrips || [];
+  // Step 1: only keep KPI entities the current user is permitted to read.
+  // This is what hides e.g. the "Cars" card entirely for users without
+  // read-car, instead of rendering it and letting them hit a 401 on click.
+  const visibleEntities = (data?.entities ?? []).filter(
+    (e) => has(ENTITY_PERMISSION_MAP[e.key] ?? ""),
+  );
+
+  // Step 2: same filter applied to alerts, since each alert references
+  // one of the same entity keys.
+  const visibleAlerts = (data?.alerts ?? []).filter(
+    (a) => has(ENTITY_PERMISSION_MAP[a.entity] ?? ""),
+  );
+
+  // Step 3: active trips block is trip-specific — gate it the same way.
+  const activeTrips = has("read-trip") ? (data?.activeTrips || []) : [];
 
   return (
     <section className="flex flex-col gap-6">
@@ -70,11 +102,11 @@ export default function DashboardPage() {
         <Alert type="error" message={error} className="border-rose-400/30 bg-rose-500/10 text-rose-100" />
       )}
 
-      {/* ── KPI Section: total / active / pending per entity (9 cards) ── */}
-      <KpiSection entities={data?.entities ?? []} loading={loading && !data} />
+      {/* ── KPI Section: total / active / pending per entity — filtered by permission ── */}
+      <KpiSection entities={visibleEntities} loading={loading && !data} />
 
-      {/* ── Alerts Section: urgent cross-entity issues ── */}
-      <AlertsSection alerts={data?.alerts ?? []} loading={loading && !data} />
+      {/* ── Alerts Section: urgent cross-entity issues — filtered by permission ── */}
+      <AlertsSection alerts={visibleAlerts} loading={loading && !data} />
 
       {/* ── Insights Row: recent activity log + trend charts ── */}
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
