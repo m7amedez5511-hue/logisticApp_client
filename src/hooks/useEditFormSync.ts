@@ -10,10 +10,10 @@ export function useEditFormSync<T extends FieldValues>(
   setValue: UseFormSetValue<T>,
   fieldName: Path<T>,
   savedId: string | undefined,
-  options: { id: string }[],
+  options: { id: string | number }[],
 ) {
   useEffect(() => {
-    if (savedId && options.some(o => o.id === savedId)) {
+    if (savedId && options.some(o => String(o.id) === String(savedId))) {
       // shouldDirty: false — this is a programmatic sync, not a user edit
       setValue(fieldName, savedId as never, { shouldDirty: false });
     }

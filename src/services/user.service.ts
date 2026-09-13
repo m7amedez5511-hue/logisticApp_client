@@ -29,7 +29,7 @@ export const userService = {
   },
 
   create: async (
-    data: Omit<UserFormData, "password"> & { password: string },
+    data: UserFormData,
     token: string | null,
   ): Promise<User> => {
     const res: UserResponse = await post<UserResponse>("users", buildPayload(data, true), token);
@@ -44,22 +44,35 @@ export const userService = {
   delete: (id: string, token: string | null) => del<void>(`users/${id}`, token),
 
   getRoles: async (token: string | null): Promise<Role[]> => {
-    const res = await get<{ data: { data: Role[] } }>("role?limit=100", token);
-    return res.data.data;
+    const res = await get<unknown>("role?limit=100", token);
+    return unwrapList<Role>(res);
   },
 
   getBranches: async (token: string | null): Promise<Branch[]> => {
-    const res = await get<{ data: { data: Branch[] } }>("branches?limit=100", token);
-    return res.data.data;
+    const res = await get<unknown>("branches?limit=100", token);
+    return unwrapList<Branch>(res);
   },
 
   getById: async (id: string, token: string | null): Promise<UserDetail> => {
-    const res = await get<{ data: UserDetail }>(`users/${id}`, token);
-    return res.data;
+    const res = await get<unknown>(`users/${id}`, token);
+    return unwrapObject<UserDetail>(res);
   },
 
   getMe: (token: string | null) => get<MeApiResponse>("users/me", token),
 };
+
+function unwrapList<T>(response: unknown): T[] {
+  const first = response as { data?: unknown };
+  const second = first.data as { data?: unknown } | undefined;
+  const value = second?.data ?? first.data ?? response;
+  return Array.isArray(value) ? value as T[] : [];
+}
+
+function unwrapObject<T>(response: unknown): T {
+  const first = response as { data?: unknown };
+  const second = first.data as { data?: unknown } | undefined;
+  return (second?.data ?? first.data ?? response) as T;
+}
 
 /**
  * One-time defensive unwrap for /users/me, which has been observed to
@@ -82,7 +95,6 @@ function buildPayload(data: UserFormData, isNew: boolean): Record<string, string
     name: data.name.trim(), phone: data.phone.trim(), roleId: data.roleId, branchId: data.branchId,
   };
   if (data.email) payload.email = data.email.trim();
-  if (isNew && data.password) payload.password = data.password;
-  else if (!isNew && data.password) payload.password = data.password;
+  if (!isNew && data.password) payload.password = data.password;
   return payload;
 }

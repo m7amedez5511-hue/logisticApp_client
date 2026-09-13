@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Alert, Toast, ArchiveButton, ConfirmDialog } from "@/src/Components/UI";
 import { UserFormModal,UserDetailModal,UserTable }      from "@/src/Components/User";
 import { useUsers }           from "@/src/hooks/useUser";
@@ -9,6 +10,7 @@ import { ArchivedUsersModal } from "@/src/Components/User/archive/Archivedusersm
 import Header from "@/src/Components/UI/Header";
 
 export default function UsersPage() {
+  const router = useRouter();
   // ── Modal state ─────────────────────────────────────────────────────────────
   // false = closed | null = create mode | User = edit mode
   const [formTarget,   setFormTarget]   = useState<User | null | false>(false);
@@ -26,15 +28,13 @@ export default function UsersPage() {
     roles, branches,
     page, search,
     setPage, handleSearch, clearError,
-    createUser, updateUser, deleteUser,
+    createUser, deleteUser,
     notification,
   } = useUsers();
 
   // ── Create / Update handler ─────────────────────────────────────────────────
   const handleFormSubmit = async (data: UserFormData, isNew: boolean): Promise<boolean> => {
-    if (isNew) return createUser(data);
-    // formTarget is User when editing
-    return updateUser((formTarget as User).id, data);
+    return isNew ? createUser(data) : false;
   };
 
   // ── Delete handler ──────────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ export default function UsersPage() {
           page={page}
           pages={pages}
           onView={user => setViewUserId(user.id)}
-          onEdit={user => setFormTarget(user)}
+          onEdit={user => router.push(`/dashboard/users/${user.id}`)}
           onDelete={user => setDeleteTarget(user)}
           onAddFirst={() => setFormTarget(null)}
           onPageChange={setPage}

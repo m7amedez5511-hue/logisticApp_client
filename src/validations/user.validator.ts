@@ -21,11 +21,6 @@ export const createUserSchema = yup.object({
     .email("البريد الإلكتروني غير صالح")
     .optional(),
 
-  password: yup
-    .string()
-    .required("كلمة المرور مطلوبة")
-    .min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
-
   roleId: yup
     .string()
     .required("الدور مطلوب")

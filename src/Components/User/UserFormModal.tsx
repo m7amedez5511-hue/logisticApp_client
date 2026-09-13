@@ -12,16 +12,35 @@ import type { User, UserFormData } from "@/src/types/user";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface UserFormModalProps {
-  editUser:  User | null;
-  roles:     Role[];
-  branches:  Branch[];
+  userId?: string;
+  editUser?: User | null;
+  initialUserData?: User | null;
+  roles?: Role[];
+  branches?: Branch[];
+  branchOptions?: Branch[];
   onClose:   () => void;
   onSubmit:  (data: UserFormData, isNew: boolean) => Promise<boolean>;
 }
 
 // ── main component ────────────────────────────────────────────────────────────
-export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: UserFormModalProps) {
-  const isNew = editUser === null;
+export function UserFormModal({
+  editUser,
+  initialUserData,
+  roles = [],
+  branches = [],
+  branchOptions,
+  onClose,
+  onSubmit,
+}: UserFormModalProps) {
+  const formUser = initialUserData ?? editUser ?? null;
+  const formBranches = branchOptions ?? branches;
+  const isNew = formUser === null;
+  const userWithIds = formUser as (User & {
+    roleId?: string | number;
+    branchId?: string | number;
+  }) | null;
+  const savedRoleId = userWithIds?.role?.id ?? userWithIds?.roleId;
+  const savedBranchId = userWithIds?.branch?.id ?? userWithIds?.branchId;
 
   // Custom resolver wrapper — on edit, an empty password field must be
   // treated as "not provided" (skip the min(8) rule entirely) rather than
@@ -42,39 +61,49 @@ export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: 
   } = useForm<UserFormData>({
     resolver,
     defaultValues: {
-      name:     editUser?.name        ?? "",
-      email:    editUser?.email       ?? "",
-      phone:    editUser?.phone       ?? "",
+      name:     formUser?.name        ?? "",
+      email:    formUser?.email       ?? "",
+      phone:    formUser?.phone       ?? "",
       password: "",
-      roleId:   editUser?.role?.id    ?? "",
-      branchId: editUser?.branch?.id  ?? "",
+      roleId:   savedRoleId ? String(savedRoleId) : "",
+      branchId: savedBranchId ? String(savedBranchId) : "",
     },
   });
 
   // CHANGE: replaced the two manual useEffect blocks with useEditFormSync —
   // same behavior (re-apply saved id once its option list contains it),
   // reused across Driver/Car/Trip forms that have the same bug pattern.
-  useEditFormSync(setValue, "roleId", editUser?.role?.id, roles);
-  useEditFormSync(setValue, "branchId", editUser?.branch?.id, branches);
+  useEditFormSync(
+    setValue,
+    "roleId",
+    savedRoleId ? String(savedRoleId) : undefined,
+    roles,
+  );
+  useEditFormSync(
+    setValue,
+    "branchId",
+    savedBranchId ? String(savedBranchId) : undefined,
+    formBranches,
+  );
 
   // CHANGE: surface an inline error if the saved role/branch no longer
   // exists in the fetched list, instead of silently falling back to the
   // placeholder with no explanation.
   useEffect(() => {
-    if (editUser?.role?.id && roles.length && !roles.some(r => r.id === editUser.role!.id)) {
+    if (savedRoleId && roles.length && !roles.some(r => String(r.id) === String(savedRoleId))) {
       setError("roleId", { message: "الدور المحفوظ لم يعد متاحًا، الرجاء اختيار دور آخر" });
     }
-  }, [roles, editUser, setError]);
+  }, [roles, savedRoleId, setError]);
 
   useEffect(() => {
-    if (editUser?.branch?.id && branches.length && !branches.some(b => b.id === editUser.branch!.id)) {
+    if (savedBranchId && formBranches.length && !formBranches.some(b => String(b.id) === String(savedBranchId))) {
       setError("branchId", { message: "الفرع المحفوظ لم يعد متاحًا، الرجاء اختيار فرع آخر" });
     }
-  }, [branches, editUser, setError]);
+  }, [formBranches, savedBranchId, setError]);
 
   const submitHandler = async (data: UserFormData) => {
     const payload: Partial<UserFormData> = { ...data };
-    if (!isNew && !payload.password) delete payload.password;
+    if (isNew || !payload.password) delete payload.password;
 
     const ok = await onSubmit(payload as UserFormData, isNew);
     if (ok) {
@@ -117,7 +146,7 @@ export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: 
               {isNew ? "إضافة مستخدم" : "تعديل مستخدم"}
             </p>
             <h2 id="modal-title" style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text-primary)", margin: "4px 0 0" }}>
-              {isNew ? "مستخدم جديد" : editUser?.name}
+              {isNew ? "مستخدم جديد" : formUser?.name}
             </h2>
           </div>
           <Button
@@ -145,6 +174,14 @@ export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: 
         >
           {errors.name?.type === "manual" && (
             <Alert type="error" message={errors.name.message ?? ""} onClose={() => {}} />
+          )}
+
+          {Object.keys(errors).length > 0 && errors.name?.type !== "manual" && (
+            <Alert
+              type="error"
+              message="يرجى تصحيح الأخطاء الظاهرة في النموذج قبل الحفظ"
+              onClose={() => {}}
+            />
           )}
 
           {/* name */}
@@ -180,16 +217,17 @@ export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: 
             />
           </div>
 
-          {/* password */}
-         {/* <Input
-            label={isNew ? "كلمة المرور *" : "كلمة المرور الجديدة (اتركها فارغة إذا لا تريد تغييرها)"}
-            type="password"
-            {...register("password")}
-            error={errors.password?.message}
-            placeholder="••••••••"
-            autoComplete={isNew ? "new-password" : "off"}
-            dir="ltr"
-          />*/}
+          {!isNew && (
+            <Input
+              label="كلمة المرور الجديدة (اتركها فارغة إذا لا تريد تغييرها)"
+              type="password"
+              {...register("password")}
+              error={errors.password?.message}
+              placeholder="••••••••"
+              autoComplete="off"
+              dir="ltr"
+            />
+          )}
 
           {/* role + branch */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
@@ -200,7 +238,7 @@ export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: 
               dir="rtl"
             >
               <option value="">اختر الدور</option>
-              {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              {roles.map(r => <option key={r.id} value={String(r.id)}>{r.name}</option>)}
             </Select>
             <Select
               label="الفرع *"
@@ -209,7 +247,7 @@ export function UserFormModal({ editUser, roles, branches, onClose, onSubmit }: 
               dir="rtl"
             >
               <option value="">اختر الفرع</option>
-              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              {formBranches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
             </Select>
           </div>
 
