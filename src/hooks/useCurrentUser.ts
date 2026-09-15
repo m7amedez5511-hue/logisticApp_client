@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { userService, extractMeUser } from "@/src/services/user.service";
+import { translateError } from "@/src/lib/translateError"; // 1. import translator
 import type { UserMe } from "@/src/types/user";
 
 export function useCurrentUser() {
@@ -24,8 +26,10 @@ export function useCurrentUser() {
       //4. if user is null, throw an error
       if (!u) throw new Error("لا توجد بيانات");
       setUser(u as UserMe);
-    } catch {
-      setError("تعذر تحميل بيانات الحساب. حاول مرة أخرى.");
+    } catch (err) {
+      // 5. Try translateError first; fall back to the existing generic message.
+      const normalized = translateError(err);
+      setError(normalized.kind === "unknown" ? "تعذر تحميل بيانات الحساب. حاول مرة أخرى." : normalized.message);
     } finally {
       setLoading(false);
     }

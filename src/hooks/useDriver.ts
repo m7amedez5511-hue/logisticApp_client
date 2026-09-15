@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { driverService } from "@/src/services/driver.service";
+import { translateError } from "@/src/lib/translateError"; // 1. import translator
 import type { Driver, CreateDriverPayload, UpdateDriverPayload } from "@/src/types/driver";
 import type { ToastNotification } from "@/src/Components/UI";
 
@@ -116,8 +117,8 @@ export function useDrivers() {
         await loadDrivers(page, search);
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "تعذّر إضافة السائق. يرجى المحاولة لاحقاً.";
-        notify({ type: "error", message });
+        // 2. Normalize before showing in toast — no raw backend text reaches the UI.
+        notify({ type: "error", message: translateError(err).message });
         throw err;
       }
     },
@@ -146,8 +147,8 @@ export function useDrivers() {
         notify({ type: "success", message: "تم تحديث بيانات السائق بنجاح." });
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "تعذّر تحديث بيانات السائق. يرجى المحاولة لاحقاً.";
-        notify({ type: "error", message });
+        // 3. Same normalization applied consistently.
+        notify({ type: "error", message: translateError(err).message });
         throw err;
       }
     },
@@ -164,8 +165,8 @@ export function useDrivers() {
         notify({ type: "success", message: "تم حذف السائق بنجاح." });
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "تعذّر حذف السائق.";
-        notify({ type: "error", message });
+        // 4. Same normalization applied consistently.
+        notify({ type: "error", message: translateError(err).message });
         return false;
       }
     },

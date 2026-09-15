@@ -11,6 +11,7 @@ import type {
   UserFormData,
 } from "@/src/types/user";
 import type { ToastNotification } from "@/src/Components/UI"
+import { translateError } from "../lib/translateError";
 
 export type Notification = ToastNotification;
 
@@ -59,22 +60,23 @@ export function useUsers() {
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   // fetch users with pagination and search
- const loadUsers = useCallback(async (p: number, q: string) => {
-  dispatch({ type: "LOAD_START" });
-  try {
-    const token = getStoredToken();
-    const { items, total, pages } = await userService.getAll(p, q, token);
-    dispatch({ type: "LOAD_OK", users: items, total, pages });
-  } catch {
-    dispatch({ type: "LOAD_ERR", error: "عذراً، حدث خطأ أثناء تحميل بيانات المستخدمين. يرجى المحاولة لاحقاً." });
-  }
-}, []);
+  const loadUsers = useCallback(async (p: number, q: string) => {
+    dispatch({ type: "LOAD_START" });
+    try {
+      const token = getStoredToken();
+      const { items, total, pages } = await userService.getAll(p, q, token);
+      dispatch({ type: "LOAD_OK", users: items, total, pages });
+    } catch (err) {
+      const normalized = translateError(err);
+      dispatch({ type: "LOAD_ERR", error: normalized.message });
+    }
+  }, []);
 
-useEffect(() => {
-  const token = getStoredToken();
-  userService.getRoles(token).then(setRoles).catch(() => {});
-  userService.getBranches(token).then(setBranches).catch(() => {});
-}, []);
+  useEffect(() => {
+    const token = getStoredToken();
+    userService.getRoles(token).then(setRoles).catch(() => {});
+    userService.getBranches(token).then(setBranches).catch(() => {});
+  }, []);
 
   // reload users when page or search changes
   useEffect(() => {
@@ -82,18 +84,19 @@ useEffect(() => {
   }, [page, search, loadUsers]);
 
   // create new user
-const createUser = useCallback(async (data: UserFormData): Promise<boolean> => {
-  try {
-    const token = getStoredToken();
-    const user = await userService.create(data as UserFormData & { password: string }, token);
-    dispatch({ type: "ADD", user });
-    notify({ type: "success", message: "تم إنشاء مستخدم جديد بنجاح." });
-    return true;
-  } catch (err) {
-    notify({ type: "error", message: err instanceof Error && err.message ? err.message : "تعذر الاتصال بالخادم." });
-    return false;
-  }
-}, [notify]);
+  const createUser = useCallback(async (data: UserFormData): Promise<boolean> => {
+    try {
+      const token = getStoredToken();
+      const user = await userService.create(data as UserFormData & { password: string }, token);
+      dispatch({ type: "ADD", user });
+      notify({ type: "success", message: "تم إنشاء مستخدم جديد بنجاح." });
+      return true;
+    } catch (err) {
+      const normalized = translateError(err);
+      notify({ type: "error", message: normalized.message });
+      return false;
+    }
+  }, [notify]);
 
   // update existing user
   const updateUser = useCallback(async (id: string, data: UserFormData): Promise<boolean> => {
@@ -104,10 +107,8 @@ const createUser = useCallback(async (data: UserFormData): Promise<boolean> => {
       notify({ type: "success", message: "تم تحديث بيانات المستخدم بنجاح." });
       return true;
     } catch (err) {
-      const msg = err instanceof Error && err.message
-        ? err.message
-        : "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.";
-      notify({ type: "error", message: msg });
+      const normalized = translateError(err);
+      notify({ type: "error", message: normalized.message });
       return false;
     }
   }, [notify]);
@@ -121,10 +122,8 @@ const createUser = useCallback(async (data: UserFormData): Promise<boolean> => {
       notify({ type: "success", message: "تم حذف المستخدم بنجاح." });
       return true;
     } catch (err) {
-      const msg = err instanceof Error && err.message
-        ? err.message
-        : "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.";
-      notify({ type: "error", message: msg });
+      const normalized = translateError(err);
+      notify({ type: "error", message: normalized.message });
       return false;
     }
   }, [notify]);
@@ -139,7 +138,7 @@ const createUser = useCallback(async (data: UserFormData): Promise<boolean> => {
   return {
     //table data and status
     ...state,
-   // dropdown data for forms
+    // dropdown data for forms
     roles,
     branches,
     // pagination and search state

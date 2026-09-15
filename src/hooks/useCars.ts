@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { carService } from "@/src/services/car.service";
 import { get } from "@/src/services/api";
+import { translateError } from "@/src/lib/translateError"; // 1. import translator
 import type {
   Car,
   CarImage,
@@ -36,7 +37,8 @@ export function useCars(page: number, search: string) {
         setTotal(total);
         setPages(pages);
       })
-      .catch((err: Error) => setError(err.message))
+      // 2. Normalize before showing — no raw Prisma/backend text reaches the UI.
+      .catch((err: unknown) => setError(translateError(err).message))
       .finally(() => setLoading(false));
   }, [page, search]);
 
@@ -67,7 +69,8 @@ export function useCarDetail(carId: string) {
     carService
       .getById(carId, token)
       .then(setCar)
-      .catch((err: Error) => setError(err.message))
+      // 3. Same normalization applied consistently across all catch blocks.
+      .catch((err: unknown) => setError(translateError(err).message))
       .finally(() => setLoading(false));
   }, [carId]);
 
@@ -111,7 +114,8 @@ export function useCarMutations({
       }
       return true;
     } catch (err: unknown) {
-      onError(err instanceof Error ? err.message : "فشلت العملية.");
+      // 4. Translate create/update failures (e.g. duplicate plate/VIN) into Arabic.
+      onError(translateError(err).message);
       return false;
     }
   }, [onSuccess, onError, getEditTarget]);
@@ -124,7 +128,8 @@ export function useCarMutations({
       onDeleted(target.id);
       onSuccess(`تم حذف ${target.manufacturer} ${target.model} بنجاح.`);
     } catch (err: unknown) {
-      onError(err instanceof Error ? err.message : "فشل الحذف.");
+      // 5. Same normalization for delete failures.
+      onError(translateError(err).message);
     } finally {
       setDeleting(false);
     }
@@ -166,7 +171,10 @@ export function useCarImages(carId: string, sortBy: "asc" | "desc") {
       // The response shape: { data: CarImage[] }
       setImages(res);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "تعذّر تحميل الصور");
+      // 6. Fallback to the existing Arabic default via translateError's own fallback.
+      setError(translateError(err).message !== "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى."
+        ? translateError(err).message
+        : "تعذّر تحميل الصور");
     } finally {
       setLoading(false);
     }
@@ -182,7 +190,9 @@ export function useCarImages(carId: string, sortBy: "asc" | "desc") {
       await carService.uploadImages(carId, files, stage, token);
       await fetchImages();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "فشل رفع الصور");
+      // 7. Same pattern — keep a meaningful local fallback if translateError has none.
+      const normalized = translateError(err);
+      setError(normalized.kind === "unknown" ? "فشل رفع الصور" : normalized.message);
     } finally {
       setUploading(false);
     }
@@ -197,7 +207,9 @@ export function useCarImages(carId: string, sortBy: "asc" | "desc") {
       setImages(prev => prev.filter(img => img.id !== imageId));
       return true;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "فشل حذف الصورة");
+      // 8. Same pattern for delete-image failures.
+      const normalized = translateError(err);
+      setError(normalized.kind === "unknown" ? "فشل حذف الصورة" : normalized.message);
       return false;
     } finally {
       setDeleting(null);

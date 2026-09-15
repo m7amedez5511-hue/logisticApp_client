@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { clientAddressService } from "@/src/services/clientAddress.service";
+import { translateError } from "@/src/lib/translateError"; // 1. import translator
 import type {
   CreateAddressFormValues,
   UpdateAddressFormValues,
@@ -124,10 +126,8 @@ export function useClientAddresses(clientId: string) {
         notify({ type: "success", message: "تم إضافة العنوان بنجاح." });
         return true;
       } catch (err) {
-        notify({
-          type: "error",
-          message: err instanceof Error ? err.message : "تعذّر إضافة العنوان.",
-        });
+        // 2. Normalize before showing in toast — no raw backend text reaches the UI.
+        notify({ type: "error", message: translateError(err).message });
         return false;
       }
     },
@@ -149,10 +149,8 @@ export function useClientAddresses(clientId: string) {
         notify({ type: "success", message: "تم تحديث العنوان." });
         return true;
       } catch (err) {
-        notify({
-          type: "error",
-          message: err instanceof Error ? err.message : "تعذّر تحديث العنوان.",
-        });
+        // 3. Same normalization applied consistently.
+        notify({ type: "error", message: translateError(err).message });
         return false;
       }
     },
@@ -169,10 +167,8 @@ export function useClientAddresses(clientId: string) {
         notify({ type: "success", message: "تم حذف العنوان بنجاح." });
         return true;
       } catch (err) {
-        notify({
-          type: "error",
-          message: err instanceof Error ? err.message : "تعذّر حذف العنوان.",
-        });
+        // 4. Same normalization applied consistently.
+        notify({ type: "error", message: translateError(err).message });
         return false;
       }
     },
@@ -194,11 +190,8 @@ export function useClientAddresses(clientId: string) {
         notify({ type: "success", message: "تم تعيين العنوان كعنوان أساسي." });
         return true;
       } catch (err) {
-        notify({
-          type: "error",
-          message:
-            err instanceof Error ? err.message : "تعذّر تعيين العنوان كأساسي.",
-        });
+        // 5. Same normalization applied consistently.
+        notify({ type: "error", message: translateError(err).message });
         return false;
       } finally {
         setSettingPrimaryId(null);

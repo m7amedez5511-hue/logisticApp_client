@@ -16,6 +16,7 @@ export interface ClientResponse {
   data: Client;
 }
 export interface Client {
+  [x: string]: Client;
   id: string;
   name: string;
   email: string;

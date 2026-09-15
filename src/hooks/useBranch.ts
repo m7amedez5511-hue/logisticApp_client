@@ -9,6 +9,7 @@ import type {
   TableState,
 } from "@/src/types/branch";
 import type { ToastNotification } from "@/src/Components/UI";
+import { translateError } from "../lib/translateError";
 
 export type Notification = ToastNotification;
 
@@ -70,7 +71,9 @@ export function useBranches() {
     notify({ type: "success", message: "تم إضافة الفرع بنجاح." });
     return true;
   } catch (err) {
-    notify({ type: "error", message: err instanceof Error ? err.message : "تعذر الاتصال بالخادم." });
+    // Normalize the error and show a user-friendly message in Arabic
+    const normalized = translateError(err);
+    notify({ type: "error", message: normalized.message });
     return false;
   }
 }, [notify]);
@@ -87,10 +90,9 @@ export function useBranches() {
       notify({ type: "success", message: "تم تحديث الفرع بنجاح." });
       return true;
     } catch (err) {
-      const msg = err instanceof Error && err.message
-        ? err.message
-        : "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.";
-      notify({ type: "error", message: msg });
+      // Normalize the error and show a user-friendly message in Arabic
+      const normalized = translateError(err);
+      notify({ type: "error", message: normalized.message });
       return false;
     }
   }, [notify]);
@@ -104,6 +106,9 @@ export function useBranches() {
       notify({ type: "success", message: "تم حذف الفرع بنجاح." });
       return true;
     } catch (err) {
+      // Normalize the error and show a user-friendly message in Arabic
+      const normalized = translateError(err);
+      notify({ type: "error", message: normalized.message });
       const msg = err instanceof Error && err.message
         ? err.message
         : "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.";

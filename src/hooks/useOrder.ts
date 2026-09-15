@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { orderService } from "@/src/services/order.service";
+import { translateError } from "@/src/lib/translateError"; // 1. import translator
 import type {
   Order,
   CreateOrderPayload,
@@ -109,8 +110,8 @@ export function useOrders() {
         await loadOrders(page, search, statusFilter);
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "تعذّر إنشاء الطلب. يرجى المحاولة لاحقاً.";
-        notify({ type: "error", message });
+        // 2. Normalize before showing in toast — no raw backend text reaches the UI.
+        notify({ type: "error", message: translateError(err).message });
         throw err;
       }
     },
@@ -126,8 +127,8 @@ export function useOrders() {
         notify({ type: "success", message: "تم تحديث الطلب بنجاح." });
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "تعذّر تحديث الطلب. يرجى المحاولة لاحقاً.";
-        notify({ type: "error", message });
+        // 3. Same normalization applied consistently.
+        notify({ type: "error", message: translateError(err).message });
         throw err;
       }
     },
@@ -143,8 +144,8 @@ export function useOrders() {
         notify({ type: "success", message: "تم تحديث حالة الطلب بنجاح." });
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "تعذّر تحديث حالة الطلب.";
-        notify({ type: "error", message });
+        // 4. Same normalization applied consistently.
+        notify({ type: "error", message: translateError(err).message });
         throw err;
       }
     },
@@ -160,8 +161,8 @@ export function useOrders() {
         notify({ type: "success", message: "تم حذف الطلب بنجاح." });
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "تعذّر حذف الطلب.";
-        notify({ type: "error", message });
+        // 5. Same normalization applied consistently.
+        notify({ type: "error", message: translateError(err).message });
         return false;
       }
     },

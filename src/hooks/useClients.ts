@@ -9,6 +9,7 @@ import type {
   ClientTableState,
 } from "@/src/types/client";
 import { Notification } from "../types/notif";
+import { translateError } from "../lib/translateError";
 
 
 
@@ -102,7 +103,9 @@ const loadClients = useCallback(async (p: number, q: string) => {
     notify({ type: "success", message: "تم إضافة العميل بنجاح." });
     return true;
   } catch (err) {
-    notify({ type: "error", message: err instanceof Error ? err.message : "تعذّر إضافة العميل." });
+    // Normalize the error and show a user-friendly message in Arabic
+    const normalized = translateError(err);
+    notify({ type: "error", message: normalized.message });
     return false;
   }
 }, [notify]);
@@ -117,9 +120,10 @@ const loadClients = useCallback(async (p: number, q: string) => {
         notify({ type: "success", message: "تم تحديث بيانات العميل." });
         return true;
       } catch (err) {
+        const normalized = translateError(err);
         notify({
           type: "error",
-          message: err instanceof Error ? err.message : "تعذّر تحديث العميل.",
+          message: normalized.message,
         });
         return false;
       }
@@ -139,7 +143,7 @@ const loadClients = useCallback(async (p: number, q: string) => {
       } catch (err) {
         notify({
           type: "error",
-          message: err instanceof Error ? err.message : "تعذّر حذف العميل.",
+          message: translateError(err).message,
         });
         return false;
       }

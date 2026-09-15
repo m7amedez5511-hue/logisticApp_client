@@ -1,9 +1,11 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { loginUser } from "@/src/lib/auth";
 import { detectIdentityField } from "@/src/validations/auth.validator";
+import { translateError } from "@/src/lib/translateError"; // 1. import translator
 
 export function useAuth() {
   const router = useRouter();
@@ -49,24 +51,28 @@ export function useAuth() {
       router.replace("/dashboard");
       return true;
     } catch (err) {
-      // ── Edge case 2: blocked-role rejection ──────────────────────────
-      // loginUser() throws "غير مصرح لك بالوصول إلى هذه اللوحة." for
-      // BLOCKED_ROLES *before* saveAuth() ever runs — that message is
-      // preserved verbatim below via the `else` branch, since it doesn't
-      // match the network/401 buckets.
+      // 2. Try known fixed backend codes first (Password_Incorrect, User_Not_Found, etc.).
+      const normalized = translateError(err);
+      if (normalized.kind === "known_message") {
+        setError(normalized.message);
+        return false;
+      }
+
+      // 3. Keep existing network/401/blocked-role handling for non-fixed-code errors.
       const message =
         err instanceof Error ? err.message : "حدث خطأ غير متوقع. يرجى المحاولة لاحقًا.";
-      const normalized = message.toLowerCase();
+      const lower = message.toLowerCase();
 
-      if (normalized.includes("network") || normalized.includes("fetch") || normalized.includes("timeout")) {
+      if (lower.includes("network") || lower.includes("fetch") || lower.includes("timeout")) {
         setError("تعذر الاتصال بالخادم. يرجى التحقق من الاتصال والمحاولة مرة أخرى.");
-      } else if (normalized.includes("401") || normalized.includes("unauthorized")) {
+      } else if (lower.includes("401") || lower.includes("unauthorized")) {
         setError("اسم المستخدم أو كلمة المرور غير صحيحة.");
-      } else {
-        // Surfaces loginUser()'s own thrown messages as-is, including:
-        //  - "اسم المستخدم أو كلمة المرور غير صحيحة." (missing token/user)
-        //  - "غير مصرح لك بالوصول إلى هذه اللوحة." (blocked role)
+      } else if (message.includes("غير مصرح لك بالوصول")) {
+        // 4. Preserve loginUser()'s own blocked-role message verbatim.
         setError(message);
+      } else {
+        // 5. Clean fallback instead of showing raw backend text.
+        setError(normalized.message);
       }
 
       return false;

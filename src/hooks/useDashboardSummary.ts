@@ -1,9 +1,9 @@
-// src/hooks/useDashboardSummary.ts
 "use client";
 
 import { useEffect, useState } from "react";
 import { dashboardService } from "@/src/services/dashboard.service";
 import { getStoredToken } from "@/src/lib/auth";
+import { translateError } from "@/src/lib/translateError"; // 1. import translator
 import type { DashboardSummary } from "@/src/types/dashboard";
 
 interface State {
@@ -36,8 +36,9 @@ export function useDashboardSummary(): State {
       .then(res => {
         if (!cancelled) setState({ data: res.data, error: null, loading: false });
       })
-      .catch((err: Error) => {
-        if (!cancelled) setState({ data: null, error: err.message, loading: false });
+      .catch((err: unknown) => {
+        // 2. Normalize before showing — no raw backend text reaches the UI.
+        if (!cancelled) setState({ data: null, error: translateError(err).message, loading: false });
       });
 
     return () => { cancelled = true; };

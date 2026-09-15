@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { roleService } from "@/src/services/role.service";
-import { parseApiError } from "@/src/lib/apiError";
+import { translateError } from "../lib/translateError";
 import { Notification } from "../types/notif";
 import { Permission, Role, RoleFormData } from "../types/role";
 
@@ -82,33 +82,26 @@ export function useRoles() {
 
   // ── Fetch roles ─────────────────────────────────────────────────────────────
   const loadRoles = useCallback(async (p: number, q: string) => {
-  dispatch({ type: "LOAD_START" });
-  try {
-    const token = getStoredToken();
-    const { items, total, pages } = await roleService.getAll(p, q, token);
-    dispatch({ type: "LOAD_OK", roles: items, total, pages });
-  } catch {
-    dispatch({ type: "LOAD_ERR", error: "تعذّر تحميل بيانات الأدوار. يرجى المحاولة مجدداً." });
-  }
-}, []);
-
-useEffect(() => {
-  const token = getStoredToken();
-  roleService.getPermissions(token).then(setPermissions).catch(() => {});
-}, []);
+    dispatch({ type: "LOAD_START" });
+    try {
+      const token = getStoredToken();
+      const { items, total, pages } = await roleService.getAll(p, q, token);
+      dispatch({ type: "LOAD_OK", roles: items, total, pages });
+    } catch (err) {
+      const normalized = translateError(err);
+      dispatch({ type: "LOAD_ERR", error: normalized.message });
+    }
+  }, []);
 
   // ── Load permissions on mount ────────────────────────────────────────────────
+  // NOTE: roleService.getPermissions() already unwraps the response and
+  // returns Permission[] directly (see role.service.ts). A second effect
+  // here used to re-unwrap the already-unwrapped array (res.data.premissions.data),
+  // which always resolved to [] and silently emptied the permissions dropdown.
+  // That duplicate effect has been removed — this is now the single source.
   useEffect(() => {
     const token = getStoredToken();
-    roleService
-      .getPermissions(token)
-      .then((res) => {
-        const raw = (
-          res as unknown as { data: { premissions: { data: Permission[] } } }
-        ).data;
-        setPermissions(raw?.premissions?.data ?? []);
-      })
-      .catch(() => {});
+    roleService.getPermissions(token).then(setPermissions).catch(() => {});
   }, []);
 
   // ── Reload when page / search changes ────────────────────────────────────────
@@ -118,24 +111,25 @@ useEffect(() => {
 
   // ── CRUD actions ─────────────────────────────────────────────────────────────
 
- const createRole = useCallback(
-  async (data: RoleFormData): Promise<boolean> => {
-    try {
-      const token = getStoredToken();
-      const role = await roleService.create(data, token);
-      if (data.permissionIds.length) {
-        await roleService.bulkAssignPermissions(role.id, data.permissionIds, token);
+  const createRole = useCallback(
+    async (data: RoleFormData): Promise<boolean> => {
+      try {
+        const token = getStoredToken();
+        const role = await roleService.create(data, token);
+        if (data.permissionIds.length) {
+          await roleService.bulkAssignPermissions(role.id, data.permissionIds, token);
+        }
+        await loadRoles(page, search);
+        notify({ type: "success", message: "تم إنشاء الدور وتعيين الصلاحيات بنجاح." });
+        return true;
+      } catch (err) {
+        const normalized = translateError(err);
+        notify({ type: "error", message: normalized.message });
+        return false;
       }
-      await loadRoles(page, search);
-      notify({ type: "success", message: "تم إنشاء الدور وتعيين الصلاحيات بنجاح." });
-      return true;
-    } catch (err) {
-      notify({ type: "error", message: parseApiError(err, "تعذّر إنشاء الدور.") });
-      return false;
-    }
-  },
-  [page, search, loadRoles, notify],
-);
+    },
+    [page, search, loadRoles, notify],
+  );
 
   const updateRole = useCallback(
     async (
@@ -160,9 +154,10 @@ useEffect(() => {
         });
         return true;
       } catch (err) {
+        const normalized = translateError(err);
         notify({
           type: "error",
-          message: parseApiError(err, "تعذّر تحديث الدور."),
+          message: normalized.message,
         });
         return false;
       }
@@ -179,9 +174,10 @@ useEffect(() => {
         notify({ type: "success", message: "تم حذف الدور بنجاح." });
         return true;
       } catch (err) {
+        const normalized = translateError(err);
         notify({
           type: "error",
-          message: parseApiError(err, "تعذّر حذف الدور."),
+          message: normalized.message,
         });
         return false;
       }
@@ -198,9 +194,10 @@ useEffect(() => {
         notify({ type: "success", message: "تم إضافة الصلاحية للدور بنجاح." });
         return true;
       } catch (err) {
+        const normalized = translateError(err);
         notify({
           type: "error",
-          message: parseApiError(err, "تعذّر إضافة الصلاحية."),
+          message: normalized.message,
         });
         return false;
       }
@@ -217,9 +214,10 @@ useEffect(() => {
         notify({ type: "success", message: "تم إزالة الصلاحية من الدور بنجاح." });
         return true;
       } catch (err) {
+        const normalized = translateError(err);
         notify({
           type: "error",
-          message: parseApiError(err, "تعذّر إزالة الصلاحية."),
+          message: normalized.message,
         });
         return false;
       }

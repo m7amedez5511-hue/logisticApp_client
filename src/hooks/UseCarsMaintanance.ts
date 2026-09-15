@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getStoredToken } from "@/src/lib/auth";
 import { carMaintenanceService } from "@/src/services/carMaintanance.service";
+import { translateError } from "@/src/lib/translateError"; // 1. import translator
 import type {
   CarMaintenance,
   CreateMaintenancePayload,
@@ -43,7 +45,8 @@ export function useCarMaintenanceList(
       list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setAllRecords(list);
     })
-    .catch((err: Error) => setError(err.message))
+    // 2. Normalize before showing — no raw backend text reaches the UI.
+    .catch((err: unknown) => setError(translateError(err).message))
     .finally(() => setLoading(false));
 }, [carId]);
 
@@ -82,7 +85,8 @@ export function useCarMaintenanceDetail(carId: string | null, maintenanceId: str
     carMaintenanceService
       .getById(carId, maintenanceId, token)
       .then((res) => setRecord((res as unknown as { data: CarMaintenance }).data))
-      .catch((err: Error) => setError(err.message))
+      // 3. Same normalization applied consistently.
+      .catch((err: unknown) => setError(translateError(err).message))
       .finally(() => setLoading(false));
   }, [carId, maintenanceId]);
 
@@ -111,7 +115,8 @@ export function useCarArchivedMaintenance(carId: string | null) {
         const list = (res as unknown as { data: CarMaintenance[] }).data ?? [];
         setRecords(list);
       })
-      .catch((err: Error) => setError(err.message))
+      // 4. Same normalization applied consistently.
+      .catch((err: unknown) => setError(translateError(err).message))
       .finally(() => setLoading(false));
   }, [carId]);
 
@@ -137,7 +142,8 @@ export function useGlobalArchivedMaintenance() {
         const list = (res as unknown as { data: CarMaintenance[] }).data ?? [];
         setRecords(list);
       })
-      .catch((err: Error) => setError(err.message))
+      // 5. Same normalization applied consistently.
+      .catch((err: unknown) => setError(translateError(err).message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -191,7 +197,8 @@ export function useCarMaintenanceMutations({
         }
         return true;
       } catch (err: unknown) {
-        onError(err instanceof Error ? err.message : "فشلت العملية.");
+        // 6. Translate mutation failures into Arabic before surfacing them.
+        onError(translateError(err).message);
         return false;
       } finally {
         setSaving(false);
@@ -212,7 +219,8 @@ export function useCarMaintenanceMutations({
         onDeleted(target.id);
         onSuccess("تم حذف سجل الصيانة، وتم إرجاع حالة المركبة إلى نشط.");
       } catch (err: unknown) {
-        onError(err instanceof Error ? err.message : "فشل الحذف.");
+        // 7. Same normalization for delete failures.
+        onError(translateError(err).message);
       } finally {
         setDeleting(false);
       }
